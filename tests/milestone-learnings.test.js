@@ -66,13 +66,13 @@ describe('milestone-learnings.js', () => {
 
   // --- Test: exits with error if archive path missing ---
 
-  test('exits with error code 1 when archive path argument is missing', () => {
+  test('exits with error code 1 when archive path argument is missing', async () => {
     const result = runScriptExpectError('');
     expect(result.code).toBe(1);
     expect(result.stderr + result.stdout).toMatch(/usage|archive|missing|required/i);
   });
 
-  test('exits with error code 1 when archive path does not exist', () => {
+  test('exits with error code 1 when archive path does not exist', async () => {
     const result = runScriptExpectError(`"${path.join(tmpDir, 'nonexistent')}"`, {
       PBR_LEARNINGS_FILE: learningsFile
     });
@@ -81,7 +81,7 @@ describe('milestone-learnings.js', () => {
 
   // --- Test: reads SUMMARY.md files and ingests learnings ---
 
-  test('reads SUMMARY.md files and ingests learnings entries', () => {
+  test('reads SUMMARY.md files and ingests learnings entries', async () => {
     const phaseDir = path.join(phasesDir, '01-auth');
     writeSummary(phaseDir, `---
 provides:
@@ -110,7 +110,7 @@ Auth phase complete.
     expect(entries.some(e => e.source_project === 'test-app')).toBe(true);
   });
 
-  test('ingests provides items as tech-pattern entries', () => {
+  test('ingests provides items as tech-pattern entries', async () => {
     const phaseDir = path.join(phasesDir, '01-api');
     writeSummary(phaseDir, `---
 provides:
@@ -131,7 +131,7 @@ deferred: []
     expect(techEntry.occurrences).toBe(1);
   });
 
-  test('ingests deferred items as deferred-item entries', () => {
+  test('ingests deferred items as deferred-item entries', async () => {
     const phaseDir = path.join(phasesDir, '02-features');
     writeSummary(phaseDir, `---
 provides: []
@@ -151,7 +151,7 @@ deferred:
     expect(deferredEntries[0].tags).toContain('deferred');
   });
 
-  test('aggregates multiple SUMMARY.md files across phases', () => {
+  test('aggregates multiple SUMMARY.md files across phases', async () => {
     writeSummary(path.join(phasesDir, '01-phase'), `---
 provides:
   - "Feature A"
@@ -175,7 +175,7 @@ deferred: []
     expect(stdout).toMatch(/2 new/);
   });
 
-  test('aggregates per-plan SUMMARY-{id}.md files within a single phase', () => {
+  test('aggregates per-plan SUMMARY-{id}.md files within a single phase', async () => {
     const phaseDir = path.join(phasesDir, '45-learning');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-45-01.md'), `---
@@ -202,7 +202,7 @@ deferred: []
 
   // --- Test: gracefully handles missing or empty SUMMARY.md files ---
 
-  test('handles phase directory with no SUMMARY.md gracefully', () => {
+  test('handles phase directory with no SUMMARY.md gracefully', async () => {
     // Phase dir exists but has no SUMMARY.md
     fs.mkdirSync(path.join(phasesDir, '01-empty'), { recursive: true });
 
@@ -215,7 +215,7 @@ deferred: []
     expect(stdout).toMatch(/0 new/);
   });
 
-  test('handles empty SUMMARY.md frontmatter gracefully', () => {
+  test('handles empty SUMMARY.md frontmatter gracefully', async () => {
     writeSummary(path.join(phasesDir, '01-phase'), '# Just a heading\n\nNo frontmatter here.\n');
 
     const stdout = runScript(`"${archiveDir}" --project myapp`, {
@@ -226,7 +226,7 @@ deferred: []
     expect(stdout).toMatch(/0 new/);
   });
 
-  test('handles SUMMARY.md with empty provides and deferred arrays', () => {
+  test('handles SUMMARY.md with empty provides and deferred arrays', async () => {
     writeSummary(path.join(phasesDir, '01-phase'), `---
 provides: []
 deferred: []
@@ -243,7 +243,7 @@ deferred: []
 
   // --- Test: outputs summary of ingested count to stdout ---
 
-  test('outputs summary line with created/updated/errors counts', () => {
+  test('outputs summary line with created/updated/errors counts', async () => {
     writeSummary(path.join(phasesDir, '01-phase'), `---
 provides:
   - "Auth service"
@@ -262,7 +262,7 @@ deferred:
     expect(stdout).toMatch(/errors/i);
   });
 
-  test('defaults project name to basename of cwd when --project not provided', () => {
+  test('defaults project name to basename of cwd when --project not provided', async () => {
     writeSummary(path.join(phasesDir, '01-phase'), `---
 provides:
   - "Something"
@@ -282,7 +282,7 @@ deferred: []
 
   // --- Test: importable as module without side effects ---
 
-  test('imports as a module without side effects', () => {
+  test('imports as a module without side effects', async () => {
     // Should not throw, should not run main()
     expect(() => {
       require(SCRIPT);
@@ -299,20 +299,20 @@ describe('milestone-learnings.js (module API)', () => {
     mod = require(SCRIPT);
   });
 
-  test('exports extractLearningsFromSummary function', () => {
+  test('exports extractLearningsFromSummary function', async () => {
     expect(typeof mod.extractLearningsFromSummary).toBe('function');
   });
 
-  test('exports findSummaryFiles function', () => {
+  test('exports findSummaryFiles function', async () => {
     expect(typeof mod.findSummaryFiles).toBe('function');
   });
 
-  test('extractLearningsFromSummary returns empty array for content with no frontmatter', () => {
+  test('extractLearningsFromSummary returns empty array for content with no frontmatter', async () => {
     const entries = mod.extractLearningsFromSummary('# No frontmatter', 'my-project');
     expect(entries).toEqual([]);
   });
 
-  test('extractLearningsFromSummary creates tech-pattern for provides items', () => {
+  test('extractLearningsFromSummary creates tech-pattern for provides items', async () => {
     const content = `---
 provides:
   - "Redis caching layer"
@@ -329,7 +329,7 @@ deferred: []
     expect(Array.isArray(entries[0].tags)).toBe(true);
   });
 
-  test('extractLearningsFromSummary creates deferred-item for deferred entries', () => {
+  test('extractLearningsFromSummary creates deferred-item for deferred entries', async () => {
     const content = `---
 provides: []
 deferred:
@@ -342,7 +342,7 @@ deferred:
     expect(entries[0].tags).toContain('deferred');
   });
 
-  test('extractLearningsFromSummary creates process-win for key_decisions items', () => {
+  test('extractLearningsFromSummary creates process-win for key_decisions items', async () => {
     const content = `---
 provides: []
 deferred: []
@@ -357,7 +357,7 @@ key_decisions:
     expect(decision.summary).toContain('Chose PostgreSQL');
   });
 
-  test('extractLearningsFromSummary creates tech-pattern for patterns items', () => {
+  test('extractLearningsFromSummary creates tech-pattern for patterns items', async () => {
     const content = `---
 provides: []
 deferred: []
@@ -372,7 +372,7 @@ patterns:
     expect(pattern.summary).toContain('Repository pattern');
   });
 
-  test('extractLearningsFromSummary creates planning-failure for issues items', () => {
+  test('extractLearningsFromSummary creates planning-failure for issues items', async () => {
     const content = `---
 provides: []
 deferred: []
@@ -387,7 +387,7 @@ issues:
     expect(issue.summary).toContain('Underestimated');
   });
 
-  test('extractLearningsFromSummary handles inline array frontmatter', () => {
+  test('extractLearningsFromSummary handles inline array frontmatter', async () => {
     const content = `---
 provides: ["Feature A", "Feature B"]
 deferred: []
@@ -399,7 +399,7 @@ deferred: []
     expect(entries[1].summary).toContain('Feature B');
   });
 
-  test('extractLearningsFromSummary handles scalar string value in frontmatter', () => {
+  test('extractLearningsFromSummary handles scalar string value in frontmatter', async () => {
     const content = `---
 provides: "Single feature"
 deferred: []
@@ -411,7 +411,7 @@ deferred: []
     expect(Array.isArray(entries)).toBe(true);
   });
 
-  test('findSummaryFiles returns SUMMARY.md paths from phases dir', () => {
+  test('findSummaryFiles returns SUMMARY.md paths from phases dir', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'find-test-'));
     try {
       const phasesDir = path.join(tmpDir, 'phases');
@@ -428,7 +428,7 @@ deferred: []
     }
   });
 
-  test('findSummaryFiles returns per-plan SUMMARY-{id}.md files', () => {
+  test('findSummaryFiles returns per-plan SUMMARY-{id}.md files', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'find-perplan-'));
     try {
       const phasesDir = path.join(tmpDir, 'phases');
@@ -454,7 +454,7 @@ deferred: []
     }
   });
 
-  test('findSummaryFiles returns both SUMMARY.md and SUMMARY-{id}.md in same phase', () => {
+  test('findSummaryFiles returns both SUMMARY.md and SUMMARY-{id}.md in same phase', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'find-mixed-'));
     try {
       const phasesDir = path.join(tmpDir, 'phases');
@@ -488,7 +488,7 @@ describe('aggregateToKnowledge', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('creates KNOWLEDGE.md if it does not exist', () => {
+  test('creates KNOWLEDGE.md if it does not exist', async () => {
     const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
     const entries = [{
       source_project: 'test-app',
@@ -510,7 +510,7 @@ describe('aggregateToKnowledge', () => {
     expect(content).toContain('P001');
   });
 
-  test('appends to existing KNOWLEDGE.md', () => {
+  test('appends to existing KNOWLEDGE.md', async () => {
     const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
     // Write initial KNOWLEDGE.md with one existing pattern
     fs.writeFileSync(knowledgePath, mod.KNOWLEDGE_TEMPLATE, 'utf8');
@@ -547,7 +547,7 @@ describe('aggregateToKnowledge', () => {
     expect(content).toContain('P002');
   });
 
-  test('deduplicates entries — same pattern not added twice', () => {
+  test('deduplicates entries — same pattern not added twice', async () => {
     const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
     const entries = [{
       source_project: 'test-app',
@@ -575,7 +575,7 @@ describe('aggregateToKnowledge', () => {
     expect(matches.length).toBe(1);
   });
 
-  test('auto-increments IDs correctly', () => {
+  test('auto-increments IDs correctly', async () => {
     const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
     const entries = [
       {
@@ -629,7 +629,7 @@ describe('aggregateToKnowledge', () => {
     expect(content).toContain('L001');
   });
 
-  test('routes different entry types to correct tables', () => {
+  test('routes different entry types to correct tables', async () => {
     const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
     const entries = [
       {
@@ -672,7 +672,7 @@ describe('aggregateToKnowledge', () => {
     expect(content).toMatch(/\| L001 \|.*SSR support/);
   });
 
-  test('handles empty entries array gracefully', () => {
+  test('handles empty entries array gracefully', async () => {
     const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
     const result = mod.aggregateToKnowledge([], knowledgePath);
     expect(result.added).toBe(0);

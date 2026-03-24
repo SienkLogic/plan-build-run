@@ -11,15 +11,15 @@ const { runPbrTools, createTempProject, cleanup } = require('./helpers.cjs');
 describe('state-snapshot command', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('missing STATE.md returns error', () => {
+  test('missing STATE.md returns error', async () => {
     const result = runPbrTools('state-snapshot', tmpDir);
     assert.ok(result.success, `Command should succeed: ${result.error}`);
 
@@ -27,7 +27,7 @@ describe('state-snapshot command', () => {
     assert.strictEqual(output.error, 'STATE.md not found', 'should report missing file');
   });
 
-  test('extracts basic fields from STATE.md', () => {
+  test('extracts basic fields from STATE.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -58,7 +58,7 @@ describe('state-snapshot command', () => {
     assert.strictEqual(output.last_activity, '2024-01-15', 'last activity date extracted');
   });
 
-  test('extracts decisions table', () => {
+  test('extracts decisions table', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -84,7 +84,7 @@ describe('state-snapshot command', () => {
     assert.strictEqual(output.decisions[0].rationale, 'Better DX than raw SQL', 'first decision rationale');
   });
 
-  test('extracts blockers list', () => {
+  test('extracts blockers list', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -108,7 +108,7 @@ describe('state-snapshot command', () => {
     ], 'blockers extracted');
   });
 
-  test('extracts session continuity info', () => {
+  test('extracts session continuity info', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -132,7 +132,7 @@ describe('state-snapshot command', () => {
     assert.strictEqual(output.session.resume_file, '.planning/phases/03-api/03-02-PLAN.md', 'resume file extracted');
   });
 
-  test('handles paused_at field', () => {
+  test('handles paused_at field', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -149,7 +149,7 @@ describe('state-snapshot command', () => {
     assert.strictEqual(output.paused_at, 'Phase 3, Plan 1, Task 2 - mid-implementation', 'paused_at extracted');
   });
 
-  test('supports --cwd override when command runs outside project root', () => {
+  test('supports --cwd override when command runs outside project root', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Session State
@@ -172,7 +172,7 @@ describe('state-snapshot command', () => {
     }
   });
 
-  test('returns error for invalid --cwd path', () => {
+  test('returns error for invalid --cwd path', async () => {
     const invalid = path.join(tmpDir, 'does-not-exist');
     const result = runPbrTools(`state-snapshot --cwd "${invalid}"`, tmpDir);
     assert.ok(!result.success, 'should fail for invalid --cwd');
@@ -183,15 +183,15 @@ describe('state-snapshot command', () => {
 describe('state mutation commands', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('add-decision preserves dollar amounts without corrupting Decisions section', () => {
+  test('add-decision preserves dollar amounts without corrupting Decisions section', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -220,7 +220,7 @@ None
     assert.ok(!state.includes('No decisions yet.'), 'placeholder should be removed');
   });
 
-  test('add-blocker preserves dollar strings without corrupting Blockers section', () => {
+  test('add-blocker preserves dollar strings without corrupting Blockers section', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -241,7 +241,7 @@ None
     assert.strictEqual((state.match(/^## Blockers$/gm) || []).length, 1, 'Blockers heading should not be duplicated');
   });
 
-  test('add-decision supports file inputs to preserve shell-sensitive dollar text', () => {
+  test('add-decision supports file inputs to preserve shell-sensitive dollar text', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -273,7 +273,7 @@ None
     );
   });
 
-  test('add-blocker supports --text-file for shell-sensitive text', () => {
+  test('add-blocker supports --text-file for shell-sensitive text', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -304,15 +304,15 @@ None
 describe('state json command', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('missing STATE.md returns error', () => {
+  test('missing STATE.md returns error', async () => {
     const result = runPbrTools('state json', tmpDir);
     assert.ok(result.success, `Command should succeed: ${result.error}`);
 
@@ -320,7 +320,7 @@ describe('state json command', () => {
     assert.strictEqual(output.error, 'STATE.md not found', 'should report missing file');
   });
 
-  test('builds frontmatter on-the-fly from body when no frontmatter exists', () => {
+  test('builds frontmatter on-the-fly from body when no frontmatter exists', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -351,7 +351,7 @@ describe('state json command', () => {
     assert.strictEqual(output.progress.percent, 60, 'progress percent extracted');
   });
 
-  test('reads existing frontmatter when present', () => {
+  test('reads existing frontmatter when present', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `---
@@ -378,7 +378,7 @@ stopped_at: Plan 2 of Phase 3
     assert.strictEqual(output.stopped_at, 'Plan 2 of Phase 3', 'stopped_at from frontmatter');
   });
 
-  test('normalizes various status values', () => {
+  test('normalizes various status values', async () => {
     const statusTests = [
       { input: 'In progress', expected: 'executing' },
       { input: 'Ready to execute', expected: 'executing' },
@@ -409,15 +409,15 @@ stopped_at: Plan 2 of Phase 3
 describe('STATE.md frontmatter sync', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('state update adds frontmatter to STATE.md', () => {
+  test('state update adds frontmatter to STATE.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -438,7 +438,7 @@ describe('STATE.md frontmatter sync', () => {
     assert.ok(content.includes('**Status:** Executing Plan 1'), 'updated field in body');
   });
 
-  test('state patch adds frontmatter', () => {
+  test('state patch adds frontmatter', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -456,7 +456,7 @@ describe('STATE.md frontmatter sync', () => {
     assert.ok(content.startsWith('---\n'), 'should have frontmatter after patch');
   });
 
-  test('frontmatter is idempotent on multiple writes', () => {
+  test('frontmatter is idempotent on multiple writes', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -475,7 +475,7 @@ describe('STATE.md frontmatter sync', () => {
     assert.ok(content.includes('status: paused'), 'frontmatter should reflect latest status');
   });
 
-  test('round-trip: write then read via state json', () => {
+  test('round-trip: write then read via state json', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       `# Project State
@@ -511,25 +511,25 @@ const { stateExtractField, stateReplaceField } = require('../plugins/pbr/scripts
 describe('stateExtractField and stateReplaceField helpers', () => {
   // stateExtractField tests
 
-  test('extracts simple field value', () => {
+  test('extracts simple field value', async () => {
     const content = '# State\n\n**Status:** In progress\n';
     const result = stateExtractField(content, 'Status');
     assert.strictEqual(result, 'In progress', 'should extract simple field value');
   });
 
-  test('extracts field with colon in value', () => {
+  test('extracts field with colon in value', async () => {
     const content = '# State\n\n**Last Activity:** 2024-01-15 — Completed plan\n';
     const result = stateExtractField(content, 'Last Activity');
     assert.strictEqual(result, '2024-01-15 — Completed plan', 'should return full value after field pattern');
   });
 
-  test('returns null for missing field', () => {
+  test('returns null for missing field', async () => {
     const content = '# State\n\n**Phase:** 03\n';
     const result = stateExtractField(content, 'Status');
     assert.strictEqual(result, null, 'should return null when field not present');
   });
 
-  test('is case-insensitive on field name', () => {
+  test('is case-insensitive on field name', async () => {
     const content = '# State\n\n**status:** Active\n';
     const result = stateExtractField(content, 'Status');
     assert.strictEqual(result, 'Active', 'should match field name case-insensitively');
@@ -537,7 +537,7 @@ describe('stateExtractField and stateReplaceField helpers', () => {
 
   // stateReplaceField tests
 
-  test('replaces field value', () => {
+  test('replaces field value', async () => {
     const content = '# State\n\n**Status:** Old\n';
     const result = stateReplaceField(content, 'Status', 'New');
     assert.ok(result !== null, 'should return updated content, not null');
@@ -545,13 +545,13 @@ describe('stateExtractField and stateReplaceField helpers', () => {
     assert.ok(!result.includes('**Status:** Old'), 'output should not contain old field value');
   });
 
-  test('returns null when field not found', () => {
+  test('returns null when field not found', async () => {
     const content = '# State\n\n**Phase:** 03\n';
     const result = stateReplaceField(content, 'Status', 'New');
     assert.strictEqual(result, null, 'should return null when field not present');
   });
 
-  test('preserves surrounding content', () => {
+  test('preserves surrounding content', async () => {
     const content = [
       '# Project State',
       '',
@@ -572,7 +572,7 @@ describe('stateExtractField and stateReplaceField helpers', () => {
     assert.ok(result.includes('Some notes here.'), 'Notes content should be unchanged');
   });
 
-  test('round-trip: extract then replace then extract', () => {
+  test('round-trip: extract then replace then extract', async () => {
     const content = '# State\n\n**Phase:** 3\n';
     const extracted = stateExtractField(content, 'Phase');
     assert.strictEqual(extracted, '3', 'initial extract should return "3"');
@@ -592,15 +592,15 @@ describe('stateExtractField and stateReplaceField helpers', () => {
 describe('cmdStateLoad (state load)', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('returns config and state when STATE.md exists', () => {
+  test('returns config and state when STATE.md exists', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n'
@@ -624,7 +624,7 @@ describe('cmdStateLoad (state load)', () => {
     assert.ok(output.state_raw.includes('**Status:** Active'), 'state_raw should contain STATE.md content');
   });
 
-  test('returns state_exists false when STATE.md missing', () => {
+  test('returns state_exists false when STATE.md missing', async () => {
     const result = runPbrTools('state load', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -633,7 +633,7 @@ describe('cmdStateLoad (state load)', () => {
     assert.strictEqual(output.state_raw, '', 'state_raw should be empty string');
   });
 
-  test('returns raw key=value format with --raw flag', () => {
+  test('returns raw key=value format with --raw flag', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n'
@@ -654,15 +654,15 @@ describe('cmdStateLoad (state load)', () => {
 describe('cmdStateGet (state get)', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('returns full content when no section specified', () => {
+  test('returns full content when no section specified', async () => {
     const stateContent = '# Project State\n\n**Status:** Active\n**Phase:** 03\n';
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateContent);
 
@@ -674,7 +674,7 @@ describe('cmdStateGet (state get)', () => {
     assert.ok(output.content.includes('**Status:** Active'), 'content should include full STATE.md text');
   });
 
-  test('extracts bold field value', () => {
+  test('extracts bold field value', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n'
@@ -687,7 +687,7 @@ describe('cmdStateGet (state get)', () => {
     assert.strictEqual(output['Status'], 'Active', 'should extract Status field value');
   });
 
-  test('extracts markdown section content', () => {
+  test('extracts markdown section content', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n\n## Blockers\n\n- item1\n- item2\n'
@@ -702,7 +702,7 @@ describe('cmdStateGet (state get)', () => {
     assert.ok(output['Blockers'].includes('item2'), 'section content should include item2');
   });
 
-  test('returns error for nonexistent field', () => {
+  test('returns error for nonexistent field', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n'
@@ -716,7 +716,7 @@ describe('cmdStateGet (state get)', () => {
     assert.ok(output.error.toLowerCase().includes('not found'), 'error should mention "not found"');
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     const result = runPbrTools('state get Status', tmpDir);
     assert.ok(!result.success, 'command should fail when STATE.md is missing');
     assert.ok(
@@ -736,15 +736,15 @@ describe('cmdStatePatch and cmdStateUpdate (state patch, state update)', () => {
     '**Last Activity:** 2024-01-15',
   ].join('\n') + '\n';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('state patch updates multiple fields at once', () => {
+  test('state patch updates multiple fields at once', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
 
     const result = runPbrTools('state patch --Status Complete --"Current Phase" 04', tmpDir);
@@ -755,7 +755,7 @@ describe('cmdStatePatch and cmdStateUpdate (state patch, state update)', () => {
     assert.ok(updated.includes('**Last Activity:** 2024-01-15'), 'Last Activity should be unchanged');
   });
 
-  test('state patch reports failed fields that do not exist', () => {
+  test('state patch reports failed fields that do not exist', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
 
     const result = runPbrTools('state patch --Status Done --Missing value', tmpDir);
@@ -768,7 +768,7 @@ describe('cmdStatePatch and cmdStateUpdate (state patch, state update)', () => {
     assert.ok(output.failed.includes('Missing'), 'Missing should be in failed list');
   });
 
-  test('state update changes a single field', () => {
+  test('state update changes a single field', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
 
     const result = runPbrTools('state update Status "Phase complete"', tmpDir);
@@ -783,7 +783,7 @@ describe('cmdStatePatch and cmdStateUpdate (state patch, state update)', () => {
     assert.ok(updated.includes('**Last Activity:** 2024-01-15'), 'Last Activity should be unchanged');
   });
 
-  test('state update reports field not found', () => {
+  test('state update reports field not found', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
 
     const result = runPbrTools('state update Missing value', tmpDir);
@@ -794,7 +794,7 @@ describe('cmdStatePatch and cmdStateUpdate (state patch, state update)', () => {
     assert.ok(output.reason !== undefined, 'should include a reason');
   });
 
-  test('state update returns error when STATE.md missing', () => {
+  test('state update returns error when STATE.md missing', async () => {
     const result = runPbrTools('state update Status value', tmpDir);
     assert.ok(result.success, `Command should exit 0: ${result.error}`);
 
@@ -823,15 +823,15 @@ describe('cmdStateAdvancePlan (state advance-plan)', () => {
     '**Last Activity:** 2024-01-10',
   ].join('\n') + '\n';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('advances plan counter when not on last plan', () => {
+  test('advances plan counter when not on last plan', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), advanceFixture);
 
     const before = new Date().toISOString().split('T')[0];
@@ -854,7 +854,7 @@ describe('cmdStateAdvancePlan (state advance-plan)', () => {
     );
   });
 
-  test('marks phase complete on last plan', () => {
+  test('marks phase complete on last plan', async () => {
     const lastPlanFixture = advanceFixture.replace('**Current Plan:** 1', '**Current Plan:** 3');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), lastPlanFixture);
 
@@ -870,7 +870,7 @@ describe('cmdStateAdvancePlan (state advance-plan)', () => {
     assert.ok(updated.includes('Phase complete'), 'Status should contain Phase complete');
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     const result = runPbrTools('state advance-plan', tmpDir);
     assert.ok(result.success, `Command should exit 0: ${result.error}`);
 
@@ -879,7 +879,7 @@ describe('cmdStateAdvancePlan (state advance-plan)', () => {
     assert.ok(output.error.includes('STATE.md'), 'error should mention STATE.md');
   });
 
-  test('returns error when plan fields not parseable', () => {
+  test('returns error when plan fields not parseable', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n'
@@ -909,15 +909,15 @@ describe('cmdStateRecordMetric (state record-metric)', () => {
     '## Session Continuity',
   ].join('\n') + '\n';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('appends metric row to existing table', () => {
+  test('appends metric row to existing table', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), metricsFixture);
 
     const result = runPbrTools('state record-metric --phase 2 --plan 1 --duration 5min --tasks 3 --files 4', tmpDir);
@@ -931,7 +931,7 @@ describe('cmdStateRecordMetric (state record-metric)', () => {
     assert.ok(updated.includes('| Phase 1 P1 | 3min | 2 tasks | 3 files |'), 'existing row should still be present');
   });
 
-  test('replaces None yet placeholder with first metric', () => {
+  test('replaces None yet placeholder with first metric', async () => {
     const noneYetFixture = [
       '# Project State',
       '',
@@ -953,7 +953,7 @@ describe('cmdStateRecordMetric (state record-metric)', () => {
     assert.ok(updated.includes('| Phase 1 P1 | 2min | 1 tasks | 2 files |'), 'new row should be present');
   });
 
-  test('returns error when required fields missing', () => {
+  test('returns error when required fields missing', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), metricsFixture);
 
     const result = runPbrTools('state record-metric --phase 1', tmpDir);
@@ -967,7 +967,7 @@ describe('cmdStateRecordMetric (state record-metric)', () => {
     );
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     const result = runPbrTools('state record-metric --phase 1 --plan 1 --duration 2min', tmpDir);
     assert.ok(result.success, `Command should exit 0: ${result.error}`);
 
@@ -980,15 +980,15 @@ describe('cmdStateRecordMetric (state record-metric)', () => {
 describe('cmdStateUpdateProgress (state update-progress)', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('calculates progress from plan/summary counts', () => {
+  test('calculates progress from plan/summary counts', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Progress:** [░░░░░░░░░░] 0%\n'
@@ -1018,7 +1018,7 @@ describe('cmdStateUpdateProgress (state update-progress)', () => {
     assert.ok(updated.includes('50%'), 'STATE.md Progress should contain 50%');
   });
 
-  test('handles zero plans gracefully', () => {
+  test('handles zero plans gracefully', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Progress:** [░░░░░░░░░░] 0%\n'
@@ -1031,7 +1031,7 @@ describe('cmdStateUpdateProgress (state update-progress)', () => {
     assert.strictEqual(output.percent, 0, 'percent should be 0 when no plans found');
   });
 
-  test('returns error when Progress field missing', () => {
+  test('returns error when Progress field missing', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n'
@@ -1045,7 +1045,7 @@ describe('cmdStateUpdateProgress (state update-progress)', () => {
     assert.ok(output.reason !== undefined, 'should have a reason');
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     const result = runPbrTools('state update-progress', tmpDir);
     assert.ok(result.success, `Command should exit 0: ${result.error}`);
 
@@ -1074,15 +1074,15 @@ describe('cmdStateResolveBlocker (state resolve-blocker)', () => {
     '## Session Continuity',
   ].join('\n') + '\n';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('removes matching blocker line (case-insensitive substring match)', () => {
+  test('removes matching blocker line (case-insensitive substring match)', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), blockerFixture);
 
     const result = runPbrTools('state resolve-blocker --text "api credentials"', tmpDir);
@@ -1097,7 +1097,7 @@ describe('cmdStateResolveBlocker (state resolve-blocker)', () => {
     assert.ok(updated.includes('Pending vendor approval'), 'other blocker should still be present');
   });
 
-  test('adds None placeholder when last blocker resolved', () => {
+  test('adds None placeholder when last blocker resolved', async () => {
     const singleBlockerFixture = [
       '# Project State',
       '',
@@ -1121,7 +1121,7 @@ describe('cmdStateResolveBlocker (state resolve-blocker)', () => {
     assert.ok(sectionMatch[1].includes('None'), 'Blockers section should contain None placeholder');
   });
 
-  test('returns error when text not provided', () => {
+  test('returns error when text not provided', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), blockerFixture);
 
     const result = runPbrTools('state resolve-blocker', tmpDir);
@@ -1135,7 +1135,7 @@ describe('cmdStateResolveBlocker (state resolve-blocker)', () => {
     );
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     const result = runPbrTools('state resolve-blocker --text "anything"', tmpDir);
     assert.ok(result.success, `Command should exit 0: ${result.error}`);
 
@@ -1144,7 +1144,7 @@ describe('cmdStateResolveBlocker (state resolve-blocker)', () => {
     assert.ok(output.error.includes('STATE.md'), 'error should mention STATE.md');
   });
 
-  test('returns resolved true even if no line matches', () => {
+  test('returns resolved true even if no line matches', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), blockerFixture);
 
     const result = runPbrTools('state resolve-blocker --text "nonexistent blocker text"', tmpDir);
@@ -1168,15 +1168,15 @@ describe('cmdStateRecordSession (state record-session)', () => {
     '**Resume file:** None',
   ].join('\n') + '\n';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('updates session fields with stopped-at and resume-file', () => {
+  test('updates session fields with stopped-at and resume-file', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), sessionFixture);
 
     const result = runPbrTools(
@@ -1197,7 +1197,7 @@ describe('cmdStateRecordSession (state record-session)', () => {
     assert.ok(updated.includes(today), 'Last session should be updated to today');
   });
 
-  test('updates Last session timestamp even with no other options', () => {
+  test('updates Last session timestamp even with no other options', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), sessionFixture);
 
     const result = runPbrTools('state record-session', tmpDir);
@@ -1211,7 +1211,7 @@ describe('cmdStateRecordSession (state record-session)', () => {
     assert.ok(updated.includes(today), 'Last session should contain today\'s date');
   });
 
-  test('sets Resume file to None when not specified', () => {
+  test('sets Resume file to None when not specified', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), sessionFixture);
 
     const result = runPbrTools('state record-session --stopped-at "Phase 1 complete"', tmpDir);
@@ -1225,7 +1225,7 @@ describe('cmdStateRecordSession (state record-session)', () => {
     assert.ok(resumeMatch[1].trim() === 'None', 'Resume file should be None when not specified');
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     const result = runPbrTools('state record-session', tmpDir);
     assert.ok(result.success, `Command should exit 0: ${result.error}`);
 
@@ -1234,7 +1234,7 @@ describe('cmdStateRecordSession (state record-session)', () => {
     assert.ok(output.error.includes('STATE.md'), 'error should mention STATE.md');
   });
 
-  test('returns recorded false when no session fields found', () => {
+  test('returns recorded false when no session fields found', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Status:** Active\n**Phase:** 03\n'
@@ -1256,15 +1256,15 @@ describe('cmdStateRecordSession (state record-session)', () => {
 describe('milestone-scoped phase counting in frontmatter', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('total_phases counts only current milestone phases', () => {
+  test('total_phases counts only current milestone phases', async () => {
     // ROADMAP lists only phases 5-6 (current milestone)
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -1307,7 +1307,7 @@ describe('milestone-scoped phase counting in frontmatter', () => {
     assert.strictEqual(Number(output.progress.completed_phases), 2, 'both milestone phases have summaries');
   });
 
-  test('total_phases includes ROADMAP phases without directories', () => {
+  test('total_phases includes ROADMAP phases without directories', async () => {
     // ROADMAP lists 6 phases (5-10), but only 4 have directories on disk
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -1348,7 +1348,7 @@ describe('milestone-scoped phase counting in frontmatter', () => {
     assert.strictEqual(Number(output.progress.completed_phases), 4, 'only 4 phases have summaries');
   });
 
-  test('without ROADMAP counts all phases (pass-all filter)', () => {
+  test('without ROADMAP counts all phases (pass-all filter)', async () => {
     // No ROADMAP.md — all phases should be counted
     for (let i = 1; i <= 4; i++) {
       const padded = String(i).padStart(2, '0');
@@ -1380,15 +1380,15 @@ describe('milestone-scoped phase counting in frontmatter', () => {
 describe('statePhaseComplete', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('marks phase complete in frontmatter and body', () => {
+  test('marks phase complete in frontmatter and body', async () => {
     const stateMd = [
       '---',
       'version: 2',
@@ -1414,7 +1414,7 @@ describe('statePhaseComplete', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
 
     const { statePhaseComplete } = require('../plugins/pbr/scripts/lib/state');
-    const result = statePhaseComplete(3, path.join(tmpDir, '.planning'));
+    const result = await statePhaseComplete(3, path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
     assert.strictEqual(result.phase, 3, 'should return phase number');
@@ -1429,9 +1429,9 @@ describe('statePhaseComplete', () => {
     assert.ok(/Phase 3 complete/.test(updated), 'last_activity should mention phase complete');
   });
 
-  test('returns error when STATE.md not found', () => {
+  test('returns error when STATE.md not found', async () => {
     const { statePhaseComplete } = require('../plugins/pbr/scripts/lib/state');
-    const result = statePhaseComplete(1, path.join(tmpDir, '.planning'));
+    const result = await statePhaseComplete(1, path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, false, 'should fail');
     assert.ok(result.error, 'should have error message');
@@ -1445,15 +1445,15 @@ describe('statePhaseComplete', () => {
 describe('stateRederive', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('detects drift and corrects STATE.md', () => {
+  test('detects drift and corrects STATE.md', async () => {
     // STATE.md says 0 complete, but filesystem has 1 completed summary
     const stateMd = [
       '---',
@@ -1486,7 +1486,7 @@ describe('stateRederive', () => {
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
 
     const { stateRederive } = require('../plugins/pbr/scripts/lib/state');
-    const result = stateRederive(path.join(tmpDir, '.planning'));
+    const result = await stateRederive(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
     assert.ok(result.corrected.length > 0, 'should have corrected fields');
@@ -1499,7 +1499,7 @@ describe('stateRederive', () => {
     assert.ok(/plans_total:\s*1/.test(updated), 'plans_total should be corrected to 1');
   });
 
-  test('returns corrected=[] when STATE.md matches filesystem', () => {
+  test('returns corrected=[] when STATE.md matches filesystem', async () => {
     const stateMd = [
       '---',
       'version: 2',
@@ -1531,7 +1531,7 @@ describe('stateRederive', () => {
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
 
     const { stateRederive } = require('../plugins/pbr/scripts/lib/state');
-    const result = stateRederive(path.join(tmpDir, '.planning'));
+    const result = await stateRederive(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
     assert.strictEqual(result.corrected.length, 0, 'should have no corrections');
@@ -1539,9 +1539,9 @@ describe('stateRederive', () => {
     assert.strictEqual(result.derived.plans_total, 1);
   });
 
-  test('handles missing STATE.md gracefully', () => {
+  test('handles missing STATE.md gracefully', async () => {
     const { stateRederive } = require('../plugins/pbr/scripts/lib/state');
-    const result = stateRederive(path.join(tmpDir, '.planning'));
+    const result = await stateRederive(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, false, 'should fail');
     assert.ok(result.error, 'should have error message');
@@ -1555,15 +1555,15 @@ describe('stateRederive', () => {
 describe('stateSignalWaiting', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('creates WAITING.json with correct fields', () => {
+  test('creates WAITING.json with correct fields', async () => {
     const { stateSignalWaiting } = require('../plugins/pbr/scripts/lib/state');
     const result = stateSignalWaiting('Waiting for API key', 'hours', path.join(tmpDir, '.planning'));
 
@@ -1581,7 +1581,7 @@ describe('stateSignalWaiting', () => {
     assert.strictEqual(data.signal, 'waiting', 'signal should be waiting');
   });
 
-  test('defaults expected_duration to unknown', () => {
+  test('defaults expected_duration to unknown', async () => {
     const { stateSignalWaiting } = require('../plugins/pbr/scripts/lib/state');
     stateSignalWaiting('Some reason', undefined, path.join(tmpDir, '.planning'));
 
@@ -1593,15 +1593,15 @@ describe('stateSignalWaiting', () => {
 describe('stateSignalResume', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('deletes WAITING.json when it exists', () => {
+  test('deletes WAITING.json when it exists', async () => {
     const { stateSignalWaiting, stateSignalResume } = require('../plugins/pbr/scripts/lib/state');
     stateSignalWaiting('test reason', 'minutes', path.join(tmpDir, '.planning'));
 
@@ -1614,7 +1614,7 @@ describe('stateSignalResume', () => {
     assert.ok(!fs.existsSync(waitingFile), 'WAITING.json should be deleted after resume');
   });
 
-  test('returns was_waiting=false when no WAITING.json', () => {
+  test('returns was_waiting=false when no WAITING.json', async () => {
     const { stateSignalResume } = require('../plugins/pbr/scripts/lib/state');
     const result = stateSignalResume(path.join(tmpDir, '.planning'));
 
@@ -1626,22 +1626,22 @@ describe('stateSignalResume', () => {
 describe('stateCheckWaiting', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('returns null when no WAITING.json exists', () => {
+  test('returns null when no WAITING.json exists', async () => {
     const { stateCheckWaiting } = require('../plugins/pbr/scripts/lib/state');
     const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result, null, 'should return null when not waiting');
   });
 
-  test('returns parsed JSON when WAITING.json exists', () => {
+  test('returns parsed JSON when WAITING.json exists', async () => {
     const { stateSignalWaiting, stateCheckWaiting } = require('../plugins/pbr/scripts/lib/state');
     stateSignalWaiting('Waiting for deploy', 'minutes', path.join(tmpDir, '.planning'));
 
@@ -1652,7 +1652,7 @@ describe('stateCheckWaiting', () => {
     assert.strictEqual(result.expected_duration, 'minutes', 'expected_duration should match');
   });
 
-  test('returns null for corrupted WAITING.json', () => {
+  test('returns null for corrupted WAITING.json', async () => {
     const { stateCheckWaiting } = require('../plugins/pbr/scripts/lib/state');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'WAITING.json'), 'not valid json');
 
@@ -1668,15 +1668,15 @@ describe('stateCheckWaiting', () => {
 describe('syncStateFrontmatter', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('rebuilds plans_total and plans_complete from disk', () => {
+  test('rebuilds plans_total and plans_complete from disk', async () => {
     const { syncStateFrontmatter } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
 
@@ -1694,7 +1694,7 @@ describe('syncStateFrontmatter', () => {
     assert.ok(result.includes('progress_percent: 100'), 'progress_percent should be 100');
   });
 
-  test('stateUpdate auto-syncs frontmatter from disk', () => {
+  test('stateUpdate auto-syncs frontmatter from disk', async () => {
     const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
 
@@ -1708,7 +1708,7 @@ describe('syncStateFrontmatter', () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '---\nversion: 2\ncurrent_phase: 1\nplans_total: 99\nplans_complete: 99\nprogress_percent: 50\nstatus: "idle"\n---\n# State\n\nPlan: 0 of 2');
 
-    stateUpdate('status', 'building', planningDir);
+    await stateUpdate('status', 'building', planningDir);
 
     const content = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     assert.ok(content.includes('plans_total: 2'), 'plans_total should be auto-derived as 2, got: ' + content);
@@ -1719,15 +1719,15 @@ describe('syncStateFrontmatter', () => {
 describe('normalizeStatus', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('maps known aliases', () => {
+  test('maps known aliases', async () => {
     const { normalizeStatus } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(normalizeStatus('planning'), 'planned');
@@ -1736,7 +1736,7 @@ describe('normalizeStatus', () => {
     assert.strictEqual(normalizeStatus('done'), 'complete');
   });
 
-  test('is case-insensitive', () => {
+  test('is case-insensitive', async () => {
     const { normalizeStatus } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(normalizeStatus('Building'), 'building');
@@ -1744,7 +1744,7 @@ describe('normalizeStatus', () => {
     assert.strictEqual(normalizeStatus('Idle'), 'idle');
   });
 
-  test('returns null for invalid values', () => {
+  test('returns null for invalid values', async () => {
     const { normalizeStatus } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(normalizeStatus('bogus'), null);
@@ -1757,15 +1757,15 @@ describe('normalizeStatus', () => {
 describe('STATUS_VALUES', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = createTempProject();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('contains exactly 7 values', () => {
+  test('contains exactly 7 values', async () => {
     const { STATUS_VALUES } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(STATUS_VALUES.length, 7);

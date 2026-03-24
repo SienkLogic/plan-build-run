@@ -30,17 +30,17 @@ beforeEach(() => {
 // -------------------------------------------------------------------------
 
 describe('checkRequirePaths', () => {
-  test('returns null when no JS files are staged', () => {
+  test('returns null when no JS files are staged', async () => {
     execSync.mockReturnValue('README.md\npackage.json\n');
     expect(checkRequirePaths({})).toBeNull();
   });
 
-  test('returns null when no staged files at all', () => {
+  test('returns null when no staged files at all', async () => {
     execSync.mockReturnValue('');
     expect(checkRequirePaths({})).toBeNull();
   });
 
-  test('returns warnings for broken require paths', () => {
+  test('returns warnings for broken require paths', async () => {
     execSync.mockReturnValue('hooks/my-hook.js\n');
     fs.readFileSync.mockReturnValue("const foo = require('./missing-file');");
     fs.existsSync.mockReturnValue(false);
@@ -52,7 +52,7 @@ describe('checkRequirePaths', () => {
     expect(result.warnings[0]).toContain('missing-file');
   });
 
-  test('returns null when all require paths are valid', () => {
+  test('returns null when all require paths are valid', async () => {
     execSync.mockReturnValue('hooks/my-hook.js\n');
     fs.readFileSync.mockReturnValue("const foo = require('./valid-module');");
     fs.existsSync.mockReturnValue(true);
@@ -60,17 +60,17 @@ describe('checkRequirePaths', () => {
     expect(checkRequirePaths({})).toBeNull();
   });
 
-  test('ignores non-JS files', () => {
+  test('ignores non-JS files', async () => {
     execSync.mockReturnValue('docs/guide.md\nREADME.txt\n');
     expect(checkRequirePaths({})).toBeNull();
   });
 
-  test('ignores files outside hooks/ and plan-build-run/bin/', () => {
+  test('ignores files outside hooks/ and plan-build-run/bin/', async () => {
     execSync.mockReturnValue('src/app.js\nlib/util.js\n');
     expect(checkRequirePaths({})).toBeNull();
   });
 
-  test('skips dynamic require expressions', () => {
+  test('skips dynamic require expressions', async () => {
     execSync.mockReturnValue('hooks/my-hook.js\n');
     fs.readFileSync.mockReturnValue("const m = require('./${name}');");
     fs.existsSync.mockReturnValue(false);
@@ -79,7 +79,7 @@ describe('checkRequirePaths', () => {
     expect(checkRequirePaths({})).toBeNull();
   });
 
-  test('handles .cjs files under plan-build-run/bin/', () => {
+  test('handles .cjs files under plan-build-run/bin/', async () => {
     execSync.mockReturnValue('plan-build-run/bin/tool.cjs\n');
     fs.readFileSync.mockReturnValue("const x = require('./broken');");
     fs.existsSync.mockReturnValue(false);
@@ -95,12 +95,12 @@ describe('checkRequirePaths', () => {
 // -------------------------------------------------------------------------
 
 describe('checkMirrorSync', () => {
-  test('returns null when no files are staged', () => {
+  test('returns null when no files are staged', async () => {
     execSync.mockReturnValue('');
     expect(checkMirrorSync({})).toBeNull();
   });
 
-  test('returns null when no mirror pairs are configured', () => {
+  test('returns null when no mirror pairs are configured', async () => {
     // MIRROR_PAIRS is empty after root commands/ removal
     execSync.mockReturnValue('plugins/pbr/commands/foo.md\nhooks/my-hook.js\n');
     expect(checkMirrorSync({})).toBeNull();
@@ -112,12 +112,12 @@ describe('checkMirrorSync', () => {
 // -------------------------------------------------------------------------
 
 describe('checkLintErrors', () => {
-  test('returns null when no JS files are staged', () => {
+  test('returns null when no JS files are staged', async () => {
     execSync.mockReturnValue('README.md\n');
     expect(checkLintErrors({})).toBeNull();
   });
 
-  test('returns null when eslint passes (no errors)', () => {
+  test('returns null when eslint passes (no errors)', async () => {
     // First call: git diff --cached returns staged files
     // Second call: eslint exits 0 (no errors)
     execSync
@@ -127,7 +127,7 @@ describe('checkLintErrors', () => {
     expect(checkLintErrors({})).toBeNull();
   });
 
-  test('returns warnings when eslint finds errors', () => {
+  test('returns warnings when eslint finds errors', async () => {
     execSync
       .mockReturnValueOnce('hooks/my-hook.js\n')  // getStagedFiles
       .mockImplementationOnce(() => {               // eslint fails
@@ -144,7 +144,7 @@ describe('checkLintErrors', () => {
     expect(result.warnings[0]).toContain('3');
   });
 
-  test('returns null gracefully when eslint is not found (ENOENT)', () => {
+  test('returns null gracefully when eslint is not found (ENOENT)', async () => {
     execSync
       .mockReturnValueOnce('hooks/my-hook.js\n')  // getStagedFiles
       .mockImplementationOnce(() => {               // eslint not found
@@ -156,7 +156,7 @@ describe('checkLintErrors', () => {
     expect(checkLintErrors({})).toBeNull();
   });
 
-  test('returns null when no staged files at all', () => {
+  test('returns null when no staged files at all', async () => {
     execSync.mockReturnValue('');
     expect(checkLintErrors({})).toBeNull();
   });

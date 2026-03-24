@@ -34,7 +34,7 @@ const READ_ONLY_AGENTS = ALL_AGENTS.filter(name => !FILE_WRITING_AGENTS.includes
 
 describe('HDOC: anti-heredoc instruction', () => {
   for (const agent of FILE_WRITING_AGENTS) {
-    test(`${agent} has anti-heredoc instruction`, () => {
+    test(`${agent} has anti-heredoc instruction`, async () => {
       const content = fs.readFileSync(path.join(AGENTS_DIR, agent + '.md'), 'utf-8');
       assert.ok(
         content.includes("never use `Bash(cat << 'EOF')` or heredoc"),
@@ -43,7 +43,7 @@ describe('HDOC: anti-heredoc instruction', () => {
     });
   }
 
-  test('no active heredoc patterns in any agent file', () => {
+  test('no active heredoc patterns in any agent file', async () => {
     for (const agent of ALL_AGENTS) {
       const content = fs.readFileSync(path.join(AGENTS_DIR, agent + '.md'), 'utf-8');
       // Match actual heredoc commands (not references in anti-heredoc instruction)
@@ -65,7 +65,7 @@ describe('HDOC: anti-heredoc instruction', () => {
 
 describe('SKILL: skills frontmatter', () => {
   for (const agent of ALL_AGENTS) {
-    test(`${agent} has skills: in frontmatter`, () => {
+    test(`${agent} has skills: in frontmatter`, async () => {
       const content = fs.readFileSync(path.join(AGENTS_DIR, agent + '.md'), 'utf-8');
       const frontmatter = content.split('---')[1] || '';
       assert.ok(
@@ -75,7 +75,7 @@ describe('SKILL: skills frontmatter', () => {
     });
   }
 
-  test('skill references follow naming convention', () => {
+  test('skill references follow naming convention', async () => {
     for (const agent of ALL_AGENTS) {
       const content = fs.readFileSync(path.join(AGENTS_DIR, agent + '.md'), 'utf-8');
       const frontmatter = content.split('---')[1] || '';
@@ -92,7 +92,7 @@ describe('SKILL: skills frontmatter', () => {
 
 describe('HOOK: hooks frontmatter pattern', () => {
   for (const agent of FILE_WRITING_AGENTS) {
-    test(`${agent} has commented hooks pattern`, () => {
+    test(`${agent} has commented hooks pattern`, async () => {
       const content = fs.readFileSync(path.join(AGENTS_DIR, agent + '.md'), 'utf-8');
       const frontmatter = content.split('---')[1] || '';
       assert.ok(
@@ -103,7 +103,7 @@ describe('HOOK: hooks frontmatter pattern', () => {
   }
 
   for (const agent of READ_ONLY_AGENTS) {
-    test(`${agent} (read-only) does not need hooks`, () => {
+    test(`${agent} (read-only) does not need hooks`, async () => {
       const content = fs.readFileSync(path.join(AGENTS_DIR, agent + '.md'), 'utf-8');
       const frontmatter = content.split('---')[1] || '';
       // Read-only agents may or may not have hooks — just verify they parse
@@ -131,7 +131,7 @@ describe('SPAWN: spawn type consistency', () => {
     }
   });
 
-  test('named agent spawns use correct agent names', () => {
+  test('named agent spawns use correct agent names', async () => {
     const validAgentTypes = new Set([
       ...ALL_AGENTS,
       'general-purpose',  // Allowed for orchestrator spawns
@@ -155,7 +155,7 @@ describe('SPAWN: spawn type consistency', () => {
     }
   });
 
-  test('debug skill uses debugger agent (not general-purpose)', () => {
+  test('debug skill uses debugger agent (not general-purpose)', async () => {
     const debugSkillPath = path.join(SKILLS_DIR, 'debug', 'SKILL.md');
     if (!fs.existsSync(debugSkillPath)) return; // skip if skill not present
     const content = fs.readFileSync(debugSkillPath, 'utf-8');

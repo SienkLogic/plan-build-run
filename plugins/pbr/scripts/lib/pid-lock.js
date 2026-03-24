@@ -53,6 +53,8 @@ function acquireLock(planningDir, port) {
     }
 
     // PID is dead — stale lockfile, clean it up
+    // Best-effort: remove stale file. Even if this fails, the write attempt below
+    // determines the real outcome — a write failure returns acquired: false.
     try {
       fs.unlinkSync(lockPath);
     } catch (_e) {
@@ -72,8 +74,8 @@ function acquireLock(planningDir, port) {
     fs.writeFileSync(lockPath, JSON.stringify(lockData, null, 2) + '\n', 'utf8');
     return { acquired: true };
   } catch (_e) {
-    // Can't write lockfile — proceed without it (fail-open)
-    return { acquired: true };
+    // Can't write lockfile — fail closed (do not start server without durable lock)
+    return { acquired: false, reason: 'write-error', error: _e.message };
   }
 }
 
@@ -115,7 +117,7 @@ function isServerRunning(planningDir) {
       return { running: true, pid: lock.pid, port: lock.port || null };
     }
 
-    // Stale lockfile — process is dead
+    // Stale lockfile present — caller should re-acquire to trigger cleanup
     return { running: false, pid: null, port: null };
   } catch (_e) {
     // No lockfile or unreadable

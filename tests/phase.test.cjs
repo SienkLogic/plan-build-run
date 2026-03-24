@@ -19,7 +19,7 @@ describe('phases list command', () => {
     cleanup(tmpDir);
   });
 
-  test('empty phases directory returns empty array', () => {
+  test('empty phases directory returns empty array', async () => {
     const result = runPbrTools('phases list', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -28,7 +28,7 @@ describe('phases list command', () => {
     assert.strictEqual(output.count, 0, 'count should be 0');
   });
 
-  test('lists phase directories sorted numerically', () => {
+  test('lists phase directories sorted numerically', async () => {
     // Create out-of-order directories
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '10-final'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '02-api'), { recursive: true });
@@ -46,7 +46,7 @@ describe('phases list command', () => {
     );
   });
 
-  test('handles decimal phases in sort order', () => {
+  test('handles decimal phases in sort order', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '02-api'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '02.1-hotfix'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '02.2-patch'), { recursive: true });
@@ -63,7 +63,7 @@ describe('phases list command', () => {
     );
   });
 
-  test('--type plans lists only PLAN.md files', () => {
+  test('--type plans lists only PLAN.md files', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan 1');
@@ -82,7 +82,7 @@ describe('phases list command', () => {
     );
   });
 
-  test('--type summaries lists only SUMMARY.md files', () => {
+  test('--type summaries lists only SUMMARY.md files', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan');
@@ -100,7 +100,7 @@ describe('phases list command', () => {
     );
   });
 
-  test('--phase filters to specific phase directory', () => {
+  test('--phase filters to specific phase directory', async () => {
     const phase01 = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     const phase02 = path.join(tmpDir, '.planning', 'phases', '02-api');
     fs.mkdirSync(phase01, { recursive: true });
@@ -133,7 +133,7 @@ describe('phase next-decimal command', () => {
     cleanup(tmpDir);
   });
 
-  test('returns X.1 when no decimal phases exist', () => {
+  test('returns X.1 when no decimal phases exist', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06-feature'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '07-next'), { recursive: true });
 
@@ -145,7 +145,7 @@ describe('phase next-decimal command', () => {
     assert.deepStrictEqual(output.existing, [], 'no existing decimals');
   });
 
-  test('increments from existing decimal phases', () => {
+  test('increments from existing decimal phases', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06-feature'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06.1-hotfix'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06.2-patch'), { recursive: true });
@@ -158,7 +158,7 @@ describe('phase next-decimal command', () => {
     assert.deepStrictEqual(output.existing, ['06.1', '06.2'], 'lists existing decimals');
   });
 
-  test('handles gaps in decimal sequence', () => {
+  test('handles gaps in decimal sequence', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06-feature'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06.1-first'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06.3-third'), { recursive: true });
@@ -171,7 +171,7 @@ describe('phase next-decimal command', () => {
     assert.strictEqual(output.next, '06.4', 'should return 06.4, not fill gap at 06.2');
   });
 
-  test('handles single-digit phase input', () => {
+  test('handles single-digit phase input', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '06-feature'), { recursive: true });
 
     const result = runPbrTools('phase next-decimal 6', tmpDir);
@@ -182,7 +182,7 @@ describe('phase next-decimal command', () => {
     assert.strictEqual(output.base_phase, '06', 'base phase should be padded');
   });
 
-  test('returns error if base phase does not exist', () => {
+  test('returns error if base phase does not exist', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '01-start'), { recursive: true });
 
     const result = runPbrTools('phase next-decimal 06', tmpDir);
@@ -210,7 +210,7 @@ describe('phase-plan-index command', () => {
     cleanup(tmpDir);
   });
 
-  test('empty phase directory returns empty plans array', () => {
+  test('empty phase directory returns empty plans array', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
 
     const result = runPbrTools('phase-plan-index 03', tmpDir);
@@ -224,7 +224,7 @@ describe('phase-plan-index command', () => {
     assert.strictEqual(output.has_checkpoints, false, 'no checkpoints');
   });
 
-  test('extracts single plan with frontmatter', () => {
+  test('extracts single plan with frontmatter', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -256,7 +256,7 @@ files-modified: [prisma/schema.prisma, src/lib/db.ts]
     assert.strictEqual(output.plans[0].has_summary, false, 'no summary yet');
   });
 
-  test('groups multiple plans by wave', () => {
+  test('groups multiple plans by wave', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -305,7 +305,7 @@ objective: API routes
     assert.deepStrictEqual(output.waves['2'], ['03-03'], 'wave 2 has 1 plan');
   });
 
-  test('detects incomplete plans (no matching summary)', () => {
+  test('detects incomplete plans (no matching summary)', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -325,7 +325,7 @@ objective: API routes
     assert.deepStrictEqual(output.incomplete, ['03-02'], 'incomplete list correct');
   });
 
-  test('detects checkpoints (autonomous: false)', () => {
+  test('detects checkpoints (autonomous: false)', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -349,7 +349,7 @@ objective: Manual review needed
     assert.strictEqual(output.plans[0].autonomous, false, 'plan marked non-autonomous');
   });
 
-  test('phase not found returns error', () => {
+  test('phase not found returns error', async () => {
     const result = runPbrTools('phase-plan-index 99', tmpDir);
     assert.ok(result.success, `Command should succeed: ${result.error}`);
 
@@ -374,7 +374,7 @@ describe('phase-plan-index canonical format', () => {
     cleanup(tmpDir);
   });
 
-  test('files_modified: underscore key is parsed correctly', () => {
+  test('files_modified: underscore key is parsed correctly', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '04-ui');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -458,7 +458,7 @@ Output: App.tsx with routing
     );
   });
 
-  test('task_count: counts <task> XML tags', () => {
+  test('task_count: counts <task> XML tags', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '04-ui');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -511,7 +511,7 @@ Create UI components
     );
   });
 
-  test('all three fields work together in canonical plan format', () => {
+  test('all three fields work together in canonical plan format', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '04-ui');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -596,7 +596,7 @@ describe('phase add command', () => {
     cleanup(tmpDir);
   });
 
-  test('adds phase after highest existing', () => {
+  test('adds phase after highest existing', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0
@@ -630,7 +630,7 @@ describe('phase add command', () => {
     assert.ok(roadmap.includes('**Depends on:** Phase 2'), 'should depend on previous');
   });
 
-  test('handles empty roadmap', () => {
+  test('handles empty roadmap', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n`
@@ -643,7 +643,7 @@ describe('phase add command', () => {
     assert.strictEqual(output.phase_number, 1, 'should be phase 1');
   });
 
-  test('phase add includes **Requirements**: TBD in new ROADMAP entry', () => {
+  test('phase add includes **Requirements**: TBD in new ROADMAP entry', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n\n### Phase 1: Foundation\n**Goal:** Setup\n\n---\n`
@@ -673,7 +673,7 @@ describe('phase insert command', () => {
     cleanup(tmpDir);
   });
 
-  test('inserts decimal phase after target', () => {
+  test('inserts decimal phase after target', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -705,7 +705,7 @@ describe('phase insert command', () => {
     assert.ok(roadmap.includes('Phase 01.1: Fix Critical Bug (INSERTED)'), 'roadmap should include inserted phase');
   });
 
-  test('increments decimal when siblings exist', () => {
+  test('increments decimal when siblings exist', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -727,7 +727,7 @@ describe('phase insert command', () => {
     assert.strictEqual(output.phase_number, '01.2', 'should be 01.2');
   });
 
-  test('rejects missing phase', () => {
+  test('rejects missing phase', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 1: Test\n**Goal:** Test\n`
@@ -738,7 +738,7 @@ describe('phase insert command', () => {
     assert.ok(result.error.includes('not found'), 'error mentions not found');
   });
 
-  test('handles padding mismatch between input and roadmap', () => {
+  test('handles padding mismatch between input and roadmap', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -763,7 +763,7 @@ describe('phase insert command', () => {
     assert.ok(roadmap.includes('(INSERTED)'), 'roadmap should include inserted phase');
   });
 
-  test('phase insert includes **Requirements**: TBD in new ROADMAP entry', () => {
+  test('phase insert includes **Requirements**: TBD in new ROADMAP entry', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n\n### Phase 1: Foundation\n**Goal:** Setup\n\n### Phase 2: API\n**Goal:** Build API\n`
@@ -777,7 +777,7 @@ describe('phase insert command', () => {
     assert.ok(roadmap.includes('**Requirements**: TBD'), 'inserted phase entry should include Requirements TBD');
   });
 
-  test('handles #### heading depth from multi-milestone roadmaps', () => {
+  test('handles #### heading depth from multi-milestone roadmaps', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -820,7 +820,7 @@ describe('phase remove command', () => {
     cleanup(tmpDir);
   });
 
-  test('removes phase directory and renumbers subsequent', () => {
+  test('removes phase directory and renumbers subsequent', async () => {
     // Setup 3 phases
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -883,7 +883,7 @@ describe('phase remove command', () => {
     assert.ok(roadmap.includes('Phase 2: Features'), 'phase 3 should be renumbered to 2');
   });
 
-  test('rejects removal of phase with summaries unless --force', () => {
+  test('rejects removal of phase with summaries unless --force', async () => {
     const p1 = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(p1, { recursive: true });
     fs.writeFileSync(path.join(p1, '01-01-PLAN.md'), '# Plan');
@@ -903,7 +903,7 @@ describe('phase remove command', () => {
     assert.ok(forceResult.success, `Force remove failed: ${forceResult.error}`);
   });
 
-  test('removes decimal phase and renumbers siblings', () => {
+  test('removes decimal phase and renumbers siblings', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 6: Main\n**Goal:** Main\n### Phase 6.1: Fix A\n**Goal:** Fix A\n### Phase 6.2: Fix B\n**Goal:** Fix B\n### Phase 6.3: Fix C\n**Goal:** Fix C\n`
@@ -928,7 +928,7 @@ describe('phase remove command', () => {
     );
   });
 
-  test('updates STATE.md phase count', () => {
+  test('updates STATE.md phase count', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 1: A\n**Goal:** A\n### Phase 2: B\n**Goal:** B\n`
@@ -963,7 +963,7 @@ describe('phase complete command', () => {
     cleanup(tmpDir);
   });
 
-  test('marks phase complete and transitions to next', () => {
+  test('marks phase complete and transitions to next', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -1011,7 +1011,7 @@ describe('phase complete command', () => {
     assert.ok(roadmap.includes('completed'), 'completion date should be added');
   });
 
-  test('detects last phase in milestone', () => {
+  test('detects last phase in milestone', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 1: Only Phase\n**Goal:** Everything\n`
@@ -1037,7 +1037,7 @@ describe('phase complete command', () => {
     assert.ok(state.includes('Milestone complete'), 'status should be milestone complete');
   });
 
-  test('updates REQUIREMENTS.md traceability when phase completes', () => {
+  test('updates REQUIREMENTS.md traceability when phase completes', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -1183,7 +1183,7 @@ describe('phase complete command', () => {
     assert.ok(req.includes('| API-01 | Phase 2 | Pending |'), 'API-01 should remain Pending');
   });
 
-  test('handles phase with no requirements mapping', () => {
+  test('handles phase with no requirements mapping', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -1229,7 +1229,7 @@ describe('phase complete command', () => {
     assert.ok(req.includes('| REQ-01 | Phase 2 | Pending |'), 'REQ-01 should remain Pending');
   });
 
-  test('handles missing REQUIREMENTS.md gracefully', () => {
+  test('handles missing REQUIREMENTS.md gracefully', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -1255,7 +1255,7 @@ describe('phase complete command', () => {
     assert.ok(result.success, `Command should succeed even without REQUIREMENTS.md: ${result.error}`);
   });
 
-  test('handles multi-level decimal phase without regex crash', () => {
+  test('handles multi-level decimal phase without regex crash', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -1332,37 +1332,37 @@ describe('phase complete command', () => {
 const { comparePhaseNum, normalizePhaseName } = require('../plugins/pbr/scripts/lib/core');
 
 describe('comparePhaseNum', () => {
-  test('sorts integer phases numerically', () => {
+  test('sorts integer phases numerically', async () => {
     assert.ok(comparePhaseNum('2', '10') < 0);
     assert.ok(comparePhaseNum('10', '2') > 0);
     assert.strictEqual(comparePhaseNum('5', '5'), 0);
   });
 
-  test('sorts decimal phases correctly', () => {
+  test('sorts decimal phases correctly', async () => {
     assert.ok(comparePhaseNum('12', '12.1') < 0);
     assert.ok(comparePhaseNum('12.1', '12.2') < 0);
     assert.ok(comparePhaseNum('12.2', '13') < 0);
   });
 
-  test('sorts letter-suffix phases correctly', () => {
+  test('sorts letter-suffix phases correctly', async () => {
     assert.ok(comparePhaseNum('12', '12A') < 0);
     assert.ok(comparePhaseNum('12A', '12B') < 0);
     assert.ok(comparePhaseNum('12B', '13') < 0);
   });
 
-  test('sorts hybrid phases correctly', () => {
+  test('sorts hybrid phases correctly', async () => {
     assert.ok(comparePhaseNum('12A', '12A.1') < 0);
     assert.ok(comparePhaseNum('12A.1', '12A.2') < 0);
     assert.ok(comparePhaseNum('12A.2', '12B') < 0);
   });
 
-  test('handles full sort order', () => {
+  test('handles full sort order', async () => {
     const phases = ['13', '12B', '12A.2', '12', '12.1', '12A', '12A.1', '12.2'];
     phases.sort(comparePhaseNum);
     assert.deepStrictEqual(phases, ['12', '12.1', '12.2', '12A', '12A.1', '12A.2', '12B', '13']);
   });
 
-  test('handles directory names with slugs', () => {
+  test('handles directory names with slugs', async () => {
     const dirs = ['13-deploy', '12B-hotfix', '12A.1-bugfix', '12-foundation', '12.1-inserted', '12A-split'];
     dirs.sort(comparePhaseNum);
     assert.deepStrictEqual(dirs, [
@@ -1370,13 +1370,13 @@ describe('comparePhaseNum', () => {
     ]);
   });
 
-  test('case insensitive letter matching', () => {
+  test('case insensitive letter matching', async () => {
     assert.ok(comparePhaseNum('12a', '12B') < 0);
     assert.ok(comparePhaseNum('12A', '12b') < 0);
     assert.strictEqual(comparePhaseNum('12a', '12A'), 0);
   });
 
-  test('sorts multi-level decimal phases correctly', () => {
+  test('sorts multi-level decimal phases correctly', async () => {
     assert.ok(comparePhaseNum('3.2', '3.2.1') < 0);
     assert.ok(comparePhaseNum('3.2.1', '3.2.2') < 0);
     assert.ok(comparePhaseNum('3.2.1', '3.3') < 0);
@@ -1384,44 +1384,44 @@ describe('comparePhaseNum', () => {
     assert.strictEqual(comparePhaseNum('3.2.1', '3.2.1'), 0);
   });
 
-  test('falls back to localeCompare for non-phase strings', () => {
+  test('falls back to localeCompare for non-phase strings', async () => {
     const result = comparePhaseNum('abc', 'def');
     assert.strictEqual(typeof result, 'number');
   });
 });
 
 describe('normalizePhaseName', () => {
-  test('pads single-digit integers', () => {
+  test('pads single-digit integers', async () => {
     assert.strictEqual(normalizePhaseName('3'), '03');
     assert.strictEqual(normalizePhaseName('12'), '12');
   });
 
-  test('handles decimal phases', () => {
+  test('handles decimal phases', async () => {
     assert.strictEqual(normalizePhaseName('3.1'), '03.1');
     assert.strictEqual(normalizePhaseName('12.2'), '12.2');
   });
 
-  test('handles letter-suffix phases', () => {
+  test('handles letter-suffix phases', async () => {
     assert.strictEqual(normalizePhaseName('3A'), '03A');
     assert.strictEqual(normalizePhaseName('12B'), '12B');
   });
 
-  test('handles hybrid phases', () => {
+  test('handles hybrid phases', async () => {
     assert.strictEqual(normalizePhaseName('3A.1'), '03A.1');
     assert.strictEqual(normalizePhaseName('12A.2'), '12A.2');
   });
 
-  test('uppercases letters', () => {
+  test('uppercases letters', async () => {
     assert.strictEqual(normalizePhaseName('3a'), '03A');
     assert.strictEqual(normalizePhaseName('12b.1'), '12B.1');
   });
 
-  test('handles multi-level decimal phases', () => {
+  test('handles multi-level decimal phases', async () => {
     assert.strictEqual(normalizePhaseName('3.2.1'), '03.2.1');
     assert.strictEqual(normalizePhaseName('12.3.4'), '12.3.4');
   });
 
-  test('returns non-matching input unchanged', () => {
+  test('returns non-matching input unchanged', async () => {
     assert.strictEqual(normalizePhaseName('abc'), 'abc');
   });
 });
@@ -1437,7 +1437,7 @@ describe('letter-suffix phase sorting', () => {
     cleanup(tmpDir);
   });
 
-  test('lists letter-suffix phases in correct order', () => {
+  test('lists letter-suffix phases in correct order', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '12-foundation'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '12.1-inserted'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '12A-split'), { recursive: true });
@@ -1522,7 +1522,7 @@ describe('phase complete milestone-scoped next-phase', () => {
     assert.strictEqual(output.next_phase, '06', 'next phase should be 06');
   });
 
-  test('detects last phase when only milestone phases are considered', () => {
+  test('detects last phase when only milestone phases are considered', async () => {
     // ROADMAP lists only phase 5 (current milestone)
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),

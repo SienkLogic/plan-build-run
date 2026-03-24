@@ -69,7 +69,7 @@ describe('milestone complete command', () => {
     assert.ok(milestones.includes('Set up project infrastructure'), 'accomplishments should be listed');
   });
 
-  test('prepends to existing MILESTONES.md (reverse chronological)', () => {
+  test('prepends to existing MILESTONES.md (reverse chronological)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'MILESTONES.md'),
       `# Milestones\n\n## v0.9 Alpha (Shipped: 2025-01-01)\n\n---\n\n`
@@ -95,7 +95,7 @@ describe('milestone complete command', () => {
     assert.ok(newIdx < oldIdx, 'new entry should appear before old entry (reverse chronological)');
   });
 
-  test('three sequential completions maintain reverse-chronological order', () => {
+  test('three sequential completions maintain reverse-chronological order', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'MILESTONES.md'),
       `# Milestones\n\n## v1.0 First (Shipped: 2025-01-01)\n\n---\n\n`
@@ -135,7 +135,7 @@ describe('milestone complete command', () => {
     assert.ok(idx11 < idx10, 'v1.1 should appear before v1.0');
   });
 
-  test('archives phase directories with --archive-phases flag', () => {
+  test('archives phase directories with --archive-phases flag', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n`
@@ -171,7 +171,7 @@ describe('milestone complete command', () => {
     );
   });
 
-  test('archived REQUIREMENTS.md contains archive header', () => {
+  test('archived REQUIREMENTS.md contains archive header', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),
       `# Requirements\n\n- [ ] **TEST-01**: core.cjs has tests\n- [ ] **TEST-02**: more tests\n`
@@ -199,7 +199,7 @@ describe('milestone complete command', () => {
     assert.ok(archivedReq.includes('**TEST-01**'), 'original requirement items should be preserved');
   });
 
-  test('STATE.md gets updated during milestone complete', () => {
+  test('STATE.md gets updated during milestone complete', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n`
@@ -223,7 +223,7 @@ describe('milestone complete command', () => {
     );
   });
 
-  test('handles missing ROADMAP.md gracefully', () => {
+  test('handles missing ROADMAP.md gracefully', async () => {
     // Only STATE.md — no ROADMAP.md, no REQUIREMENTS.md
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
@@ -244,7 +244,7 @@ describe('milestone complete command', () => {
     );
   });
 
-  test('scopes stats to current milestone phases only', () => {
+  test('scopes stats to current milestone phases only', async () => {
     // Set up ROADMAP.md that only references Phase 3 and Phase 4
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -290,7 +290,7 @@ describe('milestone complete command', () => {
     assert.ok(!output.accomplishments.includes('Old core work'), 'should NOT include previous milestone accomplishment');
   });
 
-  test('archive-phases only archives current milestone phases', () => {
+  test('archive-phases only archives current milestone phases', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.1\n\n### Phase 2: Current Work\n**Goal:** Do it\n`
@@ -325,7 +325,7 @@ describe('milestone complete command', () => {
     );
   });
 
-  test('phase 1 in roadmap does NOT match directory 10-something (no prefix collision)', () => {
+  test('phase 1 in roadmap does NOT match directory 10-something (no prefix collision)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n\n### Phase 1: Foundation\n**Goal:** Setup\n`
@@ -367,7 +367,7 @@ describe('milestone complete command', () => {
     );
   });
 
-  test('non-numeric directory is excluded when milestone scoping is active', () => {
+  test('non-numeric directory is excluded when milestone scoping is active', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n\n### Phase 1: Core\n**Goal:** Build core\n`
@@ -424,7 +424,7 @@ describe('milestone complete command', () => {
     assert.strictEqual(output.phases, 2, 'should count only phases 456 and 457');
   });
 
-  test('handles empty phases directory', () => {
+  test('handles empty phases directory', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n`
@@ -496,7 +496,7 @@ describe('requirements mark-complete command', () => {
 
   // ─── tests ────────────────────────────────────────────────────────────────
 
-  test('marks single requirement complete (checkbox + table)', () => {
+  test('marks single requirement complete (checkbox + table)', async () => {
     writeRequirements(tmpDir, STANDARD_REQUIREMENTS);
 
     const result = runPbrTools('requirements mark-complete TEST-01', tmpDir);
@@ -534,7 +534,7 @@ describe('requirements mark-complete command', () => {
     assert.ok(content.includes('| INFRA-01 | Phase 6 | Complete |'), 'INFRA-01 table should be Complete');
   });
 
-  test('accepts space-separated IDs', () => {
+  test('accepts space-separated IDs', async () => {
     writeRequirements(tmpDir, STANDARD_REQUIREMENTS);
 
     const result = runPbrTools('requirements mark-complete TEST-01 TEST-02', tmpDir);
@@ -562,7 +562,7 @@ describe('requirements mark-complete command', () => {
     assert.ok(content.includes('- [x] **TEST-02**'), 'TEST-02 should be checked');
   });
 
-  test('returns not_found for invalid IDs while updating valid ones', () => {
+  test('returns not_found for invalid IDs while updating valid ones', async () => {
     writeRequirements(tmpDir, STANDARD_REQUIREMENTS);
 
     const result = runPbrTools('requirements mark-complete TEST-01,FAKE-99', tmpDir);
@@ -575,7 +575,7 @@ describe('requirements mark-complete command', () => {
     assert.strictEqual(output.total, 2, 'total should reflect all IDs attempted');
   });
 
-  test('idempotent — re-marking already-complete requirement does not corrupt', () => {
+  test('idempotent — re-marking already-complete requirement does not corrupt', async () => {
     writeRequirements(tmpDir, STANDARD_REQUIREMENTS);
 
     // TEST-03 already has [x] and Complete in the fixture
@@ -593,7 +593,7 @@ describe('requirements mark-complete command', () => {
     assert.ok(!content.includes('- [x] [x]'), 'should not have duplicate checkbox');
   });
 
-  test('missing REQUIREMENTS.md returns expected error structure', () => {
+  test('missing REQUIREMENTS.md returns expected error structure', async () => {
     // createTempProject does not create REQUIREMENTS.md — so it's already missing
 
     const result = runPbrTools('requirements mark-complete TEST-01', tmpDir);
@@ -628,7 +628,7 @@ describe('RETROSPECTIVE.md generation', () => {
     cleanup(tmpDir);
   });
 
-  test('creates RETROSPECTIVE.md on first milestone complete', () => {
+  test('creates RETROSPECTIVE.md on first milestone complete', async () => {
     const p1 = path.join(tmpDir, '.planning', 'phases', '01-core');
     fs.mkdirSync(p1, { recursive: true });
     fs.writeFileSync(
@@ -654,7 +654,7 @@ describe('RETROSPECTIVE.md generation', () => {
     assert.ok(content.includes('### Key Lessons'), 'should have Key Lessons section');
   });
 
-  test('appends to existing RETROSPECTIVE.md (reverse chronological)', () => {
+  test('appends to existing RETROSPECTIVE.md (reverse chronological)', async () => {
     // Pre-existing retrospective
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'RETROSPECTIVE.md'),
@@ -674,7 +674,7 @@ describe('RETROSPECTIVE.md generation', () => {
     assert.ok(newIdx < oldIdx, 'new entry should appear before old entry (reverse chronological)');
   });
 
-  test('RETROSPECTIVE.md without accomplishments uses fallback text', () => {
+  test('RETROSPECTIVE.md without accomplishments uses fallback text', async () => {
     // No phase summaries with one-liner
     const result = runPbrTools('milestone complete v1.0 --name Empty', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -703,7 +703,7 @@ describe('ROADMAP.md details collapse and milestone index', () => {
     cleanup(tmpDir);
   });
 
-  test('collapses milestone section in ROADMAP.md with details tags', () => {
+  test('collapses milestone section in ROADMAP.md with details tags', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\n## Milestone: MVP\n\n### Phase 1: Core\n**Goal:** Build core\n\n### Phase 2: Polish\n**Goal:** Ship it\n'
@@ -719,7 +719,7 @@ describe('ROADMAP.md details collapse and milestone index', () => {
     assert.ok(content.includes('</details>'), 'should have closing </details> tag');
   });
 
-  test('creates milestone index section in ROADMAP.md', () => {
+  test('creates milestone index section in ROADMAP.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\n### Phase 1: Core\n**Goal:** Build core\n'
@@ -734,7 +734,7 @@ describe('ROADMAP.md details collapse and milestone index', () => {
     assert.ok(content.includes('| v1.0 | MVP | SHIPPED |'), 'should have index row');
   });
 
-  test('appends to existing milestone index', () => {
+  test('appends to existing milestone index', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n\n## Milestones\n\n| Version | Name | Status | Date |\n|---------|------|--------|------|\n| v0.9 | Alpha | SHIPPED | 2025-01-01 |\n\n### Phase 2: Beta\n**Goal:** Build beta\n`

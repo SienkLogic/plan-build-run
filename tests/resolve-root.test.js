@@ -19,7 +19,7 @@ describe('resolve-root.js', () => {
     return require('../plugins/pbr/scripts/lib/resolve-root');
   }
 
-  test('finds .planning/ in current dir', () => {
+  test('finds .planning/ in current dir', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
 
@@ -29,7 +29,7 @@ describe('resolve-root.js', () => {
     expect(root).toBe(tmpDir);
   });
 
-  test('finds .planning/ two levels up', () => {
+  test('finds .planning/ two levels up', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
 
@@ -42,7 +42,7 @@ describe('resolve-root.js', () => {
     expect(root).toBe(tmpDir);
   });
 
-  test('falls back to startDir when .planning/ absent in entire ancestry', () => {
+  test('falls back to startDir when .planning/ absent in entire ancestry', async () => {
     // Create a nested dir structure with a fake root that has no .planning/
     // We can't guarantee the real FS root has no .planning/, so instead
     // verify the function returns a value (either startDir or an ancestor with .planning/)
@@ -58,7 +58,7 @@ describe('resolve-root.js', () => {
     expect(hasPlanningDir || isFallback).toBe(true);
   });
 
-  test('caching - second call returns same value without fs access', () => {
+  test('caching - second call returns same value without fs access', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
 
@@ -74,7 +74,7 @@ describe('resolve-root.js', () => {
     expect(second).toBe(tmpDir);
   });
 
-  test('clearRootCache resets the cache', () => {
+  test('clearRootCache resets the cache', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
 
@@ -96,7 +96,7 @@ describe('resolve-root.js', () => {
     expect(fs.existsSync(second)).toBe(true);
   });
 
-  test('defaults to process.cwd() when no startDir given', () => {
+  test('defaults to process.cwd() when no startDir given', async () => {
     const originalCwd = process.cwd();
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
@@ -112,7 +112,7 @@ describe('resolve-root.js', () => {
     }
   });
 
-  test('handles filesystem root without infinite loop', () => {
+  test('handles filesystem root without infinite loop', async () => {
     // Use a path that definitely has no .planning/ ancestor
     const { resolveProjectRoot, clearRootCache } = getResolver();
     clearRootCache();

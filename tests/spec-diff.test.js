@@ -262,7 +262,7 @@ describe('spec-diff', () => {
   });
 
   describe('diffSpecs()', () => {
-    test('identical specs return no changes with "No changes" summary', () => {
+    test('identical specs return no changes with "No changes" summary', async () => {
       const specA = parsePlanToSpec(PLAN_A);
       const specA2 = parsePlanToSpec(PLAN_A);
       const diff = specDiff.diffSpecs(specA, specA2);
@@ -270,7 +270,7 @@ describe('spec-diff', () => {
       expect(diff.summary).toContain('No changes');
     });
 
-    test('detects added task (specC has T3 not in specA)', () => {
+    test('detects added task (specC has T3 not in specA)', async () => {
       const specA = parsePlanToSpec(PLAN_A);
       const specC = parsePlanToSpec(PLAN_C);
       const diff = specDiff.diffSpecs(specA, specC);
@@ -279,7 +279,7 @@ describe('spec-diff', () => {
       expect(added.some(c => c.target === '01-01-T3')).toBe(true);
     });
 
-    test('detects removed task (specA has T2 not in specC)', () => {
+    test('detects removed task (specA has T2 not in specC)', async () => {
       const specA = parsePlanToSpec(PLAN_A);
       const specC = parsePlanToSpec(PLAN_C);
       const diff = specDiff.diffSpecs(specA, specC);
@@ -297,7 +297,7 @@ describe('spec-diff', () => {
       expect(modified.some(c => c.target === '01-01-T1' && c.field === 'action')).toBe(true);
     });
 
-    test('detects changed frontmatter', () => {
+    test('detects changed frontmatter', async () => {
       const specA = parsePlanToSpec(PLAN_A);
       const specE = parsePlanToSpec(PLAN_E);
       const diff = specDiff.diffSpecs(specA, specE);
@@ -305,7 +305,7 @@ describe('spec-diff', () => {
       expect(fmChanges.length).toBeGreaterThan(0);
     });
 
-    test('detects reordered tasks as non-breaking', () => {
+    test('detects reordered tasks as non-breaking', async () => {
       const specA = parsePlanToSpec(PLAN_A);
       const specD = parsePlanToSpec(PLAN_D);
       const diff = specDiff.diffSpecs(specA, specD);
@@ -337,20 +337,20 @@ describe('spec-diff', () => {
   });
 
   describe('diffPlanFiles()', () => {
-    test('convenience wrapper for file-level diffing', () => {
+    test('convenience wrapper for file-level diffing', async () => {
       const diff = specDiff.diffPlanFiles(PLAN_A, PLAN_B);
       expect(Array.isArray(diff.changes)).toBe(true);
       expect(typeof diff.breaking).toBe('boolean');
     });
 
-    test('identical content produces no changes', () => {
+    test('identical content produces no changes', async () => {
       const diff = specDiff.diffPlanFiles(PLAN_A, PLAN_A);
       expect(diff.changes).toEqual([]);
     });
   });
 
   describe('formatDiff()', () => {
-    test('markdown format produces string with ## headers', () => {
+    test('markdown format produces string with ## headers', async () => {
       const specA = parsePlanToSpec(PLAN_A);
       const specC = parsePlanToSpec(PLAN_C);
       const diff = specDiff.diffSpecs(specA, specC);
@@ -359,14 +359,14 @@ describe('spec-diff', () => {
       expect(md).toContain('##');
     });
 
-    test('json format produces parseable JSON array', () => {
+    test('json format produces parseable JSON array', async () => {
       const diff = specDiff.diffPlanFiles(PLAN_A, PLAN_C);
       const jsonStr = specDiff.formatDiff(diff, 'json');
       expect(() => JSON.parse(jsonStr)).not.toThrow();
       expect(Array.isArray(JSON.parse(jsonStr))).toBe(true);
     });
 
-    test('markdown shows "No changes" for identical specs', () => {
+    test('markdown shows "No changes" for identical specs', async () => {
       const diff = specDiff.diffPlanFiles(PLAN_A, PLAN_A);
       const md = specDiff.formatDiff(diff, 'markdown');
       expect(md).toContain('No changes');

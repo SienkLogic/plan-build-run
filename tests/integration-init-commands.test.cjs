@@ -131,7 +131,7 @@ describe('integration: initContinue with full state', () => {
     assert.ok(output.current_phase.completed !== undefined, 'current_phase should have completed');
   });
 
-  test('routing reflects actual filesystem - suggests review for built-not-verified', () => {
+  test('routing reflects actual filesystem - suggests review for built-not-verified', async () => {
     tmpDir = createRealisticProject({
       state: '---\nstatus: built\ncurrent_phase: 1\n---\n',
       roadmap: '# Roadmap\n\n## Milestone: v1.0\n\n| Phase | Name | Status |\n|-------|------|--------|\n| 1. | Setup | built |\n',
@@ -159,7 +159,7 @@ describe('integration: initContinue with full state', () => {
     );
   });
 
-  test('returns error when no .planning exists', () => {
+  test('returns error when no .planning exists', async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-integ-'));
     const result = runPbrTools('init continue', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -173,7 +173,7 @@ describe('integration: initMilestone with multi-milestone ROADMAP', () => {
 
   afterEach(() => { if (tmpDir) cleanup(tmpDir); });
 
-  test('detects two milestones and existing archive', () => {
+  test('detects two milestones and existing archive', async () => {
     tmpDir = createRealisticProject({
       state: '---\nstatus: verified\ncurrent_phase: 3\n---\n',
       roadmap: [
@@ -210,7 +210,7 @@ describe('integration: initBegin brownfield vs greenfield', () => {
 
   afterEach(() => { if (tmpDir) cleanup(tmpDir); });
 
-  test('detects brownfield project with package.json and src', () => {
+  test('detects brownfield project with package.json and src', async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-integ-'));
     // No .planning dir -- brownfield project root
     fs.writeFileSync(path.join(tmpDir, 'package.json'), '{}');
@@ -229,7 +229,7 @@ describe('integration: initBegin brownfield vs greenfield', () => {
     assert.strictEqual(output.state, null, 'state should be null without .planning');
   });
 
-  test('detects greenfield project with no files', () => {
+  test('detects greenfield project with no files', async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-integ-'));
 
     const result = runPbrTools('init begin', tmpDir);
@@ -268,7 +268,7 @@ describe('integration: initStatus with todos, notes, debug', () => {
     assert.strictEqual(output.has_paused_work, false, 'no .continue-here file');
   });
 
-  test('detects paused work via .continue-here file', () => {
+  test('detects paused work via .continue-here file', async () => {
     tmpDir = createRealisticProject({
       state: '---\nstatus: building\ncurrent_phase: 1\n---\n',
       continueHere: 'Paused at task 3',

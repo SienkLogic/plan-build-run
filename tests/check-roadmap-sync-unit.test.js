@@ -33,71 +33,71 @@ afterEach(() => {
 });
 
 describe('parseState', () => {
-  test('parses phase and status', () => {
+  test('parses phase and status', async () => {
     const result = parseState('Phase: 2 of 5\nStatus: building');
     expect(result.phase).toBe('2');
     expect(result.status).toBe('building');
   });
 
-  test('parses bold Phase format', () => {
+  test('parses bold Phase format', async () => {
     const content = '**Phase**: 03 - auth-system\n**Status**: planned';
     const result = parseState(content);
     expect(result.phase).toBe('3');
     expect(result.status).toBe('planned');
   });
 
-  test('parses plain Phase format', () => {
+  test('parses plain Phase format', async () => {
     const content = 'Phase: 3\nStatus: building';
     const result = parseState(content);
     expect(result.phase).toBe('3');
     expect(result.status).toBe('building');
   });
 
-  test('parses "Current phase" format', () => {
+  test('parses "Current phase" format', async () => {
     const content = 'Current Phase: 03-slug-name\nPhase Status: built';
     const result = parseState(content);
     expect(result.phase).toBe('3');
     expect(result.status).toBe('built');
   });
 
-  test('parses bold status', () => {
+  test('parses bold status', async () => {
     const content = '**Phase**: 05\n**Status**: verified';
     const result = parseState(content);
     expect(result.phase).toBe('5');
     expect(result.status).toBe('verified');
   });
 
-  test('parses quoted status', () => {
+  test('parses quoted status', async () => {
     const content = 'Phase: 2\nStatus: "planned"';
     const result = parseState(content);
     expect(result.status).toBe('planned');
   });
 
-  test('returns null when no phase', () => {
+  test('returns null when no phase', async () => {
     expect(parseState('No phase info')).toBeNull();
   });
 
-  test('returns null when no status line', () => {
+  test('returns null when no status line', async () => {
     expect(parseState('Phase: 1 of 3')).toBeNull();
   });
 
-  test('returns null for missing status', () => {
+  test('returns null for missing status', async () => {
     const content = 'Phase: 3\nSome other content';
     const result = parseState(content);
     expect(result).toBeNull();
   });
 
-  test('returns null for empty content', () => {
+  test('returns null for empty content', async () => {
     expect(parseState('')).toBeNull();
   });
 
-  test('normalizes leading zeros', () => {
+  test('normalizes leading zeros', async () => {
     const content = '**Phase**: 01\n**Status**: planned';
     const result = parseState(content);
     expect(result.phase).toBe('1');
   });
 
-  test('handles decimal phase numbers', () => {
+  test('handles decimal phase numbers', async () => {
     const content = 'Phase: 3.1\nStatus: planned';
     const result = parseState(content);
     expect(result.phase).toBe('3.1');
@@ -123,22 +123,22 @@ describe('getRoadmapPhaseStatus', () => {
 | 3 | UI | 0 | pending |
 `;
 
-  test('finds status for a matching phase', () => {
+  test('finds status for a matching phase', async () => {
     expect(getRoadmapPhaseStatus(standardTable, '1')).toBe('planned');
     expect(getRoadmapPhaseStatus(standardTable, '2')).toBe('built');
     expect(getRoadmapPhaseStatus(standardTable, '3')).toBe('pending');
   });
 
-  test('finds status in compact table', () => {
+  test('finds status in compact table', async () => {
     expect(getRoadmapPhaseStatus(compactTable, '1')).toBe('complete');
     expect(getRoadmapPhaseStatus(compactTable, '2')).toBe('building');
   });
 
-  test('normalizes phase numbers (03 matches 3)', () => {
+  test('normalizes phase numbers (03 matches 3)', async () => {
     expect(getRoadmapPhaseStatus(standardTable, '1')).toBe('planned');
   });
 
-  test('handles zero-padded phase numbers', () => {
+  test('handles zero-padded phase numbers', async () => {
     const table = `## Progress
 | Phase | Name | Plans | Status |
 |---|---|---|---|
@@ -147,27 +147,27 @@ describe('getRoadmapPhaseStatus', () => {
     expect(getRoadmapPhaseStatus(table, '1')).toBe('complete');
   });
 
-  test('returns null for missing phase', () => {
+  test('returns null for missing phase', async () => {
     expect(getRoadmapPhaseStatus(standardTable, '99')).toBeNull();
   });
 
-  test('returns null for nonexistent phase', () => {
+  test('returns null for nonexistent phase', async () => {
     expect(getRoadmapPhaseStatus(compactTable, '9')).toBeNull();
   });
 
-  test('returns null for empty content', () => {
+  test('returns null for empty content', async () => {
     expect(getRoadmapPhaseStatus('', '1')).toBeNull();
   });
 
-  test('returns null for content without table', () => {
+  test('returns null for content without table', async () => {
     expect(getRoadmapPhaseStatus('# Roadmap\nNo table here', '1')).toBeNull();
   });
 
-  test('returns null when no table found', () => {
+  test('returns null when no table found', async () => {
     expect(getRoadmapPhaseStatus('# Roadmap\nNo table', '1')).toBeNull();
   });
 
-  test('handles varying column counts', () => {
+  test('handles varying column counts', async () => {
     const table = `| Phase | Name | Status |
 |-------|------|--------|
 | 01 | Setup | done |
@@ -175,7 +175,7 @@ describe('getRoadmapPhaseStatus', () => {
     expect(getRoadmapPhaseStatus(table, '1')).toBe('done');
   });
 
-  test('handles case-insensitive column headers', () => {
+  test('handles case-insensitive column headers', async () => {
     const table = `| phase | name | goal | plans | wave | status |
 |-------|------|------|-------|------|--------|
 | 01 | Setup | Init | 2 | 1 | verified |
@@ -183,7 +183,7 @@ describe('getRoadmapPhaseStatus', () => {
     expect(getRoadmapPhaseStatus(table, '1')).toBe('verified');
   });
 
-  test('handles table not under Phase Overview heading', () => {
+  test('handles table not under Phase Overview heading', async () => {
     const table = `# Something Else
 | Phase | Name | Status |
 |-------|------|--------|
@@ -192,7 +192,7 @@ describe('getRoadmapPhaseStatus', () => {
     expect(getRoadmapPhaseStatus(table, '5')).toBe('complete');
   });
 
-  test('stops at non-table line', () => {
+  test('stops at non-table line', async () => {
     const table = `## Progress
 | Phase | Name | Plans | Status |
 |---|---|---|---|
@@ -205,7 +205,7 @@ Some non-table text
 });
 
 describe('parseRoadmapPhases', () => {
-  test('extracts NN-slug patterns from ROADMAP.md content', () => {
+  test('extracts NN-slug patterns from ROADMAP.md content', async () => {
     const content = `# Roadmap
 
 ## Phase Overview
@@ -222,7 +222,7 @@ describe('parseRoadmapPhases', () => {
     expect(phases).toHaveLength(3);
   });
 
-  test('extracts phases from heading references', () => {
+  test('extracts phases from heading references', async () => {
     const content = `## Phase 01-setup
 Some description
 ## Phase 02-auth
@@ -232,24 +232,24 @@ More description`;
     expect(phases).toContain('02-auth');
   });
 
-  test('deduplicates repeated phase references', () => {
+  test('deduplicates repeated phase references', async () => {
     const content = `01-setup is referenced here
 and 01-setup is referenced again`;
     const phases = parseRoadmapPhases(content);
     expect(phases.filter(p => p === '01-setup')).toHaveLength(1);
   });
 
-  test('returns empty array for content without phase patterns', () => {
+  test('returns empty array for content without phase patterns', async () => {
     const content = '# Roadmap\nNo phase directories here';
     expect(parseRoadmapPhases(content)).toEqual([]);
   });
 
-  test('ignores single-digit prefixes without proper slug', () => {
+  test('ignores single-digit prefixes without proper slug', async () => {
     const content = 'Phase 1 is active\nphase 2 next';
     expect(parseRoadmapPhases(content)).toEqual([]);
   });
 
-  test('handles multi-word slugs with hyphens', () => {
+  test('handles multi-word slugs with hyphens', async () => {
     const content = '| 01-user-auth-system | Setup |';
     const phases = parseRoadmapPhases(content);
     expect(phases).toContain('01-user-auth-system');
@@ -257,22 +257,22 @@ and 01-setup is referenced again`;
 });
 
 describe('checkSync', () => {
-  test('returns null for non-STATE.md files', () => {
+  test('returns null for non-STATE.md files', async () => {
     expect(checkSync({ tool_input: { file_path: '/tmp/other.md' } })).toBeNull();
   });
 
-  test('returns null when STATE.md does not exist on disk', () => {
+  test('returns null when STATE.md does not exist on disk', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     expect(checkSync({ tool_input: { file_path: statePath } })).toBeNull();
   });
 
-  test('returns null when ROADMAP.md does not exist', () => {
+  test('returns null when ROADMAP.md does not exist', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'Phase: 1 of 3\nStatus: building');
     expect(checkSync({ tool_input: { file_path: statePath } })).toBeNull();
   });
 
-  test('returns advisory warning when STATE.md has no parseable phase', () => {
+  test('returns advisory warning when STATE.md has no parseable phase', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'No phase info');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
@@ -281,14 +281,14 @@ describe('checkSync', () => {
     expect(result.output.additionalContext).toContain('Could not parse');
   });
 
-  test('returns null when status is not a lifecycle status', () => {
+  test('returns null when status is not a lifecycle status', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'Phase: 1 of 3\nStatus: custom-status');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
     expect(checkSync({ tool_input: { file_path: statePath } })).toBeNull();
   });
 
-  test('warns when phase not in ROADMAP', () => {
+  test('warns when phase not in ROADMAP', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'Phase: 5 of 5\nStatus: planned');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Name | Plans | Status |\n|---|---|---|---|\n| 1 | Setup | 1 | complete |\n');
@@ -297,7 +297,7 @@ describe('checkSync', () => {
     expect(result.output.additionalContext).toContain('CRITICAL');
   });
 
-  test('warns when roadmap status mismatches STATE.md status', () => {
+  test('warns when roadmap status mismatches STATE.md status', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'Phase: 2 of 5\nStatus: planned');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Name | Plans | Status |\n|---|---|---|---|\n| 2 | API | 1 | built |\n');
@@ -306,7 +306,7 @@ describe('checkSync', () => {
     expect(result.output.additionalContext).toContain('out of sync');
   });
 
-  test('returns null when phase status matches', () => {
+  test('returns null when phase status matches', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'Phase: 2 of 5\nStatus: planned');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Name | Plans | Status |\n|---|---|---|---|\n| 2 | API | 1 | planned |\n');
@@ -314,7 +314,7 @@ describe('checkSync', () => {
     expect(result).toBeNull();
   });
 
-  test('regression mismatch returns blocking decision', () => {
+  test('regression mismatch returns blocking decision', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 01\n**Status**: built');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Name | Status |\n|---|---|---|\n| 01 | Setup | planned |');
@@ -325,7 +325,7 @@ describe('checkSync', () => {
     expect(result.output.reason).toContain('Phase 1');
   });
 
-  test('missing phase in ROADMAP triggers CRITICAL warning', () => {
+  test('missing phase in ROADMAP triggers CRITICAL warning', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 05\n**Status**: built');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Name | Status |\n|---|---|---|\n| 01 | Setup | planned |');
@@ -336,7 +336,7 @@ describe('checkSync', () => {
     expect(result.output.additionalContext).toContain('not listed in ROADMAP.md');
   });
 
-  test('returns blocking decision for status regression', () => {
+  test('returns blocking decision for status regression', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 03\n**Status**: verified');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 03 | planned |');
@@ -346,7 +346,7 @@ describe('checkSync', () => {
     expect(result.output.reason).toContain('regression');
   });
 
-  test('returns advisory for non-regression mismatch', () => {
+  test('returns advisory for non-regression mismatch', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 01\n**Status**: planned');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 01 | built |');
@@ -358,7 +358,7 @@ describe('checkSync', () => {
 });
 
 describe('checkFilesystemDrift', () => {
-  test('returns empty warnings when all phases match', () => {
+  test('returns empty warnings when all phases match', async () => {
     const phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '01-setup'));
@@ -371,7 +371,7 @@ describe('checkFilesystemDrift', () => {
     expect(warnings).toEqual([]);
   });
 
-  test('warns about missing phase directories', () => {
+  test('warns about missing phase directories', async () => {
     const phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '01-setup'));
@@ -386,7 +386,7 @@ describe('checkFilesystemDrift', () => {
     expect(warnings[0]).toContain('referenced in ROADMAP.md');
   });
 
-  test('warns about orphaned phase directories', () => {
+  test('warns about orphaned phase directories', async () => {
     const phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '01-setup'));
@@ -401,7 +401,7 @@ describe('checkFilesystemDrift', () => {
     expect(warnings[0]).toContain('not referenced in ROADMAP.md');
   });
 
-  test('detects both missing and orphaned simultaneously', () => {
+  test('detects both missing and orphaned simultaneously', async () => {
     const phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '03-extra'));
@@ -416,14 +416,14 @@ describe('checkFilesystemDrift', () => {
     expect(orphaned).toContain('03-extra');
   });
 
-  test('returns empty when phases directory does not exist', () => {
+  test('returns empty when phases directory does not exist', async () => {
     const phasesDir = path.join(tmpDir, 'nonexistent');
     const roadmap = `| 01-setup | Setup | planned |`;
     const warnings = checkFilesystemDrift(roadmap, phasesDir);
     expect(warnings).toEqual([]);
   });
 
-  test('ignores non-directory entries in phases folder', () => {
+  test('ignores non-directory entries in phases folder', async () => {
     const phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '01-setup'));
@@ -435,7 +435,7 @@ describe('checkFilesystemDrift', () => {
     expect(warnings).toEqual([]);
   });
 
-  test('ignores directories that do not match NN-slug pattern', () => {
+  test('ignores directories that do not match NN-slug pattern', async () => {
     const phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '01-setup'));
@@ -450,47 +450,47 @@ describe('checkFilesystemDrift', () => {
 });
 
 describe('isHighRisk', () => {
-  test('returns true when verified phase regresses to planned in ROADMAP', () => {
+  test('returns true when verified phase regresses to planned in ROADMAP', async () => {
     const state = '**Phase**: 03\n**Status**: verified';
     const roadmap = '| Phase | Status |\n|---|---|\n| 03 | planned |';
     expect(isHighRisk(state, roadmap)).toBe(true);
   });
 
-  test('returns true when verified phase regresses to built', () => {
+  test('returns true when verified phase regresses to built', async () => {
     const state = '**Phase**: 02\n**Status**: verified';
     const roadmap = '| Phase | Status |\n|---|---|\n| 02 | built |';
     expect(isHighRisk(state, roadmap)).toBe(true);
   });
 
-  test('returns true when built phase regresses to planned', () => {
+  test('returns true when built phase regresses to planned', async () => {
     const state = '**Phase**: 01\n**Status**: built';
     const roadmap = '| Phase | Status |\n|---|---|\n| 01 | planned |';
     expect(isHighRisk(state, roadmap)).toBe(true);
   });
 
-  test('returns false when status advances (planned -> built)', () => {
+  test('returns false when status advances (planned -> built)', async () => {
     const state = '**Phase**: 01\n**Status**: planned';
     const roadmap = '| Phase | Status |\n|---|---|\n| 01 | built |';
     expect(isHighRisk(state, roadmap)).toBe(false);
   });
 
-  test('returns false when statuses match', () => {
+  test('returns false when statuses match', async () => {
     const state = '**Phase**: 01\n**Status**: built';
     const roadmap = '| Phase | Status |\n|---|---|\n| 01 | built |';
     expect(isHighRisk(state, roadmap)).toBe(false);
   });
 
-  test('returns false when state cannot be parsed', () => {
+  test('returns false when state cannot be parsed', async () => {
     expect(isHighRisk('no phase here', '| Phase | Status |\n|---|---|\n| 01 | built |')).toBe(false);
   });
 
-  test('returns true when phase ordering skips a number', () => {
+  test('returns true when phase ordering skips a number', async () => {
     const state = '**Phase**: 01\n**Status**: planned';
     const roadmap = '| Phase | Status |\n|---|---|\n| 01 | planned |\n| 03 | planned |';
     expect(isHighRisk(state, roadmap)).toBe(true);
   });
 
-  test('returns false for consecutive phase ordering', () => {
+  test('returns false for consecutive phase ordering', async () => {
     const state = '**Phase**: 01\n**Status**: planned';
     const roadmap = '| Phase | Status |\n|---|---|\n| 01 | planned |\n| 02 | planned |';
     expect(isHighRisk(state, roadmap)).toBe(false);
@@ -498,7 +498,7 @@ describe('isHighRisk', () => {
 });
 
 describe('getRoadmapPhaseStatus with <details> wrapped milestones', () => {
-  test('finds phase status inside <details> block', () => {
+  test('finds phase status inside <details> block', async () => {
     const content = `# Roadmap
 
 <details>
@@ -519,7 +519,7 @@ describe('getRoadmapPhaseStatus with <details> wrapped milestones', () => {
     expect(getRoadmapPhaseStatus(content, '2')).toBe('Verified');
   });
 
-  test('parseRoadmapPhases finds phases inside <details> blocks', () => {
+  test('parseRoadmapPhases finds phases inside <details> blocks', async () => {
     const content = `# Roadmap
 
 <details>
@@ -544,7 +544,7 @@ describe('getRoadmapPhaseStatus with <details> wrapped milestones', () => {
 });
 
 describe('validatePostMilestone', () => {
-  test('passes when all phases in milestone are verified', () => {
+  test('passes when all phases in milestone are verified', async () => {
     const roadmap = `| Phase | Name | Status |
 |---|---|---|
 | 01 | Setup | Verified |
@@ -553,7 +553,7 @@ describe('validatePostMilestone', () => {
     expect(result).toBeNull();
   });
 
-  test('passes when all phases are archived', () => {
+  test('passes when all phases are archived', async () => {
     const roadmap = `| Phase | Name | Status |
 |---|---|---|
 | 01 | Setup | Archived |
@@ -562,7 +562,7 @@ describe('validatePostMilestone', () => {
     expect(result).toBeNull();
   });
 
-  test('blocks when a phase is not verified', () => {
+  test('blocks when a phase is not verified', async () => {
     const roadmap = `| Phase | Name | Status |
 |---|---|---|
 | 01 | Setup | Verified |
@@ -573,7 +573,7 @@ describe('validatePostMilestone', () => {
     expect(result.reason).toContain('Phase 2');
   });
 
-  test('blocks when a phase is still planned', () => {
+  test('blocks when a phase is still planned', async () => {
     const roadmap = `| Phase | Name | Status |
 |---|---|---|
 | 01 | Setup | Planned |`;
@@ -582,7 +582,7 @@ describe('validatePostMilestone', () => {
     expect(result.decision).toBe('block');
   });
 
-  test('passes with collapsed/COMPLETED milestone section', () => {
+  test('passes with collapsed/COMPLETED milestone section', async () => {
     const roadmap = `## Milestone v1.0 — COMPLETED
 See archive.`;
     const result = validatePostMilestone(roadmap, 'v1.0');
@@ -591,7 +591,7 @@ See archive.`;
 });
 
 describe('collapsed milestone parsing', () => {
-  test('parsing phases from inside single <details> block works', () => {
+  test('parsing phases from inside single <details> block works', async () => {
     const content = `# Roadmap
 
 <details>
@@ -615,7 +615,7 @@ describe('collapsed milestone parsing', () => {
     expect(getRoadmapPhaseStatus(content, '4')).toBe('planned');
   });
 
-  test('phases in separate <details> blocks — only first table found', () => {
+  test('phases in separate <details> blocks — only first table found', async () => {
     // getRoadmapPhaseStatus reads the first Phase|Status table it finds,
     // so phases in a second table after non-table content are not found
     const content = `<details><summary>v1.0</summary>
@@ -634,7 +634,7 @@ describe('collapsed milestone parsing', () => {
     expect(getRoadmapPhaseStatus(content, '3')).toBeNull();
   });
 
-  test('SHIPPED milestone phases still return their status', () => {
+  test('SHIPPED milestone phases still return their status', async () => {
     const content = `<details><summary>## Milestone v1.0 -- SHIPPED</summary>
 | Phase | Status |
 |---|---|
@@ -643,7 +643,7 @@ describe('collapsed milestone parsing', () => {
     expect(getRoadmapPhaseStatus(content, '1')).toBe('Verified');
   });
 
-  test('parseRoadmapPhases finds phase slugs inside nested <details>', () => {
+  test('parseRoadmapPhases finds phase slugs inside nested <details>', async () => {
     const content = `<details>
 <summary>v1.0</summary>
 | 01-setup | Setup |
@@ -661,7 +661,7 @@ describe('collapsed milestone parsing', () => {
 });
 
 describe('phase status conflicts', () => {
-  test('STATE says building but ROADMAP says planned triggers warning', () => {
+  test('STATE says building but ROADMAP says planned triggers warning', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 02\n**Status**: built');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 02 | planned |');
@@ -672,7 +672,7 @@ describe('phase status conflicts', () => {
     expect(result.output.reason).toContain('regression');
   });
 
-  test('STATE says verified but ROADMAP says building triggers block', () => {
+  test('STATE says verified but ROADMAP says building triggers block', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 03\n**Status**: verified');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 03 | built |');
@@ -681,7 +681,7 @@ describe('phase status conflicts', () => {
     expect(result.output.decision).toBe('block');
   });
 
-  test('STATE says planned but ROADMAP says built is advisory not block', () => {
+  test('STATE says planned but ROADMAP says built is advisory not block', async () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 01\n**Status**: planned');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 01 | built |');
@@ -693,7 +693,7 @@ describe('phase status conflicts', () => {
 });
 
 describe('filesystem drift with extra phase dirs', () => {
-  test('phase dir 99-extra exists but not in ROADMAP warns about orphan', () => {
+  test('phase dir 99-extra exists but not in ROADMAP warns about orphan', async () => {
     const phasesDir = path.join(tmpDir, 'drift-phases');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '01-setup'));
@@ -704,7 +704,7 @@ describe('filesystem drift with extra phase dirs', () => {
     expect(warnings.some(w => w.includes('Orphaned') && w.includes('99-extra'))).toBe(true);
   });
 
-  test('multiple orphaned dirs all reported', () => {
+  test('multiple orphaned dirs all reported', async () => {
     const phasesDir = path.join(tmpDir, 'drift-multi');
     fs.mkdirSync(phasesDir, { recursive: true });
     fs.mkdirSync(path.join(phasesDir, '50-alpha'));
@@ -717,41 +717,41 @@ describe('filesystem drift with extra phase dirs', () => {
 });
 
 describe('malformed ROADMAP', () => {
-  test('missing milestones table returns null for phase lookup', () => {
+  test('missing milestones table returns null for phase lookup', async () => {
     const content = '# Roadmap\n\nJust some text, no tables at all.\n';
     expect(getRoadmapPhaseStatus(content, '1')).toBeNull();
   });
 
-  test('missing progress table returns empty phase list', () => {
+  test('missing progress table returns empty phase list', async () => {
     const content = '# Roadmap\n\nNo table whatsoever.\n';
     expect(parseRoadmapPhases(content)).toEqual([]);
   });
 
-  test('truncated frontmatter does not crash parseState', () => {
+  test('truncated frontmatter does not crash parseState', async () => {
     const content = '---\nphase: 3';
     // No closing --- and no status line
     expect(parseState(content)).toBeNull();
   });
 
-  test('table with malformed rows is handled', () => {
+  test('table with malformed rows is handled', async () => {
     const content = '| Phase | Status |\n|---|---|\n| | |\n| not-a-number | built |\n';
     expect(getRoadmapPhaseStatus(content, '1')).toBeNull();
   });
 
-  test('empty ROADMAP content returns null', () => {
+  test('empty ROADMAP content returns null', async () => {
     expect(getRoadmapPhaseStatus('', '1')).toBeNull();
     expect(parseRoadmapPhases('')).toEqual([]);
   });
 });
 
 describe('main() parse-failure catch block', () => {
-  test('malformed stdin emits additionalContext and exits 0', () => {
+  test('malformed stdin emits additionalContext and exits 0', async () => {
     const result = runScript('{ not valid json !!!', tmpDir);
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('additionalContext');
   });
 
-  test('valid STATE.md path but file points to non-STATE.md exits 0 silently', () => {
+  test('valid STATE.md path but file points to non-STATE.md exits 0 silently', async () => {
     const input = JSON.stringify({
       tool_input: { file_path: path.join(tmpDir, '.planning', 'PLAN.md') }
     });

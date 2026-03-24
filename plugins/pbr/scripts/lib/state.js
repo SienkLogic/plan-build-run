@@ -346,7 +346,7 @@ function stateCheckProgress(planningDir) {
  * @param {string} value - New value (use 'now' for last_activity to auto-timestamp)
  * @param {string} [planningDir] - Path to .planning directory
  */
-function stateUpdate(field, value, planningDir) {
+async function stateUpdate(field, value, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) {
@@ -378,7 +378,7 @@ function stateUpdate(field, value, planningDir) {
     value = new Date().toISOString().slice(0, 19).replace('T', ' ');
   }
 
-  const result = lockedFileUpdate(statePath, (content) => {
+  const result = await lockedFileUpdate(statePath, (content) => {
     let updated = updateFrontmatterField(content, field, value);
     updated = syncBodyLine(updated, field, value);
     return updated;
@@ -396,7 +396,7 @@ function stateUpdate(field, value, planningDir) {
  * @param {string} jsonStr - JSON string of field:value pairs
  * @param {string} [planningDir] - Path to .planning directory
  */
-function statePatch(jsonStr, planningDir) {
+async function statePatch(jsonStr, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
@@ -406,7 +406,7 @@ function statePatch(jsonStr, planningDir) {
   const invalidFields = Object.keys(fields).filter(f => !validFields.includes(f));
   if (invalidFields.length > 0) return { success: false, error: "Unknown fields: " + invalidFields.join(", ") };
 
-  const result = lockedFileUpdate(statePath, (content) => {
+  const result = await lockedFileUpdate(statePath, (content) => {
     let updated = content;
     for (const [field, value] of Object.entries(fields)) {
       let val = String(value);
@@ -428,13 +428,13 @@ function statePatch(jsonStr, planningDir) {
  *
  * @param {string} [planningDir] - Path to .planning directory
  */
-function stateAdvancePlan(planningDir) {
+async function stateAdvancePlan(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
 
   let resultData = {};
-  const result = lockedFileUpdate(statePath, (content) => {
+  const result = await lockedFileUpdate(statePath, (content) => {
     const planMatch = content.match(/Plan:\s*(\d+)\s+of\s+(\d+)/);
     if (!planMatch) {
       resultData = { error: "Could not find Plan: N of M in STATE.md" };
@@ -465,7 +465,7 @@ function stateAdvancePlan(planningDir) {
  * @param {string[]} metricArgs - CLI args like ['--duration', '30m', '--plans-completed', '3']
  * @param {string} [planningDir] - Path to .planning directory
  */
-function stateRecordMetric(metricArgs, planningDir) {
+async function stateRecordMetric(metricArgs, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   let duration = null, plansCompleted = null;
   for (let i = 0; i < metricArgs.length; i++) {
@@ -485,7 +485,7 @@ function stateRecordMetric(metricArgs, planningDir) {
   if (parts.length > 0) {
     const statePath = path.join(dir, 'STATE.md');
     if (fs.existsSync(statePath)) {
-      lockedFileUpdate(statePath, (content) => {
+      await lockedFileUpdate(statePath, (content) => {
         const metricsPattern = /(##\s*Performance Metrics[\s\S]*?\n\|[^\n]+\n\|[-|\s]+\n)([\s\S]*?)(?=\n##|\n$|$)/i;
         const metricsMatch = content.match(metricsPattern);
         if (metricsMatch) {
@@ -503,7 +503,7 @@ function stateRecordMetric(metricArgs, planningDir) {
     }
   }
 
-  stateUpdate("last_activity", "now", dir);
+  await stateUpdate("last_activity", "now", dir);
   return { success: true, duration_minutes: duration, plans_completed: plansCompleted };
 }
 
@@ -517,7 +517,7 @@ function stateRecordMetric(metricArgs, planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { success, metricType, value, trend }
  */
-function stateRecordVelocity(metricType, value, planningDir) {
+async function stateRecordVelocity(metricType, value, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) {
@@ -566,7 +566,7 @@ function stateRecordVelocity(metricType, value, planningDir) {
   }
 
   // Write back via stateUpdate
-  const result = stateUpdate('velocity', JSON.stringify(velocity), dir);
+  const result = await stateUpdate('velocity', JSON.stringify(velocity), dir);
   if (!result.success) return result;
   return { success: true, metricType, value: numValue, trend: velocity[metricType].trend };
 }
@@ -580,17 +580,17 @@ function stateRecordVelocity(metricType, value, planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { success, session_last, session_stopped_at, session_resume }
  */
-function stateRecordSession(stoppedAt, resumeFile, planningDir) {
+async function stateRecordSession(stoppedAt, resumeFile, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-  const r1 = stateUpdate('session_last', now, dir);
+  const r1 = await stateUpdate('session_last', now, dir);
   if (!r1.success) return r1;
 
-  const r2 = stateUpdate('session_stopped_at', stoppedAt, dir);
+  const r2 = await stateUpdate('session_stopped_at', stoppedAt, dir);
   if (!r2.success) return r2;
 
-  const r3 = stateUpdate('session_resume', resumeFile, dir);
+  const r3 = await stateUpdate('session_resume', resumeFile, dir);
   if (!r3.success) return r3;
 
   return { success: true, session_last: now, session_stopped_at: stoppedAt, session_resume: resumeFile };
@@ -603,11 +603,11 @@ function stateRecordSession(stoppedAt, resumeFile, planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { success: true, last_activity: "YYYY-MM-DD description" }
  */
-function stateRecordActivity(description, planningDir) {
+async function stateRecordActivity(description, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const today = new Date().toISOString().slice(0, 10);
   const value = `${today} ${description}`;
-  const result = stateUpdate('last_activity', value, dir);
+  const result = await stateUpdate('last_activity', value, dir);
   if (!result.success) return result;
   return { success: true, last_activity: value };
 }
@@ -619,7 +619,7 @@ function stateRecordActivity(description, planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { success, percent, completed_plans, total_plans }
  */
-function stateUpdateProgress(planningDir) {
+async function stateUpdateProgress(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) {
@@ -629,7 +629,7 @@ function stateUpdateProgress(planningDir) {
   const progress = stateCheckProgress(dir);
   const { percentage, completed_plans, total_plans } = progress;
 
-  const result = lockedFileUpdate(statePath, (content) => {
+  const result = await lockedFileUpdate(statePath, (content) => {
     let updated = content;
     // Update frontmatter fields
     updated = updateFrontmatterField(updated, 'progress_percent', percentage);
@@ -735,7 +735,7 @@ function stateSnapshot(planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { success: true, phase, status } or { success: false, error }
  */
-function statePhaseComplete(phaseNum, planningDir) {
+async function statePhaseComplete(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) {
@@ -745,7 +745,7 @@ function statePhaseComplete(phaseNum, planningDir) {
   const today = new Date().toISOString().slice(0, 10);
   const activityValue = `${today} Phase ${phaseNum} complete`;
 
-  const result = lockedFileUpdate(statePath, (content) => {
+  const result = await lockedFileUpdate(statePath, (content) => {
     let updated = content;
     // Update frontmatter fields
     updated = updateFrontmatterField(updated, 'status', 'complete');
@@ -772,7 +772,7 @@ function statePhaseComplete(phaseNum, planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { success, corrected: [...fieldNames], derived: { plans_complete, plans_total, progress_percent } }
  */
-function stateRederive(planningDir) {
+async function stateRederive(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) {
@@ -805,7 +805,7 @@ function stateRederive(planningDir) {
 
   // If drift detected, correct atomically
   if (corrected.length > 0) {
-    const result = lockedFileUpdate(statePath, (fileContent) => {
+    const result = await lockedFileUpdate(statePath, (fileContent) => {
       let updated = fileContent;
       for (const field of corrected) {
         const value = derived[field];
@@ -885,7 +885,7 @@ function stateCheckWaiting(planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} { corrected: boolean, changes: string[], phantoms: string[] }
  */
-function stateReconcile(planningDir) {
+async function stateReconcile(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   const roadmapPath = path.join(dir, 'ROADMAP.md');
@@ -1007,7 +1007,7 @@ function stateReconcile(planningDir) {
 
   // Apply corrections atomically
   if (Object.keys(fieldsToUpdate).length > 0) {
-    lockedFileUpdate(statePath, (content) => {
+    await lockedFileUpdate(statePath, (content) => {
       let updated = content;
       for (const [field, value] of Object.entries(fieldsToUpdate)) {
         updated = updateFrontmatterField(updated, field, value);

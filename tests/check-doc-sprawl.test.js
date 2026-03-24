@@ -23,20 +23,20 @@ function enableBlockDocSprawl(planningDir) {
 
 describe('check-doc-sprawl.js', () => {
   describe('isBlockDocSprawlEnabled', () => {
-    test('returns false when no config.json', () => {
+    test('returns false when no config.json', async () => {
       const { tmpDir } = makeTmpDir();
       expect(isBlockDocSprawlEnabled(tmpDir)).toBe(false);
       cleanup(tmpDir);
     });
 
-    test('returns false when blockDocSprawl not set', () => {
+    test('returns false when blockDocSprawl not set', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'), '{"depth": "standard"}');
       expect(isBlockDocSprawlEnabled(tmpDir)).toBe(false);
       cleanup(tmpDir);
     });
 
-    test('returns true when blockDocSprawl enabled', () => {
+    test('returns true when blockDocSprawl enabled', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       expect(isBlockDocSprawlEnabled(tmpDir)).toBe(true);
@@ -45,7 +45,7 @@ describe('check-doc-sprawl.js', () => {
   });
 
   describe('checkDocSprawl', () => {
-    test('returns null for non-doc files', () => {
+    test('returns null for non-doc files', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'app.js') } }, tmpDir);
@@ -53,19 +53,19 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for empty file_path', () => {
+    test('returns null for empty file_path', async () => {
       const result = checkDocSprawl({ tool_input: {} });
       expect(result).toBeNull();
     });
 
-    test('returns null when blockDocSprawl is disabled', () => {
+    test('returns null when blockDocSprawl is disabled', async () => {
       const { tmpDir } = makeTmpDir();
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'random-doc.md') } }, tmpDir);
       expect(result).toBeNull();
       cleanup(tmpDir);
     });
 
-    test('uses process.cwd() when cwd argument is omitted', () => {
+    test('uses process.cwd() when cwd argument is omitted', async () => {
       const { tmpDir } = makeTmpDir();
       const originalCwd = process.cwd();
       process.chdir(tmpDir);
@@ -89,7 +89,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for README.md (allowlisted)', () => {
+    test('returns null for README.md (allowlisted)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'README.md') } }, tmpDir);
@@ -105,7 +105,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for CONTRIBUTING.md (allowlisted)', () => {
+    test('returns null for CONTRIBUTING.md (allowlisted)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'CONTRIBUTING.md') } }, tmpDir);
@@ -113,7 +113,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for CHANGELOG.md (allowlisted)', () => {
+    test('returns null for CHANGELOG.md (allowlisted)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'CHANGELOG.md') } }, tmpDir);
@@ -121,7 +121,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for LICENSE.md (allowlisted)', () => {
+    test('returns null for LICENSE.md (allowlisted)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'LICENSE.md') } }, tmpDir);
@@ -129,7 +129,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for files in .planning/ directory', () => {
+    test('returns null for files in .planning/ directory', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(planningDir, 'phases', '01-init', 'PLAN.md') } }, tmpDir);
@@ -137,7 +137,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns null for files in .claude/ directory', () => {
+    test('returns null for files in .claude/ directory', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const claudeDir = path.join(tmpDir, '.claude', 'rules');
@@ -147,7 +147,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('blocks new .md file outside allowlist when enabled', () => {
+    test('blocks new .md file outside allowlist when enabled', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'random-thoughts.md') } }, tmpDir);
@@ -159,7 +159,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('blocks new .txt file outside allowlist when enabled', () => {
+    test('blocks new .txt file outside allowlist when enabled', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'notes.txt') } }, tmpDir);
@@ -169,7 +169,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('blocks nested .md file outside allowed dirs', () => {
+    test('blocks nested .md file outside allowed dirs', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const nestedDir = path.join(tmpDir, 'src', 'docs');
@@ -180,7 +180,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('uses tool_input.path as fallback', () => {
+    test('uses tool_input.path as fallback', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       const result = checkDocSprawl({ tool_input: { path: path.join(tmpDir, 'stray-doc.md') } }, tmpDir);
@@ -193,7 +193,7 @@ describe('check-doc-sprawl.js', () => {
   describe('pre-write-dispatch integration', () => {
     const DISPATCH_SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pre-write-dispatch.js');
 
-    test('blocks doc sprawl through dispatcher', () => {
+    test('blocks doc sprawl through dispatcher', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
       // Disable PBR workflow enforcement so it doesn't short-circuit before doc-sprawl
@@ -222,7 +222,7 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
-    test('allows doc creation when blockDocSprawl is disabled', () => {
+    test('allows doc creation when blockDocSprawl is disabled', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       // Disable PBR workflow enforcement so it doesn't produce advisory output
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ workflow: { enforce_pbr_skills: 'off' } }));

@@ -176,7 +176,7 @@ function initVerifyWork(phaseNum, planningDir, overrideModel) {
  * @param {string} [planningDir] - Path to .planning directory
  * @param {string} [sessionId] - Session identifier for session-scoped paths
  */
-function initResume(planningDir, sessionId) {
+async function initResume(planningDir, sessionId) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
@@ -200,7 +200,7 @@ function initResume(planningDir, sessionId) {
   if (drift.drift_detected) {
     try {
       const { stateRederive } = require('./state');
-      const rederiveResult = stateRederive(dir);
+      const rederiveResult = await stateRederive(dir);
       if (rederiveResult.success) {
         rederived = true;
         corrections = rederiveResult.corrected || [];

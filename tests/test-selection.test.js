@@ -7,7 +7,7 @@ const os = require('os');
 const { selectTests, getImpactScope, formatTestCommand } = require('../plugins/pbr/scripts/lib/test-selection');
 
 describe('getImpactScope', () => {
-  test('categorizes changed files correctly', () => {
+  test('categorizes changed files correctly', async () => {
     const files = [
       'hooks/validate-commit.js',
       'plugins/pbr/scripts/lib/config.js',
@@ -26,7 +26,7 @@ describe('getImpactScope', () => {
     expect(scope.configChanged).toBe(true);
   });
 
-  test('returns configChanged false when no config files changed', () => {
+  test('returns configChanged false when no config files changed', async () => {
     const files = ['hooks/my-hook.js'];
     const scope = getImpactScope(files);
     expect(scope.configChanged).toBe(false);
@@ -49,13 +49,13 @@ describe('selectTests', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns empty when feature disabled', () => {
+  test('returns empty when feature disabled', async () => {
     const config = { features: { regression_prevention: false } };
     const result = selectTests(['hooks/validate-commit.js'], config);
     expect(result).toEqual([]);
   });
 
-  test('maps hooks source files to test files by naming convention', () => {
+  test('maps hooks source files to test files by naming convention', async () => {
     const config = { features: { regression_prevention: true } };
     // We pass cwd so the module can check file existence
     const result = selectTests(['hooks/validate-commit.js'], config, tmpDir);
@@ -63,20 +63,20 @@ describe('selectTests', () => {
     expect(result.some(f => f.includes('validate-commit.test.js'))).toBe(true);
   });
 
-  test('maps lib files to test files', () => {
+  test('maps lib files to test files', async () => {
     const config = { features: { regression_prevention: true } };
     // Canonical uses plugins/pbr/scripts/lib/ paths, not plan-build-run/bin/lib/
     const result = selectTests(['plugins/pbr/scripts/lib/test-selection.js'], config, tmpDir);
     expect(result.some(f => f.includes('test-selection.test.js'))).toBe(true);
   });
 
-  test('includes --all when config file changed', () => {
+  test('includes --all when config file changed', async () => {
     const config = { features: { regression_prevention: true } };
     const result = selectTests(['plugins/pbr/scripts/config-schema.json'], config, tmpDir);
     expect(result).toContain('--all');
   });
 
-  test('deduplicates results', () => {
+  test('deduplicates results', async () => {
     const config = { features: { regression_prevention: true } };
     // Two files that both map to the same test
     const result = selectTests(
@@ -88,7 +88,7 @@ describe('selectTests', () => {
     expect(count).toBe(1);
   });
 
-  test('filters to only existing test files', () => {
+  test('filters to only existing test files', async () => {
     const config = { features: { regression_prevention: true } };
     // This hook doesn't have a corresponding test file in our tmp dir
     const result = selectTests(['hooks/nonexistent-hook.js'], config, tmpDir);
@@ -97,12 +97,12 @@ describe('selectTests', () => {
 });
 
 describe('formatTestCommand', () => {
-  test('returns npx jest for --all', () => {
+  test('returns npx jest for --all', async () => {
     const cmd = formatTestCommand(['--all']);
     expect(cmd).toBe('npx jest');
   });
 
-  test('returns targeted jest command for specific files', () => {
+  test('returns targeted jest command for specific files', async () => {
     const files = ['tests/config.test.js', 'tests/validate-commit.test.js'];
     const cmd = formatTestCommand(files);
     expect(cmd).toContain('npx jest');

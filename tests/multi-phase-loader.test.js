@@ -64,7 +64,7 @@ describe('loadMultiPhasePlans', () => {
     expect(result.totalPlans).toBe(4); // 1 + 2 + 1
   });
 
-  test('loads only current phase when multi_phase_awareness=false', () => {
+  test('loads only current phase when multi_phase_awareness=false', async () => {
     const config = {
       features: { multi_phase_awareness: false },
       workflow: { max_phases_in_context: 3 },
@@ -76,7 +76,7 @@ describe('loadMultiPhasePlans', () => {
     expect(result.totalPlans).toBe(2); // phase 02 has 2 plans
   });
 
-  test('loads only current phase when max_phases_in_context=1', () => {
+  test('loads only current phase when max_phases_in_context=1', async () => {
     const config = {
       features: { multi_phase_awareness: true },
       workflow: { max_phases_in_context: 1 },
@@ -86,7 +86,7 @@ describe('loadMultiPhasePlans', () => {
     expect(result.phases[0].phaseNum).toBe(2);
   });
 
-  test('handles currentPhase=1 (no previous phase) without error', () => {
+  test('handles currentPhase=1 (no previous phase) without error', async () => {
     const config = {
       features: { multi_phase_awareness: true },
       workflow: { max_phases_in_context: 3 },
@@ -98,7 +98,7 @@ describe('loadMultiPhasePlans', () => {
     // Should not error even though there's no phase 0
   });
 
-  test('returns plan content with frontmatter and body', () => {
+  test('returns plan content with frontmatter and body', async () => {
     const config = {
       features: { multi_phase_awareness: true },
       workflow: { max_phases_in_context: 1 },
@@ -108,7 +108,7 @@ describe('loadMultiPhasePlans', () => {
     expect(result.phases[0].plans[0].content).toContain('Task details here.');
   });
 
-  test('skips phase directories with no PLAN files', () => {
+  test('skips phase directories with no PLAN files', async () => {
     // Create an empty phase directory
     const emptyPhase = path.join(planningDir, 'phases', '04-empty');
     fs.mkdirSync(emptyPhase, { recursive: true });
@@ -122,7 +122,7 @@ describe('loadMultiPhasePlans', () => {
     expect(result.phases.every(p => p.plans.length > 0)).toBe(true);
   });
 
-  test('defaults max_phases_in_context to 3 when not specified', () => {
+  test('defaults max_phases_in_context to 3 when not specified', async () => {
     const config = {
       features: { multi_phase_awareness: true },
       workflow: {},
@@ -131,7 +131,7 @@ describe('loadMultiPhasePlans', () => {
     expect(result.phasesLoaded).toBe(3);
   });
 
-  test('defaults to enabled when multi_phase_awareness is undefined', () => {
+  test('defaults to enabled when multi_phase_awareness is undefined', async () => {
     const config = { features: {}, workflow: {} };
     const result = loadMultiPhasePlans(planningDir, 2, config);
     expect(result.phasesLoaded).toBeGreaterThan(1);

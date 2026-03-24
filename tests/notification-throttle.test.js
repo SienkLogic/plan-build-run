@@ -18,7 +18,7 @@ describe('notification-throttle', () => {
   });
 
   describe('createThrottleState', () => {
-    test('returns object with empty Map and startTime', () => {
+    test('returns object with empty Map and startTime', async () => {
       expect(state.seen).toBeInstanceOf(Map);
       expect(state.seen.size).toBe(0);
       expect(typeof state.startTime).toBe('number');
@@ -27,20 +27,20 @@ describe('notification-throttle', () => {
   });
 
   describe('shouldThrottle — interactive mode bypass', () => {
-    test('returns false in interactive mode regardless of call count', () => {
+    test('returns false in interactive mode regardless of call count', async () => {
       const key = 'hook:test:warn';
       for (let i = 0; i < 20; i++) {
         expect(shouldThrottle(state, key, { isAutonomous: false })).toBe(false);
       }
     });
 
-    test('defaults to interactive mode when isAutonomous not specified', () => {
+    test('defaults to interactive mode when isAutonomous not specified', async () => {
       for (let i = 0; i < 10; i++) {
         expect(shouldThrottle(state, 'key', {})).toBe(false);
       }
     });
 
-    test('defaults to interactive mode when no options provided', () => {
+    test('defaults to interactive mode when no options provided', async () => {
       for (let i = 0; i < 10; i++) {
         expect(shouldThrottle(state, 'key')).toBe(false);
       }
@@ -48,7 +48,7 @@ describe('notification-throttle', () => {
   });
 
   describe('shouldThrottle — critical message bypass', () => {
-    test('returns false for critical messages in autonomous mode', () => {
+    test('returns false for critical messages in autonomous mode', async () => {
       const key = 'hook:error';
       for (let i = 0; i < 20; i++) {
         expect(shouldThrottle(state, key, {
@@ -60,7 +60,7 @@ describe('notification-throttle', () => {
   });
 
   describe('shouldThrottle — basic throttling', () => {
-    test('allows first maxPerWindow messages then suppresses', () => {
+    test('allows first maxPerWindow messages then suppresses', async () => {
       const key = 'hook:context-bridge:DEGRADING';
       const opts = { isAutonomous: true, maxPerWindow: 3 };
 
@@ -75,7 +75,7 @@ describe('notification-throttle', () => {
       expect(shouldThrottle(state, key, opts)).toBe(true);
     });
 
-    test('uses default maxPerWindow of 3', () => {
+    test('uses default maxPerWindow of 3', async () => {
       const key = 'test-default';
       const opts = { isAutonomous: true };
 
@@ -85,7 +85,7 @@ describe('notification-throttle', () => {
       expect(shouldThrottle(state, key, opts)).toBe(true);
     });
 
-    test('custom maxPerWindow of 1 suppresses after first message', () => {
+    test('custom maxPerWindow of 1 suppresses after first message', async () => {
       const key = 'test-one';
       const opts = { isAutonomous: true, maxPerWindow: 1 };
 
@@ -95,7 +95,7 @@ describe('notification-throttle', () => {
   });
 
   describe('shouldThrottle — window reset', () => {
-    test('resets throttle after windowMs elapses', () => {
+    test('resets throttle after windowMs elapses', async () => {
       const key = 'hook:test:window';
       const opts = { isAutonomous: true, maxPerWindow: 2, windowMs: 5000 };
 
@@ -118,7 +118,7 @@ describe('notification-throttle', () => {
   });
 
   describe('shouldThrottle — different keys are independent', () => {
-    test('each key has its own counter', () => {
+    test('each key has its own counter', async () => {
       const opts = { isAutonomous: true, maxPerWindow: 1 };
 
       expect(shouldThrottle(state, 'keyA', opts)).toBe(false);
@@ -157,7 +157,7 @@ describe('notification-throttle', () => {
       expect(isCriticalMessage(message)).toBe(false);
     });
 
-    test('returns false for non-string input', () => {
+    test('returns false for non-string input', async () => {
       expect(isCriticalMessage(null)).toBe(false);
       expect(isCriticalMessage(undefined)).toBe(false);
       expect(isCriticalMessage(42)).toBe(false);
@@ -166,7 +166,7 @@ describe('notification-throttle', () => {
   });
 
   describe('resetThrottle', () => {
-    test('clears all tracked keys and resets startTime', () => {
+    test('clears all tracked keys and resets startTime', async () => {
       const opts = { isAutonomous: true, maxPerWindow: 1 };
 
       // Exhaust a key
@@ -186,7 +186,7 @@ describe('notification-throttle', () => {
   });
 
   describe('shouldThrottleDefault — singleton', () => {
-    test('shares state across calls within same process', () => {
+    test('shares state across calls within same process', async () => {
       const opts = { isAutonomous: true, maxPerWindow: 2 };
 
       expect(shouldThrottleDefault('shared-key', opts)).toBe(false);
@@ -194,7 +194,7 @@ describe('notification-throttle', () => {
       expect(shouldThrottleDefault('shared-key', opts)).toBe(true);
     });
 
-    test('uses the module-level _defaultState', () => {
+    test('uses the module-level _defaultState', async () => {
       const opts = { isAutonomous: true, maxPerWindow: 1 };
       shouldThrottleDefault('singleton-test', opts);
 
@@ -204,7 +204,7 @@ describe('notification-throttle', () => {
   });
 
   describe('default options', () => {
-    test('windowMs defaults to 60000', () => {
+    test('windowMs defaults to 60000', async () => {
       const opts = { isAutonomous: true, maxPerWindow: 1 };
 
       shouldThrottle(state, 'defaults-test', opts);
@@ -216,7 +216,7 @@ describe('notification-throttle', () => {
       expect(shouldThrottle(state, 'defaults-test', opts)).toBe(true); // maxPerWindow=1, so 2nd call blocked
     });
 
-    test('partial options merge with defaults', () => {
+    test('partial options merge with defaults', async () => {
       // Only specify isAutonomous, rest should use defaults
       const opts = { isAutonomous: true };
 

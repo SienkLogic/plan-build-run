@@ -27,7 +27,7 @@ describe('matchScore', () => {
     summaryDescriptions: ['Create auto-cleanup functions for phase completion']
   };
 
-  test('score 0: completely unrelated item', () => {
+  test('score 0: completely unrelated item', async () => {
     const result = matchScore(
       { title: 'Fix database connection pooling', body: 'MongoDB timeout issues in production' },
       baseContext
@@ -36,7 +36,7 @@ describe('matchScore', () => {
     expect(result.signals).toEqual([]);
   });
 
-  test('score 1 (partial): title keyword overlap but no other signals', () => {
+  test('score 1 (partial): title keyword overlap but no other signals', async () => {
     const result = matchScore(
       { title: 'Review cleanup procedures', body: 'General code review needed' },
       { phaseName: 'cleanup review procedures', phaseNum: 5, keyFiles: [], commitMessages: [], summaryDescriptions: [] }
@@ -45,7 +45,7 @@ describe('matchScore', () => {
     expect(result.signals).toContain('title-keyword');
   });
 
-  test('score 2: title keywords AND file path match', () => {
+  test('score 2: title keywords AND file path match', async () => {
     const result = matchScore(
       {
         title: 'Implement auto cleanup logic',
@@ -58,7 +58,7 @@ describe('matchScore', () => {
     expect(result.signals).toContain('file-path');
   });
 
-  test('score 3+: multiple signals fire', () => {
+  test('score 3+: multiple signals fire', async () => {
     const result = matchScore(
       {
         title: 'Implement auto cleanup completion logic',
@@ -70,7 +70,7 @@ describe('matchScore', () => {
     expect(result.signals.length).toBeGreaterThanOrEqual(3);
   });
 
-  test('file path match is case insensitive', () => {
+  test('file path match is case insensitive', async () => {
     const result = matchScore(
       { title: 'unrelated title words here now', body: 'See Plugins/PBR/Scripts/Lib/Auto-Cleanup.js for details' },
       baseContext
@@ -78,7 +78,7 @@ describe('matchScore', () => {
     expect(result.signals).toContain('file-path');
   });
 
-  test('commit message match fires when substring found', () => {
+  test('commit message match fires when substring found', async () => {
     const result = matchScore(
       { title: 'something else entirely different', body: 'Related to: add auto-cleanup library with matching logic' },
       baseContext
@@ -86,7 +86,7 @@ describe('matchScore', () => {
     expect(result.signals).toContain('commit-message');
   });
 
-  test('summary description match fires when substring found', () => {
+  test('summary description match fires when substring found', async () => {
     const result = matchScore(
       { title: 'something else entirely different', body: 'Create auto-cleanup functions for phase completion' },
       baseContext
@@ -94,7 +94,7 @@ describe('matchScore', () => {
     expect(result.signals).toContain('summary-description');
   });
 
-  test('handles missing/empty context fields gracefully', () => {
+  test('handles missing/empty context fields gracefully', async () => {
     const result = matchScore(
       { title: 'test', body: 'test' },
       { phaseName: '', phaseNum: 1 }
@@ -103,7 +103,7 @@ describe('matchScore', () => {
     expect(result.signals).toEqual([]);
   });
 
-  test('handles null item fields gracefully', () => {
+  test('handles null item fields gracefully', async () => {
     const result = matchScore(
       { title: null, body: null },
       baseContext
@@ -111,7 +111,7 @@ describe('matchScore', () => {
     expect(result.score).toBe(0);
   });
 
-  test('short commit messages (<= 5 chars) are ignored', () => {
+  test('short commit messages (<= 5 chars) are ignored', async () => {
     const result = matchScore(
       { title: 'fix something', body: 'fix' },
       { phaseName: 'fix', phaseNum: 1, keyFiles: [], commitMessages: ['fix'], summaryDescriptions: [] }
@@ -218,7 +218,7 @@ describe('autoCloseTodos', () => {
     expect(result.skipped).toBe(1);
   });
 
-  test('returns empty results when no todos exist', () => {
+  test('returns empty results when no todos exist', async () => {
     const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cleanup-empty-'));
     fs.mkdirSync(path.join(emptyDir, 'todos', 'pending'), { recursive: true });
 
@@ -313,7 +313,7 @@ describe('autoArchiveNotes', () => {
     expect(result.partial).toEqual([]);
   });
 
-  test('returns empty results when notes dir does not exist', () => {
+  test('returns empty results when notes dir does not exist', async () => {
     const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cleanup-nonotes-'));
 
     const result = autoArchiveNotes(emptyDir, {
@@ -327,7 +327,7 @@ describe('autoArchiveNotes', () => {
     fs.rmSync(emptyDir, { recursive: true, force: true });
   });
 
-  test('note file still exists after archiving (not moved)', () => {
+  test('note file still exists after archiving (not moved)', async () => {
     const context = {
       phaseName: 'auto cleanup completion',
       phaseNum: 38,

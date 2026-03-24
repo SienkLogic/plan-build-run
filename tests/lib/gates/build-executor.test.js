@@ -20,7 +20,7 @@ describe('checkBuildExecutorGate', () => {
     delete process.env.PBR_PROJECT_ROOT;
   });
 
-  test('returns null for non-executor agents', () => {
+  test('returns null for non-executor agents', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -29,7 +29,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when active skill is not build', () => {
+  test('returns null when active skill is not build', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -38,14 +38,14 @@ describe('checkBuildExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when no .active-skill file', () => {
+  test('returns null when no .active-skill file', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
     const result = checkBuildExecutorGate(makeData('pbr:executor'));
     expect(result).toBeNull();
   });
 
-  test('allows when PLAN.md missing from phase dir (empty dir for speculative planning)', () => {
+  test('allows when PLAN.md missing from phase dir (empty dir for speculative planning)', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
@@ -56,7 +56,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when PLAN.md exists in phase dir', () => {
+  test('returns null when PLAN.md exists in phase dir', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
@@ -68,7 +68,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('blocks when phases/ dir missing', () => {
+  test('blocks when phases/ dir missing', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });

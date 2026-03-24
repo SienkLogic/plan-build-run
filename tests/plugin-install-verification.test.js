@@ -74,7 +74,7 @@ describe('Plugin manifest validation', () => {
     );
   });
 
-  test('plugin.json version matches package.json version', () => {
+  test('plugin.json version matches package.json version', async () => {
     expect(pluginJson.version).toBe(packageJson.version);
   });
 
@@ -87,7 +87,7 @@ describe('Plugin manifest validation', () => {
     expect(typeof pluginJson.description).toBe('string');
   });
 
-  test('plugin.json name is "pbr"', () => {
+  test('plugin.json name is "pbr"', async () => {
     expect(pluginJson.name).toBe('pbr');
   });
 });
@@ -119,13 +119,13 @@ describe('hooks.json script resolution against canonical location', () => {
     }
   });
 
-  test('extracts at least 3 unique scripts from command-type hooks', () => {
+  test('extracts at least 3 unique scripts from command-type hooks', async () => {
     // After HTTP hook migration, only SessionStart, Stop, InstructionsLoaded,
     // WorktreeCreate, WorktreeRemove remain as command-type hooks
     expect(extractedScripts.size).toBeGreaterThanOrEqual(3);
   });
 
-  test('http-type hooks reference valid hook server URLs', () => {
+  test('http-type hooks reference valid hook server URLs', async () => {
     let httpCount = 0;
     for (const [, groups] of Object.entries(hooks.hooks)) {
       for (const group of groups) {
@@ -162,7 +162,7 @@ describe('hooks.json script resolution against canonical location', () => {
     expect(fs.existsSync(scriptPath)).toBe(true);
   });
 
-  test('every script referenced in hooks.json exists in plugins/pbr/scripts/', () => {
+  test('every script referenced in hooks.json exists in plugins/pbr/scripts/', async () => {
     const missing = [];
     for (const script of extractedScripts) {
       const scriptPath = path.join(PLUGIN, 'scripts', script);
@@ -186,14 +186,14 @@ describe('run-hook.js bootstrap pattern validation', () => {
     hooks = JSON.parse(raw);
   });
 
-  test('run-hook.js exists and has size > 100 bytes', () => {
+  test('run-hook.js exists and has size > 100 bytes', async () => {
     const runHookPath = path.join(PLUGIN, 'scripts', 'run-hook.js');
     expect(fs.existsSync(runHookPath)).toBe(true);
     const stat = fs.statSync(runHookPath);
     expect(stat.size).toBeGreaterThan(100);
   });
 
-  test('every command-type hook contains the MSYS path fix pattern', () => {
+  test('every command-type hook contains the MSYS path fix pattern', async () => {
     const missingPattern = [];
     for (const [eventName, groups] of Object.entries(hooks.hooks)) {
       for (const group of groups) {
@@ -209,7 +209,7 @@ describe('run-hook.js bootstrap pattern validation', () => {
     expect(missingPattern).toEqual([]);
   });
 
-  test('every command-type hook references run-hook.js', () => {
+  test('every command-type hook references run-hook.js', async () => {
     const missingRunHook = [];
     for (const [eventName, groups] of Object.entries(hooks.hooks)) {
       for (const group of groups) {
@@ -237,11 +237,11 @@ describe('Command registration completeness', () => {
     commandFiles = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.md'));
   });
 
-  test('at least 60 command files exist', () => {
+  test('at least 60 command files exist', async () => {
     expect(commandFiles.length).toBeGreaterThanOrEqual(60);
   });
 
-  test('every command that references a skill maps to an existing SKILL.md', () => {
+  test('every command that references a skill maps to an existing SKILL.md', async () => {
     const invalid = [];
     const staticCommands = ['join-discord'];
 
@@ -275,7 +275,7 @@ describe('Skill frontmatter validation', () => {
     .map(d => d.name)
     .sort();
 
-  test('at least 20 skills exist', () => {
+  test('at least 20 skills exist', async () => {
     expect(skillDirs.length).toBeGreaterThanOrEqual(20);
   });
 
@@ -300,7 +300,7 @@ describe('Agent frontmatter validation', () => {
     .filter(f => f.endsWith('.md'))
     .sort();
 
-  test('at least 10 agent files exist', () => {
+  test('at least 10 agent files exist', async () => {
     expect(agentFiles.length).toBeGreaterThanOrEqual(10);
   });
 
@@ -352,7 +352,7 @@ describe('npm pack file inclusion', () => {
     );
   });
 
-  test('package.json files array includes "plugins/"', () => {
+  test('package.json files array includes "plugins/"', async () => {
     expect(packageJson.files).toBeDefined();
     expect(Array.isArray(packageJson.files)).toBe(true);
     expect(packageJson.files).toContain('plugins/');
@@ -371,7 +371,7 @@ describe('npm pack file inclusion', () => {
     expect(stat.isDirectory()).toBe(true);
   });
 
-  test('key plugin files exist', () => {
+  test('key plugin files exist', async () => {
     const keyFiles = [
       path.join(PLUGIN, '.claude-plugin', 'plugin.json'),
       path.join(PLUGIN, 'hooks', 'hooks.json'),

@@ -30,24 +30,24 @@ Phase: ${phase} of 5 (${slug})
 
 describe('check-summary-gate.js', () => {
   describe('parseFrontmatter', () => {
-    test('extracts key-value pairs from YAML frontmatter', () => {
+    test('extracts key-value pairs from YAML frontmatter', async () => {
       const fm = parseFrontmatter('---\nstatus: "verified"\ncurrent_phase: 2\n---\n# body');
       expect(fm.status).toBe('verified');
       expect(fm.current_phase).toBe('2');
     });
 
-    test('returns empty object for content without frontmatter', () => {
+    test('returns empty object for content without frontmatter', async () => {
       expect(parseFrontmatter('no frontmatter here')).toEqual({});
     });
 
-    test('handles unquoted values', () => {
+    test('handles unquoted values', async () => {
       const fm = parseFrontmatter('---\nstatus: built\n---');
       expect(fm.status).toBe('built');
     });
   });
 
   describe('hasSummaryFile', () => {
-    test('returns true when SUMMARY file exists', () => {
+    test('returns true when SUMMARY file exists', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       const phaseDir = makePhaseDir(planningDir, '02-test');
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-02-01.md'), '---\nstatus: complete\n---');
@@ -55,7 +55,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns false when no SUMMARY file', () => {
+    test('returns false when no SUMMARY file', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       const phaseDir = makePhaseDir(planningDir, '02-test');
       fs.writeFileSync(path.join(phaseDir, 'PLAN.md'), '---\ntitle: test\n---');
@@ -63,13 +63,13 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns false for non-existent directory', () => {
+    test('returns false for non-existent directory', async () => {
       expect(hasSummaryFile('/nonexistent/dir')).toBe(false);
     });
   });
 
   describe('findPhaseDir', () => {
-    test('finds by exact slug', () => {
+    test('finds by exact slug', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       makePhaseDir(planningDir, '02-my-phase');
       const found = findPhaseDir(planningDir, '02-my-phase', null);
@@ -77,7 +77,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('finds by phase number', () => {
+    test('finds by phase number', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       makePhaseDir(planningDir, '03-something');
       const found = findPhaseDir(planningDir, null, 3);
@@ -85,7 +85,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns null when no phases dir', () => {
+    test('returns null when no phases dir', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       expect(findPhaseDir(planningDir, 'nope', null)).toBeNull();
       cleanupTmp(tmpDir);
@@ -117,7 +117,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('allows building status without SUMMARY', () => {
+    test('allows building status without SUMMARY', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'STATE.md'),
@@ -144,7 +144,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns null for non-STATE.md writes', () => {
+    test('returns null for non-STATE.md writes', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'config.json'),
@@ -154,7 +154,7 @@ describe('check-summary-gate.js', () => {
       expect(result).toBeNull();
     });
 
-    test('returns null when status is not advancing', () => {
+    test('returns null when status is not advancing', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'STATE.md'),
@@ -164,7 +164,7 @@ describe('check-summary-gate.js', () => {
       expect(result).toBeNull();
     });
 
-    test('blocks when advancing to verified without SUMMARY', () => {
+    test('blocks when advancing to verified without SUMMARY', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'STATE.md'),
@@ -177,7 +177,7 @@ describe('check-summary-gate.js', () => {
       expect(result.output.reason).toContain('SUMMARY gate');
     });
 
-    test('blocks when advancing to built without SUMMARY', () => {
+    test('blocks when advancing to built without SUMMARY', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'STATE.md'),
@@ -188,7 +188,7 @@ describe('check-summary-gate.js', () => {
       expect(result.exitCode).toBe(2);
     });
 
-    test('allows advancement when SUMMARY exists', () => {
+    test('allows advancement when SUMMARY exists', async () => {
       const phaseDir = path.join(planningDir, 'phases', '02-rules-port');
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-02-01.md'), '---\nstatus: complete\n---');
 
@@ -201,7 +201,7 @@ describe('check-summary-gate.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handles Edit operations with new_string', () => {
+    test('handles Edit operations with new_string', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'STATE.md'),
@@ -212,7 +212,7 @@ describe('check-summary-gate.js', () => {
       expect(result.exitCode).toBe(2);
     });
 
-    test('allows Edit operations with non-advancing status', () => {
+    test('allows Edit operations with non-advancing status', async () => {
       const result = checkSummaryGate({
         tool_input: {
           file_path: path.join(tmpDir, '.planning', 'STATE.md'),
@@ -224,7 +224,7 @@ describe('check-summary-gate.js', () => {
   });
 
   describe('standalone script execution', () => {
-    test('exits 0 for non-STATE.md target', () => {
+    test('exits 0 for non-STATE.md target', async () => {
       const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, {
         file_path: path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -234,7 +234,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 2 when advancing without SUMMARY', () => {
+    test('exits 2 when advancing without SUMMARY', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       makePhaseDir(planningDir, '02-test-phase');
       writeState(planningDir, 2, 'test-phase', 'planning');
@@ -249,7 +249,7 @@ describe('check-summary-gate.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 when SUMMARY exists', () => {
+    test('exits 0 when SUMMARY exists', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       const phaseDir = makePhaseDir(planningDir, '02-test-phase');
       writeState(planningDir, 2, 'test-phase', 'planning');

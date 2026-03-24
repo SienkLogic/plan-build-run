@@ -125,7 +125,7 @@ describe('pbr-tools spec CLI', () => {
   });
 
   describe('spec parse', () => {
-    test('outputs JSON with frontmatter and tasks for a valid PLAN.md', () => {
+    test('outputs JSON with frontmatter and tasks for a valid PLAN.md', async () => {
       const result = run(`spec parse "${planFileA}"`);
       expect(result.code).toBe(0);
       const parsed = JSON.parse(result.stdout);
@@ -135,14 +135,14 @@ describe('pbr-tools spec CLI', () => {
       expect(parsed.tasks.length).toBe(1);
     });
 
-    test('outputs valid JSON by default', () => {
+    test('outputs valid JSON by default', async () => {
       const result = run(`spec parse "${planFileA}"`);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
     });
   });
 
   describe('spec diff', () => {
-    test('outputs changes array for two different plans', () => {
+    test('outputs changes array for two different plans', async () => {
       const result = run(`spec diff "${planFileA}" "${planFileB}"`);
       expect(result.code).toBe(0);
       const parsed = JSON.parse(result.stdout);
@@ -150,13 +150,13 @@ describe('pbr-tools spec CLI', () => {
       expect(Array.isArray(parsed.changes)).toBe(true);
     });
 
-    test('outputs markdown with --format markdown', () => {
+    test('outputs markdown with --format markdown', async () => {
       const result = run(`spec diff "${planFileA}" "${planFileB}" --format markdown`);
       expect(result.code).toBe(0);
       expect(result.stdout).toContain('##');
     });
 
-    test('shows no changes for identical files', () => {
+    test('shows no changes for identical files', async () => {
       const result = run(`spec diff "${planFileA}" "${planFileA}"`);
       expect(result.code).toBe(0);
       const parsed = JSON.parse(result.stdout);
@@ -165,7 +165,7 @@ describe('pbr-tools spec CLI', () => {
   });
 
   describe('spec reverse', () => {
-    test('outputs generated spec JSON for source files', () => {
+    test('outputs generated spec JSON for source files', async () => {
       const result = run(`spec reverse "${srcFile}"`, { env: { PBR_PROJECT_ROOT: tmpDir } });
       expect(result.code).toBe(0);
       const parsed = JSON.parse(result.stdout);
@@ -175,7 +175,7 @@ describe('pbr-tools spec CLI', () => {
   });
 
   describe('spec impact', () => {
-    test('outputs impact report with affected files and risk', () => {
+    test('outputs impact report with affected files and risk', async () => {
       const result = run(`spec impact "${srcFile}" --project-root "${tmpDir}"`);
       expect(result.code).toBe(0);
       const parsed = JSON.parse(result.stdout);
@@ -186,7 +186,7 @@ describe('pbr-tools spec CLI', () => {
   });
 
   describe('spec with no subcommand', () => {
-    test('prints usage help', () => {
+    test('prints usage help', async () => {
       const result = run('spec');
       // Either exits non-zero with usage, or prints usage with exit 0
       const combined = result.stdout + result.stderr;
@@ -195,7 +195,7 @@ describe('pbr-tools spec CLI', () => {
   });
 
   describe('audit logging', () => {
-    test('spec parse writes audit log entry when log dir exists', () => {
+    test('spec parse writes audit log entry when log dir exists', async () => {
       const logDir = path.join(tmpDir, '.planning', 'logs');
       fs.mkdirSync(logDir, { recursive: true });
       run(`spec parse "${planFileA}"`, {

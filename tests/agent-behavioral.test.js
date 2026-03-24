@@ -36,7 +36,7 @@ function readAgent(file) {
 // ---------------------------------------------------------------------------
 
 describe('Universal agent patterns', () => {
-  test('agent directory contains expected agent count', () => {
+  test('agent directory contains expected agent count', async () => {
     // 18 total agents (14 original + intel-updater, ui-researcher, ui-checker, advisor-researcher)
     expect(agentFiles.length).toBe(18);
     // 12 core agents (excluding dev-sync, nyquist-auditor, roadmapper, intel-updater, ui-researcher, ui-checker)
@@ -104,54 +104,54 @@ describe('Universal agent patterns', () => {
 describe('Executor agent patterns', () => {
   const content = readAgent('executor.md');
 
-  test('has <deviation_rules> with 4+ rules', () => {
+  test('has <deviation_rules> with 4+ rules', async () => {
     expect(content).toMatch(/<deviation_rules>/);
     // Rules are labeled "Rule 1", "Rule 2", etc.
     const ruleCount = (content.match(/\*\*Rule \d+/g) || []).length;
     expect(ruleCount).toBeGreaterThanOrEqual(4);
   });
 
-  test('has <circuit_breaker> with 3-attempt limit', () => {
+  test('has <circuit_breaker> with 3-attempt limit', async () => {
     expect(content).toMatch(/<circuit_breaker>/);
     expect(content).toMatch(/3.*attempt|3.*strike|3.*fail/i);
   });
 
-  test('has <scope_boundary> enforcement', () => {
+  test('has <scope_boundary> enforcement', async () => {
     expect(content).toMatch(/<scope_boundary>/);
     expect(content).toMatch(/<\/scope_boundary>/);
   });
 
-  test('has <self_check_protocol> with 3 layers', () => {
+  test('has <self_check_protocol> with 3 layers', async () => {
     expect(content).toMatch(/<self_check_protocol>/);
     expect(content).toMatch(/Layer 1.*File/i);
     expect(content).toMatch(/Layer 2.*Commit/i);
     expect(content).toMatch(/Layer 3.*Test/i);
   });
 
-  test('has tiered summary template selection', () => {
+  test('has tiered summary template selection', async () => {
     expect(content).toMatch(/SUMMARY-minimal/);
     expect(content).toMatch(/SUMMARY-complex/);
   });
 
-  test('has dirty tree cleanup via git stash in checkpoint section', () => {
+  test('has dirty tree cleanup via git stash in checkpoint section', async () => {
     expect(content).toMatch(/git stash/);
   });
 
-  test('has Self-Check PASSED/FAILED markers', () => {
+  test('has Self-Check PASSED/FAILED markers', async () => {
     expect(content).toMatch(/Self-Check: PASSED/);
     expect(content).toMatch(/Self-Check: FAILED/);
   });
 
-  test('has atomic commit documentation', () => {
+  test('has atomic commit documentation', async () => {
     expect(content).toMatch(/atomic commit/i);
     expect(content).toMatch(/\{type\}\(\{?scope/);
   });
 
-  test('has progress tracking via .PROGRESS file', () => {
+  test('has progress tracking via .PROGRESS file', async () => {
     expect(content).toMatch(/\.PROGRESS-\{plan_id\}/);
   });
 
-  test('completion markers include PLAN COMPLETE and PLAN FAILED', () => {
+  test('completion markers include PLAN COMPLETE and PLAN FAILED', async () => {
     expect(content).toMatch(/## PLAN COMPLETE/);
     expect(content).toMatch(/## PLAN FAILED/);
   });
@@ -164,12 +164,12 @@ describe('Executor agent patterns', () => {
 describe('Verifier agent patterns', () => {
   const content = readAgent('verifier.md');
 
-  test('has <stub_detection_patterns>', () => {
+  test('has <stub_detection_patterns>', async () => {
     expect(content).toMatch(/<stub_detection_patterns>/);
     expect(content).toMatch(/<\/stub_detection_patterns>/);
   });
 
-  test('has concrete stub examples', () => {
+  test('has concrete stub examples', async () => {
     expect(content).toMatch(/return null/);
     expect(content).toMatch(/return undefined/);
     expect(content).toMatch(/TODO/);
@@ -182,22 +182,22 @@ describe('Verifier agent patterns', () => {
     expect(content).toMatch(/Level 3.*Wired/i);
   });
 
-  test('has artifact outcome decision table', () => {
+  test('has artifact outcome decision table', async () => {
     expect(content).toMatch(/MISSING/);
     expect(content).toMatch(/STUB/);
     expect(content).toMatch(/UNWIRED/);
     expect(content).toMatch(/PASSED/);
   });
 
-  test('has ARGS_WRONG classification for argument-level checks', () => {
+  test('has ARGS_WRONG classification for argument-level checks', async () => {
     expect(content).toMatch(/ARGS_WRONG/);
   });
 
-  test('has read-only constraint', () => {
+  test('has read-only constraint', async () => {
     expect(content).toMatch(/Read-Only/i);
   });
 
-  test('completion markers include VERIFICATION COMPLETE', () => {
+  test('completion markers include VERIFICATION COMPLETE', async () => {
     expect(content).toMatch(/## VERIFICATION COMPLETE/);
   });
 });
@@ -209,12 +209,12 @@ describe('Verifier agent patterns', () => {
 describe('Planner agent patterns', () => {
   const content = readAgent('planner.md');
 
-  test('has task sizing guidance', () => {
+  test('has task sizing guidance', async () => {
     // Planner specifies "2-3 per plan" for task grouping
     expect(content).toMatch(/2-3.*per plan|2-3.*tasks/i);
   });
 
-  test('has goal-backward methodology section', () => {
+  test('has goal-backward methodology section', async () => {
     expect(content).toMatch(/Goal-Backward/i);
   });
 
@@ -224,21 +224,21 @@ describe('Planner agent patterns', () => {
     expect(content).toMatch(/Key.?links/i);
   });
 
-  test('has wave assignment for dependency ordering', () => {
+  test('has wave assignment for dependency ordering', async () => {
     expect(content).toMatch(/Wave 1/);
     expect(content).toMatch(/Wave 2/);
   });
 
-  test('enforces locked decisions from CONTEXT.md', () => {
+  test('enforces locked decisions from CONTEXT.md', async () => {
     expect(content).toMatch(/CONTEXT\.md/);
     expect(content).toMatch(/NON-NEGOTIABLE|locked decisions/i);
   });
 
-  test('has self-check protocol', () => {
+  test('has self-check protocol', async () => {
     expect(content).toMatch(/self-check/i);
   });
 
-  test('completion markers include PLANNING COMPLETE and PLANNING FAILED', () => {
+  test('completion markers include PLANNING COMPLETE and PLANNING FAILED', async () => {
     expect(content).toMatch(/## PLANNING COMPLETE/);
     expect(content).toMatch(/## PLANNING FAILED/);
   });
@@ -251,7 +251,7 @@ describe('Planner agent patterns', () => {
 describe('Plan-checker agent patterns', () => {
   const content = readAgent('plan-checker.md');
 
-  test('has <critical_rules>', () => {
+  test('has <critical_rules>', async () => {
     expect(content).toMatch(/<critical_rules>/);
     expect(content).toMatch(/<\/critical_rules>/);
   });
@@ -262,13 +262,13 @@ describe('Plan-checker agent patterns', () => {
     expect(content).toMatch(/INFO/);
   });
 
-  test('has 9 evaluation dimensions', () => {
+  test('has 9 evaluation dimensions', async () => {
     // Plan checker evaluates across dimensions D1-D9
     expect(content).toMatch(/D1/);
     expect(content).toMatch(/D9/);
   });
 
-  test('completion markers include CHECK PASSED and ISSUES FOUND', () => {
+  test('completion markers include CHECK PASSED and ISSUES FOUND', async () => {
     expect(content).toMatch(/## CHECK PASSED/);
     expect(content).toMatch(/## ISSUES FOUND/);
   });
@@ -281,28 +281,28 @@ describe('Plan-checker agent patterns', () => {
 describe('Debugger agent patterns', () => {
   const content = readAgent('debugger.md');
 
-  test('has scientific method methodology', () => {
+  test('has scientific method methodology', async () => {
     expect(content).toMatch(/scientific method/i);
     expect(content).toMatch(/hypothes/i);
   });
 
-  test('has operating modes (interactive and non-interactive)', () => {
+  test('has operating modes (interactive and non-interactive)', async () => {
     expect(content).toMatch(/Operating Mode/i);
     expect(content).toMatch(/interactive/i);
   });
 
-  test('has debug file protocol with structured sections', () => {
+  test('has debug file protocol with structured sections', async () => {
     expect(content).toMatch(/Debug File Protocol/i);
     // Symptoms are immutable after gathering
     expect(content).toMatch(/IMMUTABLE/);
   });
 
-  test('has append-only evidence log', () => {
+  test('has append-only evidence log', async () => {
     expect(content).toMatch(/append-only/i);
     expect(content).toMatch(/Evidence Log/i);
   });
 
-  test('has checkpoint protocol for human interaction', () => {
+  test('has checkpoint protocol for human interaction', async () => {
     expect(content).toMatch(/checkpoint/i);
     expect(content).toMatch(/HUMAN-VERIFY/);
   });
@@ -327,15 +327,15 @@ describe('Researcher agent patterns', () => {
     expect(content).toMatch(/Mode 3.*Synthesis/i);
   });
 
-  test('has source hierarchy methodology', () => {
+  test('has source hierarchy methodology', async () => {
     expect(content).toMatch(/Source Hierarchy/i);
   });
 
-  test('has confidence levels', () => {
+  test('has confidence levels', async () => {
     expect(content).toMatch(/Confidence Level/i);
   });
 
-  test('has multi-step research process', () => {
+  test('has multi-step research process', async () => {
     expect(content).toMatch(/Step 1.*Understand/i);
     expect(content).toMatch(/Step 2.*Constraint/i);
     expect(content).toMatch(/Step 3.*Research/i);
@@ -343,7 +343,7 @@ describe('Researcher agent patterns', () => {
     expect(content).toMatch(/Step 5.*Quality/i);
   });
 
-  test('completion markers include RESEARCH COMPLETE and RESEARCH BLOCKED', () => {
+  test('completion markers include RESEARCH COMPLETE and RESEARCH BLOCKED', async () => {
     expect(content).toMatch(/## RESEARCH COMPLETE/);
     expect(content).toMatch(/## RESEARCH BLOCKED/);
   });
@@ -356,11 +356,11 @@ describe('Researcher agent patterns', () => {
 describe('Synthesizer agent patterns', () => {
   const content = readAgent('synthesizer.md');
 
-  test('has findings matrix step', () => {
+  test('has findings matrix step', async () => {
     expect(content).toMatch(/Findings Matrix/i);
   });
 
-  test('has contradiction resolution step', () => {
+  test('has contradiction resolution step', async () => {
     expect(content).toMatch(/Resolve Contradictions/i);
   });
 
@@ -370,11 +370,11 @@ describe('Synthesizer agent patterns', () => {
     expect(content).toMatch(/Deferred Ideas/);
   });
 
-  test('has RESEARCH GAP flagging', () => {
+  test('has RESEARCH GAP flagging', async () => {
     expect(content).toMatch(/RESEARCH GAP/);
   });
 
-  test('completion markers include SYNTHESIS COMPLETE and SYNTHESIS BLOCKED', () => {
+  test('completion markers include SYNTHESIS COMPLETE and SYNTHESIS BLOCKED', async () => {
     expect(content).toMatch(/## SYNTHESIS COMPLETE/);
     expect(content).toMatch(/## SYNTHESIS BLOCKED/);
   });
@@ -394,20 +394,20 @@ describe('Codebase-mapper agent patterns', () => {
     expect(content).toMatch(/\bconcerns\b/);
   });
 
-  test('has forbidden files list', () => {
+  test('has forbidden files list', async () => {
     expect(content).toMatch(/Forbidden Files/i);
   });
 
-  test('has <critical_rules>', () => {
+  test('has <critical_rules>', async () => {
     expect(content).toMatch(/<critical_rules>/);
     expect(content).toMatch(/<\/critical_rules>/);
   });
 
-  test('references codebase templates', () => {
+  test('references codebase templates', async () => {
     expect(content).toMatch(/templates\/codebase\//);
   });
 
-  test('completion markers include MAPPING COMPLETE and MAPPING FAILED', () => {
+  test('completion markers include MAPPING COMPLETE and MAPPING FAILED', async () => {
     expect(content).toMatch(/## MAPPING COMPLETE/);
     expect(content).toMatch(/## MAPPING FAILED/);
   });
@@ -420,11 +420,11 @@ describe('Codebase-mapper agent patterns', () => {
 describe('Integration-checker agent patterns', () => {
   const content = readAgent('integration-checker.md');
 
-  test('completion markers include INTEGRATION CHECK COMPLETE', () => {
+  test('completion markers include INTEGRATION CHECK COMPLETE', async () => {
     expect(content).toMatch(/## INTEGRATION CHECK COMPLETE/);
   });
 
-  test('defines scope distinction from verifier', () => {
+  test('defines scope distinction from verifier', async () => {
     expect(content).toMatch(/Integration-Checker vs Verifier/i);
   });
 });
@@ -436,24 +436,24 @@ describe('Integration-checker agent patterns', () => {
 describe('Audit agent patterns', () => {
   const content = readAgent('audit.md');
 
-  test('has compliance dimension categories', () => {
+  test('has compliance dimension categories', async () => {
     expect(content).toMatch(/Workflow Compliance/i);
     expect(content).toMatch(/Behavioral Compliance/i);
     expect(content).toMatch(/Commit format/i);
     expect(content).toMatch(/subagent/i);
   });
 
-  test('has session quality dimension category', () => {
+  test('has session quality dimension category', async () => {
     expect(content).toMatch(/Session Quality/i);
     expect(content).toMatch(/compliance/);
     expect(content).toMatch(/\bux\b/i);
   });
 
-  test('documents JSONL format', () => {
+  test('documents JSONL format', async () => {
     expect(content).toMatch(/JSONL Format/i);
   });
 
-  test('has evidence-over-assumption principle', () => {
+  test('has evidence-over-assumption principle', async () => {
     expect(content).toMatch(/Evidence over assumption/i);
   });
 
@@ -463,7 +463,7 @@ describe('Audit agent patterns', () => {
     expect(content).toMatch(/\bfull\b/);
   });
 
-  test('completion markers include AUDIT COMPLETE', () => {
+  test('completion markers include AUDIT COMPLETE', async () => {
     expect(content).toMatch(/## AUDIT COMPLETE/);
   });
 });
@@ -475,24 +475,24 @@ describe('Audit agent patterns', () => {
 describe('General agent patterns', () => {
   const content = readAgent('general.md');
 
-  test('has self-escalation guidance', () => {
+  test('has self-escalation guidance', async () => {
     expect(content).toMatch(/Self-Escalation/i);
   });
 
-  test('has context budget with quality tiers', () => {
+  test('has context budget with quality tiers', async () => {
     expect(content).toMatch(/Context Budget/i);
     expect(content).toMatch(/Context Quality Tier/i);
   });
 
-  test('documents commit format convention', () => {
+  test('documents commit format convention', async () => {
     expect(content).toMatch(/Commit Format/i);
   });
 
-  test('documents .planning directory structure', () => {
+  test('documents .planning directory structure', async () => {
     expect(content).toMatch(/\.planning\//);
   });
 
-  test('completion markers include TASK COMPLETE and TASK FAILED', () => {
+  test('completion markers include TASK COMPLETE and TASK FAILED', async () => {
     expect(content).toMatch(/## TASK COMPLETE/);
     expect(content).toMatch(/## TASK FAILED/);
   });
@@ -509,7 +509,7 @@ describe('Pattern coverage', () => {
     '<anti_patterns>',
   ];
 
-  test('all core agents have all universal XML patterns', () => {
+  test('all core agents have all universal XML patterns', async () => {
     const missing = [];
 
     for (const file of coreAgents) {
@@ -524,7 +524,7 @@ describe('Pattern coverage', () => {
     expect(missing).toEqual([]);
   });
 
-  test('all core agents have matching closing tags for universal patterns', () => {
+  test('all core agents have matching closing tags for universal patterns', async () => {
     const missing = [];
 
     for (const file of coreAgents) {
@@ -540,7 +540,7 @@ describe('Pattern coverage', () => {
     expect(missing).toEqual([]);
   });
 
-  test('every core agent defines at least one completion marker', () => {
+  test('every core agent defines at least one completion marker', async () => {
     const missing = [];
     const markerPattern = /## [A-Z][A-Z ]*(?:COMPLETE|FAILED|PASSED|FOUND|BLOCKED)/;
 
@@ -554,7 +554,7 @@ describe('Pattern coverage', () => {
     expect(missing).toEqual([]);
   });
 
-  test('every core agent has at least 2 success criteria checkboxes', () => {
+  test('every core agent has at least 2 success criteria checkboxes', async () => {
     const insufficient = [];
 
     for (const file of coreAgents) {
@@ -568,7 +568,7 @@ describe('Pattern coverage', () => {
     expect(insufficient).toEqual([]);
   });
 
-  test('no core agent has unclosed XML-style custom tags', () => {
+  test('no core agent has unclosed XML-style custom tags', async () => {
     const problems = [];
     const customTags = [
       'files_to_read', 'success_criteria', 'anti_patterns',

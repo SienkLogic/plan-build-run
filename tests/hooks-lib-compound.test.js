@@ -61,16 +61,16 @@ function cleanup(tmpDir) {
 describe('compoundInitPhase', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTestPlanning());
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('creates phase directory and returns success', () => {
-    const result = compoundInitPhase(5, 'my-feature', planningDir, { goal: 'Build feature X' });
+  test('creates phase directory and returns success', async () => {
+    const result = await compoundInitPhase(5, 'my-feature', planningDir, { goal: 'Build feature X' });
     expect(result.success).toBe(true);
     expect(result.phase).toBe(5);
     expect(result.slug).toBe('my-feature');
@@ -80,8 +80,8 @@ describe('compoundInitPhase', () => {
     expect(fs.existsSync(phaseDir)).toBe(true);
   });
 
-  test('updates STATE.md with new phase info', () => {
-    compoundInitPhase(5, 'my-feature', planningDir);
+  test('updates STATE.md with new phase info', async () => {
+    await compoundInitPhase(5, 'my-feature', planningDir);
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     const fm = parseYamlFrontmatter(stateContent);
     expect(String(fm.current_phase)).toBe('5');
@@ -89,24 +89,24 @@ describe('compoundInitPhase', () => {
     expect(fm.phase_slug).toBe('my-feature');
   });
 
-  test('returns already_exists when phase directory exists', () => {
+  test('returns already_exists when phase directory exists', async () => {
     // Create phase dir first
     fs.mkdirSync(path.join(planningDir, 'phases', '05-my-feature'), { recursive: true });
-    const result = compoundInitPhase(5, 'existing-feature', planningDir);
+    const result = await compoundInitPhase(5, 'existing-feature', planningDir);
     expect(result.success).toBe(true);
     expect(result.already_exists).toBe(true);
     expect(result.directory).toMatch(/05-/);
   });
 
-  test('returns error when .planning/ does not exist', () => {
+  test('returns error when .planning/ does not exist', async () => {
     const badDir = path.join(tmpDir, 'nonexistent');
-    const result = compoundInitPhase(5, 'test', badDir);
+    const result = await compoundInitPhase(5, 'test', badDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not found/);
   });
 
-  test('state_updated is true on success', () => {
-    const result = compoundInitPhase(5, 'my-feature', planningDir);
+  test('state_updated is true on success', async () => {
+    const result = await compoundInitPhase(5, 'my-feature', planningDir);
     expect(result.state_updated).toBe(true);
   });
 });
@@ -114,42 +114,42 @@ describe('compoundInitPhase', () => {
 describe('compoundCompletePhase', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTestPlanning());
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('fails when no SUMMARY.md exists', () => {
+  test('fails when no SUMMARY.md exists', async () => {
     // Create phase dir without SUMMARY
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'phases', '01-setup', 'PLAN-01.md'), '---\nplan: "01-01"\n---\n');
-    const result = compoundCompletePhase(1, planningDir);
+    const result = await compoundCompletePhase(1, planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/SUMMARY/);
   });
 
-  test('succeeds when SUMMARY.md exists and returns summaries_found', () => {
+  test('succeeds when SUMMARY.md exists and returns summaries_found', async () => {
     // Create phase dir with SUMMARY
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nplan: "01-01"\n---\n');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n');
 
-    const result = compoundCompletePhase(1, planningDir);
+    const result = await compoundCompletePhase(1, planningDir);
     expect(result.success).toBe(true);
     expect(result.summaries_found).toBe(1);
   });
 
-  test('advances STATE.md to next phase', () => {
+  test('advances STATE.md to next phase', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nplan: "01-01"\n---\n');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n');
 
-    compoundCompletePhase(1, planningDir);
+    await compoundCompletePhase(1, planningDir);
 
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     const fm = parseYamlFrontmatter(stateContent);
@@ -157,21 +157,21 @@ describe('compoundCompletePhase', () => {
     expect(String(fm.current_phase)).toBe('2');
   });
 
-  test('updates ROADMAP.md progress table', () => {
+  test('updates ROADMAP.md progress table', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nplan: "01-01"\n---\n');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n');
 
-    compoundCompletePhase(1, planningDir);
+    await compoundCompletePhase(1, planningDir);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(roadmap).toMatch(/Complete/);
   });
 
-  test('returns error when .planning/ does not exist', () => {
+  test('returns error when .planning/ does not exist', async () => {
     const badDir = path.join(tmpDir, 'nonexistent');
-    const result = compoundCompletePhase(1, badDir);
+    const result = await compoundCompletePhase(1, badDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not found/);
   });
@@ -180,16 +180,16 @@ describe('compoundCompletePhase', () => {
 describe('compoundInitMilestone', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTestPlanning());
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup(tmpDir);
   });
 
-  test('creates milestone archive directory structure', () => {
-    const result = compoundInitMilestone('v20.0', planningDir, { name: 'Next Release' });
+  test('creates milestone archive directory structure', async () => {
+    const result = await compoundInitMilestone('v20.0', planningDir, { name: 'Next Release' });
     expect(result.success).toBe(true);
     expect(result.version).toBe('v20.0');
     // Check directories exist
@@ -197,42 +197,42 @@ describe('compoundInitMilestone', () => {
     expect(fs.existsSync(path.join(planningDir, 'milestones', 'v20.0', 'phases'))).toBe(true);
   });
 
-  test('copies ROADMAP.md to archive', () => {
-    const result = compoundInitMilestone('v20.0', planningDir);
+  test('copies ROADMAP.md to archive', async () => {
+    const result = await compoundInitMilestone('v20.0', planningDir);
     expect(result.roadmap_backed_up).toBe(true);
     const archivedRoadmap = fs.readFileSync(path.join(planningDir, 'milestones', 'v20.0', 'ROADMAP.md'), 'utf8');
     expect(archivedRoadmap).toContain('# Roadmap');
   });
 
-  test('copies REQUIREMENTS.md when it exists', () => {
+  test('copies REQUIREMENTS.md when it exists', async () => {
     fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Requirements\n\n- REQ-001\n');
-    const result = compoundInitMilestone('v20.0', planningDir);
+    const result = await compoundInitMilestone('v20.0', planningDir);
     expect(result.requirements_backed_up).toBe(true);
     const archivedReqs = fs.readFileSync(path.join(planningDir, 'milestones', 'v20.0', 'REQUIREMENTS.md'), 'utf8');
     expect(archivedReqs).toContain('REQ-001');
   });
 
-  test('requirements_backed_up is false when REQUIREMENTS.md does not exist', () => {
-    const result = compoundInitMilestone('v20.0', planningDir);
+  test('requirements_backed_up is false when REQUIREMENTS.md does not exist', async () => {
+    const result = await compoundInitMilestone('v20.0', planningDir);
     expect(result.requirements_backed_up).toBe(false);
   });
 
-  test('updates STATE.md with last_milestone_version', () => {
-    compoundInitMilestone('v20.0', planningDir);
+  test('updates STATE.md with last_milestone_version', async () => {
+    await compoundInitMilestone('v20.0', planningDir);
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     const fm = parseYamlFrontmatter(stateContent);
     expect(fm.last_milestone_version).toBe('v20.0');
   });
 
-  test('returns error when .planning/ does not exist', () => {
+  test('returns error when .planning/ does not exist', async () => {
     const badDir = path.join(tmpDir, 'nonexistent');
-    const result = compoundInitMilestone('v20.0', badDir);
+    const result = await compoundInitMilestone('v20.0', badDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not found/);
   });
 
-  test('state_updated is true on success', () => {
-    const result = compoundInitMilestone('v20.0', planningDir);
+  test('state_updated is true on success', async () => {
+    const result = await compoundInitMilestone('v20.0', planningDir);
     expect(result.state_updated).toBe(true);
   });
 });

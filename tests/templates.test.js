@@ -29,11 +29,11 @@ function makeTempDir() {
 // --- Constants ---
 
 describe('templates constants', () => {
-  test('USER_TEMPLATES_DIR is in ~/.claude/templates/', () => {
+  test('USER_TEMPLATES_DIR is in ~/.claude/templates/', async () => {
     expect(USER_TEMPLATES_DIR).toBe(path.join(os.homedir(), '.claude', 'templates'));
   });
 
-  test('BUILT_IN_TEMPLATES contains required templates', () => {
+  test('BUILT_IN_TEMPLATES contains required templates', async () => {
     expect(BUILT_IN_TEMPLATES).toBeDefined();
     expect(BUILT_IN_TEMPLATES['auth-oauth']).toBeDefined();
     expect(BUILT_IN_TEMPLATES['crud-rest']).toBeDefined();
@@ -45,7 +45,7 @@ describe('templates constants', () => {
 // --- templateList ---
 
 describe('templateList', () => {
-  test('returns all 4 built-in templates', () => {
+  test('returns all 4 built-in templates', async () => {
     const templates = templateList();
     expect(Array.isArray(templates)).toBe(true);
     const names = templates.map(t => t.name);
@@ -65,7 +65,7 @@ describe('templateList', () => {
     }
   });
 
-  test('each template parameter has name and required fields', () => {
+  test('each template parameter has name and required fields', async () => {
     const templates = templateList();
     for (const tmpl of templates) {
       for (const param of tmpl.parameters) {
@@ -93,7 +93,7 @@ describe('templateList', () => {
     expect(paramNames).toContain('db_type');
   });
 
-  test('includes user-defined templates from userTemplatesDir if they exist', () => {
+  test('includes user-defined templates from userTemplatesDir if they exist', async () => {
     const tmpDir = makeTempDir();
     const userTmpl = {
       name: 'my-custom-template',
@@ -109,7 +109,7 @@ describe('templateList', () => {
     expect(names).toContain('my-custom-template');
   });
 
-  test('returns { enabled: false } when config toggle is off', () => {
+  test('returns { enabled: false } when config toggle is off', async () => {
     const result = templateList({ configFeatures: { spec_templates: false } });
     expect(result).toEqual({ enabled: false });
   });
@@ -118,7 +118,7 @@ describe('templateList', () => {
 // --- templateInstantiate ---
 
 describe('templateInstantiate', () => {
-  test('instantiates auth-oauth template with all required params', () => {
+  test('instantiates auth-oauth template with all required params', async () => {
     const result = templateInstantiate('auth-oauth', {
       provider: 'google',
       callback_route: '/auth/callback',
@@ -130,7 +130,7 @@ describe('templateInstantiate', () => {
     expect(result.params_used.provider).toBe('google');
   });
 
-  test('output contains valid XML task blocks', () => {
+  test('output contains valid XML task blocks', async () => {
     const result = templateInstantiate('crud-rest', {
       resource_name: 'User',
       fields: 'name,email',
@@ -144,7 +144,7 @@ describe('templateInstantiate', () => {
     expect(result.content).toContain('<done>');
   });
 
-  test('substitutes {{param}} placeholders', () => {
+  test('substitutes {{param}} placeholders', async () => {
     const result = templateInstantiate('auth-oauth', {
       provider: 'github',
       callback_route: '/auth/github/callback',
@@ -154,17 +154,17 @@ describe('templateInstantiate', () => {
     expect(result.content).not.toContain('{{provider}}');
   });
 
-  test('throws on missing required parameters', () => {
+  test('throws on missing required parameters', async () => {
     expect(() => templateInstantiate('auth-oauth', {
       // missing provider, callback_route, session_store
     })).toThrow();
   });
 
-  test('throws on unknown template name', () => {
+  test('throws on unknown template name', async () => {
     expect(() => templateInstantiate('nonexistent-template', {})).toThrow();
   });
 
-  test('returns { enabled: false } when config toggle is off', () => {
+  test('returns { enabled: false } when config toggle is off', async () => {
     const result = templateInstantiate('auth-oauth', {
       provider: 'google',
       callback_route: '/auth/callback',
@@ -173,7 +173,7 @@ describe('templateInstantiate', () => {
     expect(result).toEqual({ enabled: false });
   });
 
-  test('instantiates crud-graphql template', () => {
+  test('instantiates crud-graphql template', async () => {
     const result = templateInstantiate('crud-graphql', {
       resource_name: 'Post',
       fields: 'title,body',
@@ -182,7 +182,7 @@ describe('templateInstantiate', () => {
     expect(result.content).toContain('Post');
   });
 
-  test('instantiates payments-stripe template', () => {
+  test('instantiates payments-stripe template', async () => {
     const result = templateInstantiate('payments-stripe', {
       product_model: 'Subscription',
       webhook_path: '/webhooks/stripe',
@@ -191,7 +191,7 @@ describe('templateInstantiate', () => {
     expect(result.content).toContain('Subscription');
   });
 
-  test('uses user-defined template from userTemplatesDir', () => {
+  test('uses user-defined template from userTemplatesDir', async () => {
     const tmpDir = makeTempDir();
     const userTmpl = {
       name: 'my-tmpl',

@@ -20,7 +20,7 @@ describe('convention extraction hook integration', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('updates conventions after build executor completes when toggle enabled', () => {
+  test('updates conventions after build executor completes when toggle enabled', async () => {
     // Create a source directory with enough code to trigger convention detection
     const srcDir = path.join(tmpDir, 'src');
     fs.mkdirSync(srcDir, { recursive: true });
@@ -52,7 +52,7 @@ describe('convention extraction hook integration', () => {
     expect(convFiles.length).toBeGreaterThan(0);
   });
 
-  test('skips convention update when features.convention_memory is false', () => {
+  test('skips convention update when features.convention_memory is false', async () => {
     const config = { features: { convention_memory: false } };
     const conventionsEnabled = config.features && config.features.convention_memory !== false;
 
@@ -63,7 +63,7 @@ describe('convention extraction hook integration', () => {
     expect(fs.existsSync(convDir)).toBe(false);
   });
 
-  test('does not crash on convention detection failure', () => {
+  test('does not crash on convention detection failure', async () => {
     // Pass a non-existent project root -- should not throw
     expect(() => {
       const conventions = detectConventions(path.join(tmpDir, 'nonexistent'));
@@ -73,7 +73,7 @@ describe('convention extraction hook integration', () => {
     }).not.toThrow();
   });
 
-  test('updateConventionsAfterBuild is exported from check-subagent-output', () => {
+  test('updateConventionsAfterBuild is exported from check-subagent-output', async () => {
     // This function should be exported for testability
     // Will fail until GREEN phase implements it
     const mod = require('../plugins/pbr/scripts/check-subagent-output');

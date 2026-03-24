@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe('quickStatus', () => {
-  test('returns structured output with text and data', () => {
+  test('returns structured output with text and data', async () => {
     createTmpDir();
 
     // Write minimal STATE.md
@@ -74,7 +74,7 @@ describe('quickStatus', () => {
     expect(result.data.phases_in_milestone).toBe(2);
   });
 
-  test('handles missing STATE.md gracefully', () => {
+  test('handles missing STATE.md gracefully', async () => {
     createTmpDir();
 
     // Only write ROADMAP.md
@@ -91,7 +91,7 @@ describe('quickStatus', () => {
     expect(result.text).toContain('Phase: unknown');
   });
 
-  test('handles missing ROADMAP.md gracefully', () => {
+  test('handles missing ROADMAP.md gracefully', async () => {
     createTmpDir();
 
     // Only write STATE.md
@@ -111,7 +111,7 @@ describe('quickStatus', () => {
     expect(result.text).toContain('Milestone: none');
   });
 
-  test('does not read config.json or phases directory', () => {
+  test('does not read config.json or phases directory', async () => {
     createTmpDir();
 
     // Write STATE.md and ROADMAP.md
@@ -149,7 +149,7 @@ describe('quickStatus', () => {
     expect(relevantReads.some(p => p.includes('PROJECT.md'))).toBe(false);
   });
 
-  test('output is exactly 10 lines', () => {
+  test('output is exactly 10 lines', async () => {
     createTmpDir();
 
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), [

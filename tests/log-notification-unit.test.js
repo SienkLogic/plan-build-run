@@ -9,7 +9,7 @@ const { handleHttp } = require('../plugins/pbr/scripts/log-notification');
 let tmpDir;
 let origCwd;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-ln-'));
   const logsDir = path.join(tmpDir, '.planning', 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
@@ -17,13 +17,13 @@ beforeEach(() => {
   process.cwd = jest.fn().mockReturnValue(tmpDir);
 });
 
-afterEach(() => {
+afterEach(async () => {
   process.cwd = origCwd;
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe('log-notification handleHttp', () => {
-  test('returns null (logging only)', () => {
+  test('returns null (logging only)', async () => {
     const result = handleHttp({
       data: {
         notification_type: 'completion',
@@ -34,7 +34,7 @@ describe('log-notification handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('logs notification to hooks.jsonl', () => {
+  test('logs notification to hooks.jsonl', async () => {
     handleHttp({
       data: {
         notification_type: 'completion',
@@ -49,7 +49,7 @@ describe('log-notification handleHttp', () => {
     }
   });
 
-  test('logs notification to events.jsonl', () => {
+  test('logs notification to events.jsonl', async () => {
     handleHttp({
       data: {
         type: 'task-complete',
@@ -64,18 +64,18 @@ describe('log-notification handleHttp', () => {
     }
   });
 
-  test('handles missing data gracefully', () => {
+  test('handles missing data gracefully', async () => {
     expect(() => handleHttp({})).not.toThrow();
     const result = handleHttp({});
     expect(result).toBeNull();
   });
 
-  test('handles empty data object', () => {
+  test('handles empty data object', async () => {
     const result = handleHttp({ data: {} });
     expect(result).toBeNull();
   });
 
-  test('truncates long messages', () => {
+  test('truncates long messages', async () => {
     const longMsg = 'x'.repeat(500);
     expect(() => handleHttp({
       data: { message: longMsg, notification_type: 'test' }
@@ -92,7 +92,7 @@ describe('log-notification handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('handles null agent_id', () => {
+  test('handles null agent_id', async () => {
     const result = handleHttp({
       data: { notification_type: 'test', message: 'msg' }
     });

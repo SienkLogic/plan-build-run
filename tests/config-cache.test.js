@@ -24,12 +24,12 @@ afterEach(() => {
 });
 
 describe('config-cache', () => {
-  test('initConfigCache loads config from disk and returns it', () => {
+  test('initConfigCache loads config from disk and returns it', async () => {
     const result = initConfigCache(planningDir);
     expect(result).toEqual(expect.objectContaining({ project_name: 'test' }));
   });
 
-  test('getConfig returns cached value without disk read', () => {
+  test('getConfig returns cached value without disk read', async () => {
     initConfigCache(planningDir);
     // Delete the file from disk
     fs.unlinkSync(path.join(planningDir, 'config.json'));
@@ -38,19 +38,19 @@ describe('config-cache', () => {
     expect(result).toEqual(expect.objectContaining({ project_name: 'test' }));
   });
 
-  test('clearConfigCache resets to null', () => {
+  test('clearConfigCache resets to null', async () => {
     initConfigCache(planningDir);
     expect(getConfig()).not.toBeNull();
     clearConfigCache();
     expect(getConfig()).toBeNull();
   });
 
-  test('getConfig returns null before init', () => {
+  test('getConfig returns null before init', async () => {
     // clearConfigCache already called in beforeEach
     expect(getConfig()).toBeNull();
   });
 
-  test('re-init with different planningDir switches config', () => {
+  test('re-init with different planningDir switches config', async () => {
     // First planningDir
     initConfigCache(planningDir);
     expect(getConfig()).toEqual(expect.objectContaining({ project_name: 'test' }));

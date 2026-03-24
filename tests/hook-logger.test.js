@@ -31,7 +31,7 @@ describe('hook-logger.js', () => {
     return path.join(planDir, 'logs', getLogFilename());
   }
 
-  test('creates valid JSONL entry with required fields', () => {
+  test('creates valid JSONL entry with required fields', async () => {
     const { logHook } = getLogger();
     logHook('test-hook', 'PreToolUse', 'allow');
 
@@ -50,7 +50,7 @@ describe('hook-logger.js', () => {
     expect(new Date(entry.ts).toISOString()).toBe(entry.ts);
   });
 
-  test('appends to existing log file (file grows by one line per call)', () => {
+  test('appends to existing log file (file grows by one line per call)', async () => {
     const { logHook } = getLogger();
     logHook('hook-1', 'Event1', 'allow');
     logHook('hook-2', 'Event2', 'deny');
@@ -65,7 +65,7 @@ describe('hook-logger.js', () => {
     expect(entry2.hook).toBe('hook-2');
   });
 
-  test('concurrent appends both preserved', () => {
+  test('concurrent appends both preserved', async () => {
     const { logHook } = getLogger();
     // Call logHook twice rapidly -- both entries must be present
     logHook('concurrent-1', 'Event', 'allow');
@@ -81,7 +81,7 @@ describe('hook-logger.js', () => {
     expect(hooks).toContain('concurrent-2');
   });
 
-  test('no rotation — daily files accumulate all entries', () => {
+  test('no rotation — daily files accumulate all entries', async () => {
     // With dated daily files there is no per-file entry cap.
     // Writing 250 entries should all be retained.
     const { logHook } = getLogger();
@@ -97,7 +97,7 @@ describe('hook-logger.js', () => {
     expect(last.hook).toBe('seed-249');
   });
 
-  test('gracefully handles missing .planning directory in cwd', () => {
+  test('gracefully handles missing .planning directory in cwd', async () => {
     // Remove the .planning dir from tmpDir
     fs.rmSync(planningDir, { recursive: true, force: true });
 
@@ -107,7 +107,7 @@ describe('hook-logger.js', () => {
     expect(() => logHook('test', 'Event', 'allow')).not.toThrow();
   });
 
-  test('includes extra details in entry', () => {
+  test('includes extra details in entry', async () => {
     const { logHook } = getLogger();
     logHook('test-hook', 'PostToolUse', 'warn', {
       phase: '3',
@@ -124,7 +124,7 @@ describe('hook-logger.js', () => {
     expect(entry.roadmapStatus).toBe('planned');
   });
 
-  test('removes legacy .hook-log file on first write', () => {
+  test('removes legacy .hook-log file on first write', async () => {
     // The very old .hook-log format is cleaned up on first write (not migrated).
     const oldPath = path.join(planningDir, '.hook-log');
     fs.writeFileSync(oldPath, '{"ts":"2025-01-01T00:00:00.000Z","hook":"old-hook"}\n', 'utf8');
@@ -143,7 +143,7 @@ describe('hook-logger.js', () => {
     expect(JSON.parse(lines[0]).hook).toBe('new-hook');
   });
 
-  test('includes duration_ms when startTime is provided', () => {
+  test('includes duration_ms when startTime is provided', async () => {
     const { logHook } = getLogger();
     const startTime = Date.now() - 42;
     logHook('timed-hook', 'PreToolUse', 'allow', {}, startTime);
@@ -158,7 +158,7 @@ describe('hook-logger.js', () => {
     expect(entry.duration_ms).toBeLessThan(5000); // sanity bound
   });
 
-  test('omits duration_ms when startTime is not provided', () => {
+  test('omits duration_ms when startTime is not provided', async () => {
     const { logHook } = getLogger();
     logHook('no-time-hook', 'PreToolUse', 'allow', { extra: 'data' });
 
@@ -171,7 +171,7 @@ describe('hook-logger.js', () => {
     expect(entry.duration_ms).toBeUndefined();
   });
 
-  test('omits duration_ms when startTime is invalid', () => {
+  test('omits duration_ms when startTime is invalid', async () => {
     const { logHook } = getLogger();
     logHook('bad-time-hook', 'PreToolUse', 'allow', {}, -1);
 
@@ -182,7 +182,7 @@ describe('hook-logger.js', () => {
     expect(entry.duration_ms).toBeUndefined();
   });
 
-  test('omits duration_ms when startTime is not a number', () => {
+  test('omits duration_ms when startTime is not a number', async () => {
     const { logHook } = getLogger();
     logHook('string-time-hook', 'PreToolUse', 'allow', {}, 'not-a-number');
 
@@ -193,7 +193,7 @@ describe('hook-logger.js', () => {
     expect(entry.duration_ms).toBeUndefined();
   });
 
-  test('handles empty existing dated log file', () => {
+  test('handles empty existing dated log file', async () => {
     const { logHook, getLogFilename } = getLogger();
     const logsDir = path.join(planningDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
@@ -208,7 +208,7 @@ describe('hook-logger.js', () => {
     expect(entry.hook).toBe('after-empty');
   });
 
-  test('auto-creates logs/ directory when only .planning/ exists', () => {
+  test('auto-creates logs/ directory when only .planning/ exists', async () => {
     // .planning/ exists from beforeEach but logs/ does not
     const logsDir = path.join(planningDir, 'logs');
     expect(fs.existsSync(logsDir)).toBe(false);
@@ -229,7 +229,7 @@ describe('hook-logger.js', () => {
     expect(entry.hook).toBe('auto-create-test');
   });
 
-  test('includes sessionId when passed in details', () => {
+  test('includes sessionId when passed in details', async () => {
     const { logHook } = getLogger();
     logHook('test-hook', 'PostToolUse', 'allow', {
       sessionId: 'sess-123',
@@ -245,7 +245,7 @@ describe('hook-logger.js', () => {
     expect(entry.tool).toBe('Write');
   });
 
-  test('uses appendFileSync not readFile for writing', () => {
+  test('uses appendFileSync not readFile for writing', async () => {
     // Verify the implementation uses append-only pattern
     const loggerSource = fs.readFileSync(
       path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-logger.js'),

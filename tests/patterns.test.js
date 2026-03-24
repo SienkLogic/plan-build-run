@@ -43,11 +43,11 @@ function makePattern(overrides = {}) {
 // --- Constants ---
 
 describe('patterns constants', () => {
-  test('PATTERNS_DIR is in ~/.claude/patterns/', () => {
+  test('PATTERNS_DIR is in ~/.claude/patterns/', async () => {
     expect(PATTERNS_DIR).toBe(path.join(os.homedir(), '.claude', 'patterns'));
   });
 
-  test('PATTERN_TYPES is an array including required types', () => {
+  test('PATTERN_TYPES is an array including required types', async () => {
     expect(Array.isArray(PATTERN_TYPES)).toBe(true);
     expect(PATTERN_TYPES).toContain('architecture');
     expect(PATTERN_TYPES).toContain('testing');
@@ -63,7 +63,7 @@ describe('patterns constants', () => {
 // --- patternExtract ---
 
 describe('patternExtract', () => {
-  test('creates a JSON file in basePath with correct schema fields', () => {
+  test('creates a JSON file in basePath with correct schema fields', async () => {
     const tmpDir = makeTempDir();
     const result = patternExtract(makePattern(), { basePath: tmpDir });
 
@@ -85,7 +85,7 @@ describe('patternExtract', () => {
     expect(stored.name).toBe('oauth-middleware');
   });
 
-  test('deduplicates by name+source_project — updates existing entry', () => {
+  test('deduplicates by name+source_project — updates existing entry', async () => {
     const tmpDir = makeTempDir();
     patternExtract(makePattern({ tags: ['oauth'] }), { basePath: tmpDir });
     const result = patternExtract(makePattern({ tags: ['oauth', 'new-tag'] }), { basePath: tmpDir });
@@ -102,7 +102,7 @@ describe('patternExtract', () => {
     expect(stored.tags).toContain('new-tag');
   });
 
-  test('generates id via crypto.randomUUID if missing', () => {
+  test('generates id via crypto.randomUUID if missing', async () => {
     const tmpDir = makeTempDir();
     const entry = makePattern();
     delete entry.id;
@@ -112,14 +112,14 @@ describe('patternExtract', () => {
     expect(result.pattern.id.length).toBeGreaterThan(0);
   });
 
-  test('sets created_at if missing', () => {
+  test('sets created_at if missing', async () => {
     const tmpDir = makeTempDir();
     const result = patternExtract(makePattern(), { basePath: tmpDir });
     expect(result.pattern.created_at).toBeDefined();
     expect(() => new Date(result.pattern.created_at)).not.toThrow();
   });
 
-  test('returns { enabled: false } when config toggle is off', () => {
+  test('returns { enabled: false } when config toggle is off', async () => {
     const tmpDir = makeTempDir();
     const result = patternExtract(makePattern(), {
       basePath: tmpDir,
@@ -128,7 +128,7 @@ describe('patternExtract', () => {
     expect(result).toEqual({ enabled: false });
   });
 
-  test('creates directory if basePath does not exist', () => {
+  test('creates directory if basePath does not exist', async () => {
     const tmpDir = makeTempDir();
     const nested = path.join(tmpDir, 'patterns-subdir');
     const result = patternExtract(makePattern(), { basePath: nested });
@@ -136,7 +136,7 @@ describe('patternExtract', () => {
     expect(fs.existsSync(nested)).toBe(true);
   });
 
-  test('throws on missing required fields', () => {
+  test('throws on missing required fields', async () => {
     const tmpDir = makeTempDir();
     expect(() => patternExtract({ name: 'only-name' }, { basePath: tmpDir })).toThrow();
   });
@@ -166,14 +166,14 @@ describe('patternQuery', () => {
     }), { basePath: tmpDir });
   }
 
-  test('returns all patterns when no filters', () => {
+  test('returns all patterns when no filters', async () => {
     const tmpDir = makeTempDir();
     seedPatterns(tmpDir);
     const results = patternQuery({}, { basePath: tmpDir });
     expect(results.length).toBe(3);
   });
 
-  test('filters by type (exact match)', () => {
+  test('filters by type (exact match)', async () => {
     const tmpDir = makeTempDir();
     seedPatterns(tmpDir);
     const results = patternQuery({ type: 'auth' }, { basePath: tmpDir });
@@ -181,7 +181,7 @@ describe('patternQuery', () => {
     results.forEach(r => expect(r.type).toBe('auth'));
   });
 
-  test('filters by tags (all must match)', () => {
+  test('filters by tags (all must match)', async () => {
     const tmpDir = makeTempDir();
     seedPatterns(tmpDir);
     const results = patternQuery({ tags: ['oauth', 'stack:node'] }, { basePath: tmpDir });
@@ -189,14 +189,14 @@ describe('patternQuery', () => {
     expect(results[0].name).toBe('pattern-a');
   });
 
-  test('filters by stack (tag prefix stack:)', () => {
+  test('filters by stack (tag prefix stack:)', async () => {
     const tmpDir = makeTempDir();
     seedPatterns(tmpDir);
     const results = patternQuery({ stack: 'node' }, { basePath: tmpDir });
     expect(results.length).toBe(2);
   });
 
-  test('sorts results by confidence descending', () => {
+  test('sorts results by confidence descending', async () => {
     const tmpDir = makeTempDir();
     seedPatterns(tmpDir);
     const results = patternQuery({}, { basePath: tmpDir });
@@ -204,20 +204,20 @@ describe('patternQuery', () => {
     expect(results[1].confidence).toBeGreaterThanOrEqual(results[2].confidence);
   });
 
-  test('filters by minConfidence', () => {
+  test('filters by minConfidence', async () => {
     const tmpDir = makeTempDir();
     seedPatterns(tmpDir);
     const results = patternQuery({ minConfidence: 0.75 }, { basePath: tmpDir });
     results.forEach(r => expect(r.confidence).toBeGreaterThanOrEqual(0.75));
   });
 
-  test('returns empty array when basePath has no patterns', () => {
+  test('returns empty array when basePath has no patterns', async () => {
     const tmpDir = makeTempDir();
     const results = patternQuery({}, { basePath: tmpDir });
     expect(results).toEqual([]);
   });
 
-  test('returns { enabled: false } when config toggle is off', () => {
+  test('returns { enabled: false } when config toggle is off', async () => {
     const tmpDir = makeTempDir();
     const result = patternQuery({}, {
       basePath: tmpDir,
@@ -243,13 +243,13 @@ describe('patternList', () => {
     expect(results[0].confidence).toBeDefined();
   });
 
-  test('returns empty array when no patterns exist', () => {
+  test('returns empty array when no patterns exist', async () => {
     const tmpDir = makeTempDir();
     const results = patternList({ basePath: tmpDir });
     expect(results).toEqual([]);
   });
 
-  test('returns { enabled: false } when config toggle is off', () => {
+  test('returns { enabled: false } when config toggle is off', async () => {
     const tmpDir = makeTempDir();
     const result = patternList({
       basePath: tmpDir,

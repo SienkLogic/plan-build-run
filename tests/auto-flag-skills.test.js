@@ -21,25 +21,25 @@ describe('--auto flag integration', () => {
         );
       });
 
-      test('argument-hint includes --auto', () => {
+      test('argument-hint includes --auto', async () => {
         // Extract argument-hint from frontmatter
         const match = content.match(/argument-hint:\s*"([^"]+)"/);
         expect(match).not.toBeNull();
         expect(match[1]).toContain('--auto');
       });
 
-      test('argument table documents --auto', () => {
+      test('argument table documents --auto', async () => {
         // --auto appears in table rows, e.g. "| `3 --auto` |" or "| `--auto` |"
         expect(content).toMatch(/\|[^|]*--auto[^|]*\|/);
       });
 
-      test('has auto_mode gate logic', () => {
+      test('has auto_mode gate logic', async () => {
         expect(content).toMatch(/auto_mode|auto mode|--auto/i);
       });
     });
   }
 
-  test('skills in SKILLS_WITH_AUTO list all exist', () => {
+  test('skills in SKILLS_WITH_AUTO list all exist', async () => {
     for (const skill of SKILLS_WITH_AUTO) {
       const skillPath = path.join(SKILLS_DIR, skill, 'SKILL.md');
       expect(fs.existsSync(skillPath)).toBe(true);
@@ -55,17 +55,17 @@ describe('checkpoint auto-resolve in build skill', () => {
     );
   });
 
-  test('references checkpoint_auto_resolve config', () => {
+  test('references checkpoint_auto_resolve config', async () => {
     expect(buildContent).toMatch(/checkpoint_auto_resolve/);
   });
 
-  test('documents all config enum values', () => {
+  test('documents all config enum values', async () => {
     expect(buildContent).toMatch(/none/);
     expect(buildContent).toMatch(/verify-only/);
     expect(buildContent).toMatch(/verify-and-decision/);
   });
 
-  test('human-action never auto-resolves', () => {
+  test('human-action never auto-resolves', async () => {
     // Find the section about human-action and verify it says NEVER
     const humanActionSection = buildContent.match(
       /human-action[\s\S]{0,200}(NEVER|never)/

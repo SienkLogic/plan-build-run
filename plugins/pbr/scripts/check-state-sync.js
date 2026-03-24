@@ -261,7 +261,7 @@ function calculateOverallProgress(phasesDir) {
  * @param {Object} data - Parsed hook input (tool_input, etc.)
  * @returns {null|{output: Object}} null if not applicable, result with message otherwise
  */
-function checkStateSync(data) {
+async function checkStateSync(data) {
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const basename = path.basename(filePath);
 
@@ -335,7 +335,7 @@ function checkStateSync(data) {
             messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
           } else {
             const coreLib = getCoreLib();
-            coreLib.lockedFileUpdate(roadmapPath, (content) => {
+            await coreLib.lockedFileUpdate(roadmapPath, (content) => {
               return updateProgressTable(content, phaseNum, plansComplete, newStatus, completedDate);
             });
             recordWriteMtime(roadmapPath);
@@ -350,7 +350,7 @@ function checkStateSync(data) {
     // Drain any queued state updates before our own write
     try {
       const { stateDrain } = getQueueLib();
-      const drainResult = stateDrain(planningDir);
+      const drainResult = await stateDrain(planningDir);
       if (drainResult.success && drainResult.processed > 0) {
         logHook('check-state-sync', 'PostToolUse', 'drain', { processed: drainResult.processed });
       }
@@ -368,21 +368,21 @@ function checkStateSync(data) {
           const overallPct = calculateOverallProgress(phasesDir);
           const stateLib = getStateLib();
 
-          stateLib.stateUpdate('plans_complete', String(artifacts.completeSummaries), planningDir);
-          stateLib.stateUpdate('status', allComplete ? 'built' : 'building', planningDir);
-          stateLib.stateUpdate('last_activity', `${today} -- Phase ${phaseNum} plan completed`, planningDir);
-          stateLib.stateUpdate('progress_percent', String(overallPct), planningDir);
+          await stateLib.stateUpdate('plans_complete', String(artifacts.completeSummaries), planningDir);
+          await stateLib.stateUpdate('status', allComplete ? 'built' : 'building', planningDir);
+          await stateLib.stateUpdate('last_activity', `${today} -- Phase ${phaseNum} plan completed`, planningDir);
+          await stateLib.stateUpdate('progress_percent', String(overallPct), planningDir);
 
           // Detect phase mismatch and add phase updates
           const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
             || stateContent.match(/^Phase:\s*(\d+)\s/m);
           const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
           if (currentPhase !== null && currentPhase !== phaseNumInt) {
-            stateLib.stateUpdate('current_phase', String(phaseNumInt), planningDir);
-            stateLib.stateUpdate('phase_slug', phaseSlug, planningDir);
+            await stateLib.stateUpdate('current_phase', String(phaseNumInt), planningDir);
+            await stateLib.stateUpdate('phase_slug', phaseSlug, planningDir);
             // phase_name frontmatter not in stateUpdate's valid fields — use lockedFileUpdate directly
             const coreLib = getCoreLib();
-            coreLib.lockedFileUpdate(statePath, (content) => {
+            await coreLib.lockedFileUpdate(statePath, (content) => {
               return stateLib.updateFrontmatterField(content, 'phase_name', phaseName);
             });
             messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
@@ -435,7 +435,7 @@ function checkStateSync(data) {
             messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
           } else {
             const coreLib = getCoreLib();
-            coreLib.lockedFileUpdate(roadmapPath, (content) => {
+            await coreLib.lockedFileUpdate(roadmapPath, (content) => {
               return updateProgressTable(content, phaseNum, plansComplete, roadmapStatus, completedDate);
             });
             recordWriteMtime(roadmapPath);
@@ -450,7 +450,7 @@ function checkStateSync(data) {
     // Drain any queued state updates before our own write
     try {
       const { stateDrain } = getQueueLib();
-      const drainResult = stateDrain(planningDir);
+      const drainResult = await stateDrain(planningDir);
       if (drainResult.success && drainResult.processed > 0) {
         logHook('check-state-sync', 'PostToolUse', 'drain', { processed: drainResult.processed });
       }
@@ -468,20 +468,20 @@ function checkStateSync(data) {
           const overallPct = calculateOverallProgress(phasesDir);
           const stateLib = getStateLib();
 
-          stateLib.stateUpdate('status', isPassed ? 'verified' : 'needs_fixes', planningDir);
-          stateLib.stateUpdate('last_activity', `${today} -- Phase ${phaseNum} ${isPassed ? 'verified' : 'needs fixes'}`, planningDir);
-          stateLib.stateUpdate('progress_percent', String(overallPct), planningDir);
+          await stateLib.stateUpdate('status', isPassed ? 'verified' : 'needs_fixes', planningDir);
+          await stateLib.stateUpdate('last_activity', `${today} -- Phase ${phaseNum} ${isPassed ? 'verified' : 'needs fixes'}`, planningDir);
+          await stateLib.stateUpdate('progress_percent', String(overallPct), planningDir);
 
           // Detect phase mismatch and add phase updates
           const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
             || stateContent.match(/^Phase:\s*(\d+)\s/m);
           const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
           if (currentPhase !== null && currentPhase !== phaseNumInt) {
-            stateLib.stateUpdate('current_phase', String(phaseNumInt), planningDir);
-            stateLib.stateUpdate('phase_slug', phaseSlug, planningDir);
+            await stateLib.stateUpdate('current_phase', String(phaseNumInt), planningDir);
+            await stateLib.stateUpdate('phase_slug', phaseSlug, planningDir);
             // phase_name frontmatter not in stateUpdate's valid fields — use lockedFileUpdate directly
             const coreLib = getCoreLib();
-            coreLib.lockedFileUpdate(statePath, (content) => {
+            await coreLib.lockedFileUpdate(statePath, (content) => {
               return stateLib.updateFrontmatterField(content, 'phase_name', phaseName);
             });
             messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
@@ -539,7 +539,7 @@ function checkStateSync(data) {
               logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
             } else {
               const coreLib = getCoreLib();
-              coreLib.lockedFileUpdate(roadmapPath, (content) => {
+              await coreLib.lockedFileUpdate(roadmapPath, (content) => {
                 return updateProgressTable(content, phaseNum, plansComplete, 'Planning', null);
               });
               recordWriteMtime(roadmapPath);
@@ -571,10 +571,10 @@ function main() {
 
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
-      const result = checkStateSync(data);
+      const result = await checkStateSync(data);
       if (result) {
         process.stdout.write(JSON.stringify(result.output));
       }

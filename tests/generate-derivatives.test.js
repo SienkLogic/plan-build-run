@@ -29,7 +29,7 @@ describe('transformFrontmatter', () => {
     'Body content here.',
   ].join('\n');
 
-  test('cursor: removes allowed-tools but keeps argument-hint', () => {
+  test('cursor: removes allowed-tools but keeps argument-hint', async () => {
     const result = transformFrontmatter(skillFm, 'cursor');
     expect(result).not.toMatch(/allowed-tools/);
     expect(result).toMatch(/argument-hint/);
@@ -37,24 +37,24 @@ describe('transformFrontmatter', () => {
     expect(result).toMatch(/description: "Does something cool"/);
   });
 
-  test('cursor: keeps body content unchanged', () => {
+  test('cursor: keeps body content unchanged', async () => {
     const result = transformFrontmatter(skillFm, 'cursor');
     expect(result).toMatch(/Body content here\./);
   });
 
-  test('copilot: removes allowed-tools AND argument-hint', () => {
+  test('copilot: removes allowed-tools AND argument-hint', async () => {
     const result = transformFrontmatter(skillFm, 'copilot');
     expect(result).not.toMatch(/allowed-tools/);
     expect(result).not.toMatch(/argument-hint/);
   });
 
-  test('copilot: keeps name and description', () => {
+  test('copilot: keeps name and description', async () => {
     const result = transformFrontmatter(skillFm, 'copilot');
     expect(result).toMatch(/name: myskill/);
     expect(result).toMatch(/description: "Does something cool"/);
   });
 
-  test('handles skill without argument-hint gracefully', () => {
+  test('handles skill without argument-hint gracefully', async () => {
     const minimal = '---\nname: test\ndescription: "Minimal"\nallowed-tools: Bash\n---\nBody';
     const cursor = transformFrontmatter(minimal, 'cursor');
     const copilot = transformFrontmatter(minimal, 'copilot');
@@ -69,21 +69,21 @@ describe('transformFrontmatter', () => {
 // ---------------------------------------------------------------------------
 
 describe('transformBody', () => {
-  test('replaces ${CLAUDE_PLUGIN_ROOT} with ${PLUGIN_ROOT}', () => {
+  test('replaces ${CLAUDE_PLUGIN_ROOT} with ${PLUGIN_ROOT}', async () => {
     const input = 'Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.js` for hooks.';
     const result = transformBody(input, 'cursor');
     expect(result).toContain('${PLUGIN_ROOT}/scripts/run-hook.js');
     expect(result).not.toContain('${CLAUDE_PLUGIN_ROOT}');
   });
 
-  test('replaces ${CLAUDE_PLUGIN_ROOT}/dashboard with ../../dashboard', () => {
+  test('replaces ${CLAUDE_PLUGIN_ROOT}/dashboard with ../../dashboard', async () => {
     const input = 'node ${CLAUDE_PLUGIN_ROOT}/dashboard/bin/cli.js';
     const result = transformBody(input, 'cursor');
     expect(result).toContain('../../dashboard/bin/cli.js');
     expect(result).not.toContain('PLUGIN_ROOT}/dashboard');
   });
 
-  test('replaces "subagents" with "agents" (not subagent_type)', () => {
+  test('replaces "subagents" with "agents" (not subagent_type)', async () => {
     const input = 'Spawn subagents using subagent_type to delegate work.';
     const result = transformBody(input, 'cursor');
     expect(result).toContain('Spawn agents');
@@ -91,20 +91,20 @@ describe('transformBody', () => {
     expect(result).not.toMatch(/\bsubagents\b/);
   });
 
-  test('replaces "Subagents" with "Agents" (capital)', () => {
+  test('replaces "Subagents" with "Agents" (capital)', async () => {
     const input = 'Subagents run in fresh contexts.';
     const result = transformBody(input, 'cursor');
     expect(result).toContain('Agents run in fresh contexts.');
   });
 
-  test('same transform for copilot target', () => {
+  test('same transform for copilot target', async () => {
     const input = 'Use ${CLAUDE_PLUGIN_ROOT}/scripts/foo.js and spawn subagents.';
     const cursor = transformBody(input, 'cursor');
     const copilot = transformBody(input, 'copilot');
     expect(cursor).toBe(copilot);
   });
 
-  test('does not replace CLAUDE_PLUGIN_ROOT inside subagent_type', () => {
+  test('does not replace CLAUDE_PLUGIN_ROOT inside subagent_type', async () => {
     const input = 'Use subagent_type: "pbr:executor" to spawn subagents.';
     const result = transformBody(input, 'cursor');
     expect(result).toContain('subagent_type');
@@ -132,7 +132,7 @@ describe('transformAgentFrontmatter', () => {
     'Agent body here.',
   ].join('\n');
 
-  test('cursor: removes memory and tools but keeps model', () => {
+  test('cursor: removes memory and tools but keeps model', async () => {
     const result = transformAgentFrontmatter(agentContent, 'cursor');
     expect(result).toMatch(/^model\s*:/m);     // cursor keeps model
     expect(result).not.toMatch(/^memory\s*:/m);
@@ -141,12 +141,12 @@ describe('transformAgentFrontmatter', () => {
     expect(result).not.toMatch(/^\s+-\s+Write/m);
   });
 
-  test('cursor: adds readonly: false', () => {
+  test('cursor: adds readonly: false', async () => {
     const result = transformAgentFrontmatter(agentContent, 'cursor');
     expect(result).toMatch(/^readonly:\s*false/m);
   });
 
-  test('cursor: keeps name and description', () => {
+  test('cursor: keeps name and description', async () => {
     const result = transformAgentFrontmatter(agentContent, 'cursor');
     expect(result).toMatch(/name: myagent/);
     expect(result).toMatch(/description: "Does agent things"/);
@@ -161,19 +161,19 @@ describe('transformAgentFrontmatter', () => {
     expect(copilotResult).toMatch(/description: "Does agent things"/);
   });
 
-  test('keeps agent body content', () => {
+  test('keeps agent body content', async () => {
     const result = transformAgentFrontmatter(agentContent, 'cursor');
     expect(result).toMatch(/Agent body here\./);
   });
 
-  test('handles agent without optional fields', () => {
+  test('handles agent without optional fields', async () => {
     const minimal = '---\nname: minimal\ndescription: "Minimal agent"\n---\nBody.';
     const result = transformAgentFrontmatter(minimal, 'cursor');
     expect(result).toMatch(/name: minimal/);
     expect(result).toMatch(/description: "Minimal agent"/);
   });
 
-  test('cursor: adds default model: sonnet when source lacks model (phase 64+)', () => {
+  test('cursor: adds default model: sonnet when source lacks model (phase 64+)', async () => {
     const noModel = '---\nname: executor\ndescription: "Executor agent"\n---\nBody.';
     const result = transformAgentFrontmatter(noModel, 'cursor');
     expect(result).toMatch(/^model: sonnet$/m);
@@ -184,7 +184,7 @@ describe('transformAgentFrontmatter', () => {
     expect(modelIdx).toBe(descIdx + 1);
   });
 
-  test('copilot: does NOT add default model when source lacks model', () => {
+  test('copilot: does NOT add default model when source lacks model', async () => {
     const noModel = '---\nname: executor\ndescription: "Executor agent"\n---\nBody.';
     const result = transformAgentFrontmatter(noModel, 'copilot');
     expect(result).not.toMatch(/^model\s*:/m);
@@ -210,29 +210,29 @@ describe('transformHooksJson', () => {
     }
   }, null, 2);
 
-  test('cursor: replaces script path pattern', () => {
+  test('cursor: replaces script path pattern', async () => {
     const result = transformHooksJson(pbrHooksSnippet, 'cursor');
     expect(result).toContain("r,'..','pbr','scripts','run-hook.js'");
     expect(result).not.toContain("r,'scripts','run-hook.js'");
   });
 
-  test('cursor: updates $schema path', () => {
+  test('cursor: updates $schema path', async () => {
     const result = transformHooksJson(pbrHooksSnippet, 'cursor');
     expect(result).toContain('"../../pbr/scripts/hooks-schema.json"');
   });
 
-  test('cursor: removes $bootstrap key', () => {
+  test('cursor: removes $bootstrap key', async () => {
     const result = transformHooksJson(pbrHooksSnippet, 'cursor');
     const parsed = JSON.parse(result);
     expect(parsed['$bootstrap']).toBeUndefined();
   });
 
-  test('cursor: updates description', () => {
+  test('cursor: updates description', async () => {
     const result = transformHooksJson(pbrHooksSnippet, 'cursor');
     expect(result).toContain('Cursor plugin');
   });
 
-  test('copilot: returns null (skip generation)', () => {
+  test('copilot: returns null (skip generation)', async () => {
     const result = transformHooksJson(pbrHooksSnippet, 'copilot');
     expect(result).toBeNull();
   });
@@ -245,7 +245,7 @@ describe('transformHooksJson', () => {
 describe('copilot agent filename convention', () => {
   const COPILOT_DIR = path.resolve(__dirname, '..', 'plugins', 'copilot-pbr', 'agents');
 
-  test('all copilot agent files have .agent.md suffix', () => {
+  test('all copilot agent files have .agent.md suffix', async () => {
     if (!fs.existsSync(COPILOT_DIR)) return;
     const files = fs.readdirSync(COPILOT_DIR);
     for (const f of files) {
@@ -253,7 +253,7 @@ describe('copilot agent filename convention', () => {
     }
   });
 
-  test('copilot has same agent names as pbr (with .agent.md suffix)', () => {
+  test('copilot has same agent names as pbr (with .agent.md suffix)', async () => {
     const PBR_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'agents');
     if (!fs.existsSync(COPILOT_DIR) || !fs.existsSync(PBR_DIR)) return;
 
@@ -303,17 +303,17 @@ describe('codex target', () => {
   ].join('\n');
 
   describe('transformFrontmatter with codex', () => {
-    test('removes allowed-tools', () => {
+    test('removes allowed-tools', async () => {
       const result = transformFrontmatter(skillFm, 'codex');
       expect(result).not.toMatch(/allowed-tools/);
     });
 
-    test('removes argument-hint', () => {
+    test('removes argument-hint', async () => {
       const result = transformFrontmatter(skillFm, 'codex');
       expect(result).not.toMatch(/argument-hint/);
     });
 
-    test('keeps name and description', () => {
+    test('keeps name and description', async () => {
       const result = transformFrontmatter(skillFm, 'codex');
       expect(result).toMatch(/name: myskill/);
       expect(result).toMatch(/description: "Does something cool"/);
@@ -321,7 +321,7 @@ describe('codex target', () => {
   });
 
   describe('transformBody with codex', () => {
-    test('replaces /pbr: with $pbr-', () => {
+    test('replaces /pbr: with $pbr-', async () => {
       const input = 'Run /pbr:plan-phase to create a plan, then /pbr:execute-phase to execute.';
       const result = transformBody(input, 'codex');
       expect(result).toContain('$pbr-plan');
@@ -329,21 +329,21 @@ describe('codex target', () => {
       expect(result).not.toContain('/pbr:');
     });
 
-    test('still replaces ${CLAUDE_PLUGIN_ROOT} with ${PLUGIN_ROOT}', () => {
+    test('still replaces ${CLAUDE_PLUGIN_ROOT} with ${PLUGIN_ROOT}', async () => {
       const input = 'node ${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.js';
       const result = transformBody(input, 'codex');
       expect(result).toContain('${PLUGIN_ROOT}/scripts/run-hook.js');
       expect(result).not.toContain('${CLAUDE_PLUGIN_ROOT}');
     });
 
-    test('still replaces subagents with agents', () => {
+    test('still replaces subagents with agents', async () => {
       const input = 'Spawn subagents using subagent_type.';
       const result = transformBody(input, 'codex');
       expect(result).toContain('Spawn agents');
       expect(result).toContain('subagent_type');
     });
 
-    test('cursor target does NOT replace /pbr:', () => {
+    test('cursor target does NOT replace /pbr:', async () => {
       const input = 'Run /pbr:plan-phase to start.';
       const result = transformBody(input, 'cursor');
       expect(result).toContain('/pbr:plan-phase');
@@ -352,7 +352,7 @@ describe('codex target', () => {
   });
 
   describe('transformHooksJson with codex', () => {
-    test('returns null', () => {
+    test('returns null', async () => {
       const input = JSON.stringify({ hooks: {} });
       const result = transformHooksJson(input, 'codex');
       expect(result).toBeNull();
@@ -360,28 +360,28 @@ describe('codex target', () => {
   });
 
   describe('transformAgentFrontmatter with codex', () => {
-    test('removes model', () => {
+    test('removes model', async () => {
       const result = transformAgentFrontmatter(agentContent, 'codex');
       expect(result).not.toMatch(/^model\s*:/m);
     });
 
-    test('removes memory', () => {
+    test('removes memory', async () => {
       const result = transformAgentFrontmatter(agentContent, 'codex');
       expect(result).not.toMatch(/^memory\s*:/m);
     });
 
-    test('removes tools list', () => {
+    test('removes tools list', async () => {
       const result = transformAgentFrontmatter(agentContent, 'codex');
       expect(result).not.toMatch(/^tools\s*:/m);
     });
 
-    test('keeps name and description', () => {
+    test('keeps name and description', async () => {
       const result = transformAgentFrontmatter(agentContent, 'codex');
       expect(result).toMatch(/name: myagent/);
       expect(result).toMatch(/description: "Does agent things"/);
     });
 
-    test('does NOT add readonly: false', () => {
+    test('does NOT add readonly: false', async () => {
       const result = transformAgentFrontmatter(agentContent, 'codex');
       expect(result).not.toMatch(/readonly/);
     });
@@ -393,7 +393,7 @@ describe('codex target', () => {
 // ---------------------------------------------------------------------------
 
 describe('generate and verify (integration)', () => {
-  test('generate cursor returns array of written file paths', () => {
+  test('generate cursor returns array of written file paths', async () => {
     const written = generate('cursor', false);
     expect(Array.isArray(written)).toBe(true);
     expect(written.length).toBeGreaterThan(0);
@@ -403,7 +403,7 @@ describe('generate and verify (integration)', () => {
     }
   });
 
-  test('generate copilot returns array of written file paths', () => {
+  test('generate copilot returns array of written file paths', async () => {
     const written = generate('copilot', false);
     expect(Array.isArray(written)).toBe(true);
     expect(written.length).toBeGreaterThan(0);
@@ -412,7 +412,7 @@ describe('generate and verify (integration)', () => {
     }
   });
 
-  test('generate dry-run returns same paths without writing', () => {
+  test('generate dry-run returns same paths without writing', async () => {
     const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
     const testFile = path.join(CURSOR_DIR, 'skills', 'audit', 'SKILL.md');
 
@@ -427,7 +427,7 @@ describe('generate and verify (integration)', () => {
     expect(statAfter.mtimeMs).toBe(statBefore.mtimeMs);
   });
 
-  test('verify returns ok:true when derivatives match', () => {
+  test('verify returns ok:true when derivatives match', async () => {
     // First generate so derivatives are up to date
     generate('cursor', false);
     const result = verify('cursor');
@@ -435,7 +435,7 @@ describe('generate and verify (integration)', () => {
     expect(result.drifted).toHaveLength(0);
   });
 
-  test('verify returns ok:false when a derivative file has drift', () => {
+  test('verify returns ok:false when a derivative file has drift', async () => {
     const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
     const testFile = path.join(CURSOR_DIR, 'skills', 'audit', 'SKILL.md');
     const original = fs.readFileSync(testFile, 'utf8');
@@ -451,13 +451,13 @@ describe('generate and verify (integration)', () => {
     expect(result.drifted.length).toBeGreaterThan(0);
   });
 
-  test('copilot verify returns ok:true when derivatives match', () => {
+  test('copilot verify returns ok:true when derivatives match', async () => {
     generate('copilot', false);
     const result = verify('copilot');
     expect(result.ok).toBe(true);
   });
 
-  test('verify detects missing file as drift', () => {
+  test('verify detects missing file as drift', async () => {
     const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
     const testFile = path.join(CURSOR_DIR, 'references', 'deviation-rules.md');
     const original = fs.readFileSync(testFile);
@@ -475,19 +475,19 @@ describe('generate and verify (integration)', () => {
     expect(hasMissing).toBe(true);
   });
 
-  test('generate cursor target-only works', () => {
+  test('generate cursor target-only works', async () => {
     const written = generate('cursor', true);
     expect(written.every(f => f.includes('cursor-pbr'))).toBe(true);
     expect(written.every(f => !f.includes('copilot-pbr'))).toBe(true);
   });
 
-  test('CODEX_DIR constant resolves to plugins/codex-pbr/', () => {
+  test('CODEX_DIR constant resolves to plugins/codex-pbr/', async () => {
     expect(CODEX_DIR).toBeDefined();
     expect(CODEX_DIR).toMatch(/codex-pbr/);
     expect(path.isAbsolute(CODEX_DIR)).toBe(true);
   });
 
-  test('generate codex dry-run returns paths inside codex-pbr', () => {
+  test('generate codex dry-run returns paths inside codex-pbr', async () => {
     const written = generate('codex', true);
     expect(Array.isArray(written)).toBe(true);
     expect(written.length).toBeGreaterThan(0);
@@ -496,7 +496,7 @@ describe('generate and verify (integration)', () => {
     }
   });
 
-  test('generate codex writes files to plugins/codex-pbr/', () => {
+  test('generate codex writes files to plugins/codex-pbr/', async () => {
     const written = generate('codex', false);
     expect(Array.isArray(written)).toBe(true);
     expect(written.length).toBeGreaterThan(0);
@@ -505,14 +505,14 @@ describe('generate and verify (integration)', () => {
     }
   });
 
-  test('verify codex returns ok:true immediately after generation', () => {
+  test('verify codex returns ok:true immediately after generation', async () => {
     generate('codex', false);
     const result = verify('codex');
     expect(result.ok).toBe(true);
     expect(result.drifted).toHaveLength(0);
   });
 
-  test('codex agent files have .md extension (not .agent.md)', () => {
+  test('codex agent files have .md extension (not .agent.md)', async () => {
     generate('codex', false);
     const codexAgentsDir = path.join(CODEX_DIR, 'agents');
     if (fs.existsSync(codexAgentsDir)) {

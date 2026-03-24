@@ -11,32 +11,32 @@ let tmpDir;
 let planningDir;
 let originalCwd;
 
-beforeEach(() => {
+beforeEach(async () => {
   ({ tmpDir, planningDir } = createTmpPlanning('pbr-lsau-'));
   originalCwd = process.cwd();
   process.chdir(tmpDir);
 });
 
-afterEach(() => {
+afterEach(async () => {
   process.chdir(originalCwd);
   cleanupTmp(tmpDir);
 });
 
 describe('buildAgentContext additional paths', () => {
-  test('handles STATE.md with status but no phase', () => {
+  test('handles STATE.md with status but no phase', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Status: building\nNo phase line');
     const result = buildAgentContext();
     // No phase match -> no phase info added -> might be empty
     expect(typeof result).toBe('string');
   });
 
-  test('handles empty .active-skill file', () => {
+  test('handles empty .active-skill file', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), '');
     const result = buildAgentContext();
     expect(result).not.toContain('/pbr:');
   });
 
-  test('handles config without depth field', () => {
+  test('handles config without depth field', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ git: { auto_commit: false } }));
     const result = buildAgentContext();
@@ -44,7 +44,7 @@ describe('buildAgentContext additional paths', () => {
     expect(result).not.toContain('depth=');
   });
 
-  test('handles config without git field', () => {
+  test('handles config without git field', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'quick' }));
     const result = buildAgentContext();
@@ -52,34 +52,34 @@ describe('buildAgentContext additional paths', () => {
     expect(result).not.toContain('auto_commit');
   });
 
-  test('handles invalid config.json gracefully', () => {
+  test('handles invalid config.json gracefully', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'not json');
     // configLoad should return null, no config parts added
     const result = buildAgentContext();
     expect(typeof result).toBe('string');
   });
 
-  test('handles STATE.md read error gracefully', () => {
+  test('handles STATE.md read error gracefully', async () => {
     // STATE.md exists but is a directory (causes read error)
     fs.mkdirSync(path.join(planningDir, 'STATE.md'), { recursive: true });
     const result = buildAgentContext();
     expect(typeof result).toBe('string');
   });
 
-  test('handles .active-skill read error gracefully', () => {
+  test('handles .active-skill read error gracefully', async () => {
     // .active-skill is a directory
     fs.mkdirSync(path.join(planningDir, '.active-skill'), { recursive: true });
     const result = buildAgentContext();
     expect(typeof result).toBe('string');
   });
 
-  test('includes [Plan-Build-Run Project Context] prefix when parts exist', () => {
+  test('includes [Plan-Build-Run Project Context] prefix when parts exist', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3\nStatus: planned');
     const result = buildAgentContext();
     expect(result).toMatch(/^\[Plan-Build-Run Project Context\]/);
   });
 
-  test('separates parts with pipe', () => {
+  test('separates parts with pipe', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3\nStatus: planned');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     const result = buildAgentContext();
@@ -88,14 +88,14 @@ describe('buildAgentContext additional paths', () => {
 });
 
 describe('buildAgentContext phase without status', () => {
-  test('includes phase info without status parens', () => {
+  test('includes phase info without status parens', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 4');
     const result = buildAgentContext();
     expect(result).toContain('Phase 2 of 4');
     expect(result).not.toContain('(');
   });
 
-  test('returns empty when config produces no parts', () => {
+  test('returns empty when config produces no parts', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ features: {} }));
     // No STATE.md, no .active-skill, config has no depth or git
     const result = buildAgentContext();
@@ -104,67 +104,67 @@ describe('buildAgentContext phase without status', () => {
 });
 
 describe('resolveAgentType', () => {
-  test('returns agent_type when present', () => {
+  test('returns agent_type when present', async () => {
     expect(resolveAgentType({ agent_type: 'pbr:executor' })).toBe('pbr:executor');
   });
 
-  test('returns subagent_type when agent_type is absent', () => {
+  test('returns subagent_type when agent_type is absent', async () => {
     expect(resolveAgentType({ subagent_type: 'pbr:planner' })).toBe('pbr:planner');
   });
 
-  test('returns non-PBR agent_type as-is', () => {
+  test('returns non-PBR agent_type as-is', async () => {
     expect(resolveAgentType({ agent_type: 'Explore' })).toBe('Explore');
   });
 
-  test('returns non-PBR subagent_type as-is', () => {
+  test('returns non-PBR subagent_type as-is', async () => {
     expect(resolveAgentType({ subagent_type: 'general-purpose' })).toBe('general-purpose');
   });
 
-  test('returns tool_input.subagent_type when top-level fields are absent', () => {
+  test('returns tool_input.subagent_type when top-level fields are absent', async () => {
     expect(resolveAgentType({ tool_input: { subagent_type: 'pbr:researcher' } })).toBe('pbr:researcher');
   });
 
-  test('returns tool_input.agent_type when other fields are absent', () => {
+  test('returns tool_input.agent_type when other fields are absent', async () => {
     expect(resolveAgentType({ tool_input: { agent_type: 'Bash' } })).toBe('Bash');
   });
 
-  test('prefers top-level agent_type over tool_input', () => {
+  test('prefers top-level agent_type over tool_input', async () => {
     expect(resolveAgentType({
       agent_type: 'pbr:executor',
       tool_input: { subagent_type: 'pbr:planner' }
     })).toBe('pbr:executor');
   });
 
-  test('prefers top-level subagent_type over tool_input', () => {
+  test('prefers top-level subagent_type over tool_input', async () => {
     expect(resolveAgentType({
       subagent_type: 'custom-agent',
       tool_input: { subagent_type: 'pbr:planner' }
     })).toBe('custom-agent');
   });
 
-  test('returns null when no type info is available', () => {
+  test('returns null when no type info is available', async () => {
     expect(resolveAgentType({})).toBeNull();
   });
 
-  test('returns null when data has unrelated fields only', () => {
+  test('returns null when data has unrelated fields only', async () => {
     expect(resolveAgentType({ agent_id: 'abc', description: 'do stuff' })).toBeNull();
   });
 
-  test('handles tool_input without type fields', () => {
+  test('handles tool_input without type fields', async () => {
     expect(resolveAgentType({ tool_input: { prompt: 'do something' } })).toBeNull();
   });
 
-  test('handles null tool_input', () => {
+  test('handles null tool_input', async () => {
     expect(resolveAgentType({ tool_input: null })).toBeNull();
   });
 
-  test('handles missing tool_input key', () => {
+  test('handles missing tool_input key', async () => {
     expect(resolveAgentType({ other: 'value' })).toBeNull();
   });
 });
 
 describe('handleHttp', () => {
-  test('handles SubagentStart event and returns null when no context', () => {
+  test('handles SubagentStart event and returns null when no context', async () => {
     const result = handleHttp({
       event: 'SubagentStart',
       data: { agent_type: 'pbr:planner', agent_id: 'abc' },
@@ -174,7 +174,7 @@ describe('handleHttp', () => {
     expect(result === null || typeof result === 'object').toBe(true);
   });
 
-  test('handles SubagentStart event with planningDir -- writes .active-agent', () => {
+  test('handles SubagentStart event with planningDir -- writes .active-agent', async () => {
     handleHttp({
       event: 'SubagentStart',
       data: { tool_input: { subagent_type: 'pbr:executor' }, agent_id: 'xyz' },
@@ -185,7 +185,7 @@ describe('handleHttp', () => {
     expect(fs.existsSync(agentFile)).toBe(true);
   });
 
-  test('handles SubagentStop event -- removes .active-agent', () => {
+  test('handles SubagentStop event -- removes .active-agent', async () => {
     // Create .active-agent first
     const agentFile = path.join(planningDir, '.active-agent');
     fs.writeFileSync(agentFile, 'pbr:executor');
@@ -198,7 +198,7 @@ describe('handleHttp', () => {
     expect(fs.existsSync(agentFile)).toBe(false);
   });
 
-  test('handles SubagentStop event when .active-agent does not exist', () => {
+  test('handles SubagentStop event when .active-agent does not exist', async () => {
     const result = handleHttp({
       event: 'SubagentStop',
       data: { agent_type: 'pbr:executor' },
@@ -207,7 +207,7 @@ describe('handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('handles unknown event -- returns null', () => {
+  test('handles unknown event -- returns null', async () => {
     const result = handleHttp({
       event: 'SomethingElse',
       data: {},
@@ -216,7 +216,7 @@ describe('handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('handles SubagentStart without planningDir -- uses writeActiveAgent fallback', () => {
+  test('handles SubagentStart without planningDir -- uses writeActiveAgent fallback', async () => {
     // No planningDir -- falls back to writeActiveAgent (uses process.cwd())
     const result = handleHttp({
       event: 'SubagentStart',
@@ -225,7 +225,7 @@ describe('handleHttp', () => {
     expect(result === null || typeof result === 'object').toBe(true);
   });
 
-  test('handles SubagentStop without planningDir -- uses removeActiveAgent fallback', () => {
+  test('handles SubagentStop without planningDir -- uses removeActiveAgent fallback', async () => {
     const result = handleHttp({
       event: 'SubagentStop',
       data: { agent_type: 'pbr:executor' }
@@ -239,7 +239,7 @@ describe('handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('SubagentStart handling', () => {
-  test('with minimal valid data returns context or null', () => {
+  test('with minimal valid data returns context or null', async () => {
     // SubagentStart with only agent_type — should not throw
     const result = handleHttp({
       event: 'SubagentStart',
@@ -249,7 +249,7 @@ describe('SubagentStart handling', () => {
     expect(result === null || (result && result.hookSpecificOutput)).toBe(true);
   });
 
-  test('with missing agent_type field writes unknown to .active-agent', () => {
+  test('with missing agent_type field writes unknown to .active-agent', async () => {
     handleHttp({
       event: 'SubagentStart',
       data: { agent_id: 'test-123' },
@@ -260,7 +260,7 @@ describe('SubagentStart handling', () => {
     expect(fs.readFileSync(agentFile, 'utf8')).toBe('unknown');
   });
 
-  test('with empty session_id still works', () => {
+  test('with empty session_id still works', async () => {
     const result = handleHttp({
       event: 'SubagentStart',
       data: { agent_type: 'pbr:planner', session_id: '' },
@@ -269,7 +269,7 @@ describe('SubagentStart handling', () => {
     expect(result === null || typeof result === 'object').toBe(true);
   });
 
-  test('with planningDir that does not exist does not throw', () => {
+  test('with planningDir that does not exist does not throw', async () => {
     const result = handleHttp({
       event: 'SubagentStart',
       data: { agent_type: 'pbr:planner' },
@@ -278,7 +278,7 @@ describe('SubagentStart handling', () => {
     expect(result === null || typeof result === 'object').toBe(true);
   });
 
-  test('writes correct agent type to .active-agent', () => {
+  test('writes correct agent type to .active-agent', async () => {
     handleHttp({
       event: 'SubagentStart',
       data: { agent_type: 'pbr:verifier' },
@@ -290,7 +290,7 @@ describe('SubagentStart handling', () => {
 });
 
 describe('SubagentStop handling', () => {
-  test('stop event does not throw when .active-agent missing', () => {
+  test('stop event does not throw when .active-agent missing', async () => {
     // No .active-agent file — stop should still work
     const result = handleHttp({
       event: 'SubagentStop',
@@ -300,7 +300,7 @@ describe('SubagentStop handling', () => {
     expect(result).toBeNull();
   });
 
-  test('stop without matching start still logs', () => {
+  test('stop without matching start still logs', async () => {
     // No prior start — stop should still complete without error
     const result = handleHttp({
       event: 'SubagentStop',
@@ -310,7 +310,7 @@ describe('SubagentStop handling', () => {
     expect(result).toBeNull();
   });
 
-  test('stop with null duration_ms does not throw', () => {
+  test('stop with null duration_ms does not throw', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:planner');
     const result = handleHttp({
       event: 'SubagentStop',
@@ -323,7 +323,7 @@ describe('SubagentStop handling', () => {
 });
 
 describe('buildAgentContext error paths', () => {
-  test('returns empty when .planning dir does not exist', () => {
+  test('returns empty when .planning dir does not exist', async () => {
     // chdir to a temp dir without .planning
     const bare = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pbr-bare-'));
     const prev = process.cwd();
@@ -337,13 +337,13 @@ describe('buildAgentContext error paths', () => {
     }
   });
 
-  test('STATE.md with no frontmatter still parses phase line', () => {
+  test('STATE.md with no frontmatter still parses phase line', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 5 of 10\nSome random body text');
     const result = buildAgentContext();
     expect(result).toContain('Phase 5 of 10');
   });
 
-  test('corrupt config.json returns context without config parts', () => {
+  test('corrupt config.json returns context without config parts', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 2');
     fs.writeFileSync(path.join(planningDir, 'config.json'), '{broken json');
     const result = buildAgentContext();
@@ -352,7 +352,7 @@ describe('buildAgentContext error paths', () => {
     expect(result).not.toContain('depth=');
   });
 
-  test('handles session ID for .active-skill lookup', () => {
+  test('handles session ID for .active-skill lookup', async () => {
     // With a sessionId, it tries session-scoped path
     const result = buildAgentContext('test-session-123');
     expect(typeof result).toBe('string');
@@ -378,11 +378,11 @@ describe('resolveAgentType completeness', () => {
     expect(resolveAgentType({ tool_input: { subagent_type: type } })).toBe(type);
   });
 
-  test('unknown type returns the string as-is (no mapping)', () => {
+  test('unknown type returns the string as-is (no mapping)', async () => {
     expect(resolveAgentType({ agent_type: 'completely-unknown-agent' })).toBe('completely-unknown-agent');
   });
 
-  test('empty string agent_type returns null (falsy)', () => {
+  test('empty string agent_type returns null (falsy)', async () => {
     expect(resolveAgentType({ agent_type: '' })).toBeNull();
   });
 });
@@ -391,12 +391,12 @@ describe('trackAgentCost', () => {
   // Import trackAgentCost and thresholds from the hooks version
   const { trackAgentCost, AGENT_SPAWN_WARN_THRESHOLD, AGENT_SPAWN_CRITICAL_THRESHOLD } = require('../plugins/pbr/scripts/log-subagent');
 
-  test('returns null for first spawn', () => {
+  test('returns null for first spawn', async () => {
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     expect(result).toBeNull();
   });
 
-  test('creates tracker file on first call', () => {
+  test('creates tracker file on first call', async () => {
     trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     const trackerPath = path.join(planningDir, '.agent-cost-tracker');
     expect(fs.existsSync(trackerPath)).toBe(true);
@@ -407,7 +407,7 @@ describe('trackAgentCost', () => {
     expect(entry.ms).toBe(1000);
   });
 
-  test('accumulates spawns across calls', () => {
+  test('accumulates spawns across calls', async () => {
     trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     trackAgentCost(planningDir, 'pbr:planner', 2000, null);
     trackAgentCost(planningDir, 'pbr:executor', 500, null);
@@ -418,7 +418,7 @@ describe('trackAgentCost', () => {
     expect(types.filter(t => t === 'pbr:planner')).toHaveLength(1);
   });
 
-  test('returns warning at warn threshold', () => {
+  test('returns warning at warn threshold', async () => {
     // Pre-seed tracker with JSONL lines to one below threshold
     const trackerPath = path.join(planningDir, '.agent-cost-tracker');
     const lines = Array.from({ length: AGENT_SPAWN_WARN_THRESHOLD - 1 }, (_, i) =>
@@ -430,7 +430,7 @@ describe('trackAgentCost', () => {
     expect(result).toContain(`${AGENT_SPAWN_WARN_THRESHOLD}`);
   });
 
-  test('returns critical warning at critical threshold', () => {
+  test('returns critical warning at critical threshold', async () => {
     const trackerPath = path.join(planningDir, '.agent-cost-tracker');
     const lines = Array.from({ length: AGENT_SPAWN_CRITICAL_THRESHOLD - 1 }, (_, i) =>
       JSON.stringify({ ts: Date.now() + i, type: 'pbr:executor', ms: 1000 })
@@ -441,12 +441,12 @@ describe('trackAgentCost', () => {
     expect(result).toContain(`${AGENT_SPAWN_CRITICAL_THRESHOLD}`);
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     const result = trackAgentCost(path.join(tmpDir, 'nonexistent'), 'pbr:executor', 1000, null);
     expect(result).toBeNull();
   });
 
-  test('handles null agentType gracefully', () => {
+  test('handles null agentType gracefully', async () => {
     const result = trackAgentCost(planningDir, null, 1000, null);
     expect(result).toBeNull();
     const lines = fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8').trim().split('\n');
@@ -455,14 +455,14 @@ describe('trackAgentCost', () => {
     expect(entry.type).toBe('unknown');
   });
 
-  test('handles null durationMs gracefully', () => {
+  test('handles null durationMs gracefully', async () => {
     trackAgentCost(planningDir, 'pbr:executor', null, null);
     const lines = fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[0]);
     expect(entry.ms).toBe(0);
   });
 
-  test('handles corrupt tracker file by appending', () => {
+  test('handles corrupt tracker file by appending', async () => {
     fs.writeFileSync(path.join(planningDir, '.agent-cost-tracker'), 'not json\n');
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     // JSONL append works even with prior corrupt lines

@@ -23,21 +23,21 @@ function validate(config) {
 }
 
 describe('config-schema graduated verification properties', () => {
-  test('validates features.graduated_verification as boolean', () => {
+  test('validates features.graduated_verification as boolean', async () => {
     const schema = loadSchema();
     const prop = schema.properties.features.properties.graduated_verification;
     expect(prop).toBeDefined();
     expect(prop.type).toBe('boolean');
   });
 
-  test('validates features.self_verification as boolean', () => {
+  test('validates features.self_verification as boolean', async () => {
     const schema = loadSchema();
     const prop = schema.properties.features.properties.self_verification;
     expect(prop).toBeDefined();
     expect(prop.type).toBe('boolean');
   });
 
-  test('validates autonomy.level as enum with 4 values', () => {
+  test('validates autonomy.level as enum with 4 values', async () => {
     const schema = loadSchema();
     const autonomy = schema.properties.autonomy;
     expect(autonomy).toBeDefined();
@@ -47,7 +47,7 @@ describe('config-schema graduated verification properties', () => {
     ]);
   });
 
-  test('rejects invalid autonomy.level value', () => {
+  test('rejects invalid autonomy.level value', async () => {
     const { errors } = validate({
       version: 2,
       autonomy: { level: 'invalid_value' }
@@ -63,7 +63,7 @@ describe('config-schema graduated verification properties', () => {
     expect(schema.properties.autonomy.properties.level.default).toBe('supervised');
   });
 
-  test('accepts valid autonomy.level values without errors', () => {
+  test('accepts valid autonomy.level values without errors', async () => {
     const validLevels = ['supervised', 'guided', 'collaborative', 'adaptive'];
     for (const level of validLevels) {
       const { errors } = validate({
@@ -75,7 +75,7 @@ describe('config-schema graduated verification properties', () => {
     }
   });
 
-  test('accepts graduated_verification and self_verification as booleans', () => {
+  test('accepts graduated_verification and self_verification as booleans', async () => {
     const { errors } = validate({
       version: 2,
       features: {

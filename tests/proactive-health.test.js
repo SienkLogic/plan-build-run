@@ -28,7 +28,7 @@ describe('checkFeatureHealth', () => {
     'tech_debt_surfacing'
   ];
 
-  test('all 5 Phase 9 features have health entries', () => {
+  test('all 5 Phase 9 features have health entries', async () => {
     // Each feature should produce a result when checked
     const config = { features: {} };
     // All features enabled by default (true when absent)
@@ -44,7 +44,7 @@ describe('checkFeatureHealth', () => {
     }
   });
 
-  test('reports healthy when feature enabled and module loadable', () => {
+  test('reports healthy when feature enabled and module loadable', async () => {
     // tech_debt_surfacing should be healthy because the module exists in this repo
     const config = { features: { tech_debt_surfacing: true } };
     const scriptsDir = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
@@ -54,7 +54,7 @@ describe('checkFeatureHealth', () => {
     expect(result.status).toBe('healthy');
   });
 
-  test('reports degraded when feature enabled but module missing', () => {
+  test('reports degraded when feature enabled but module missing', async () => {
     const tmp = makeTmpDir();
     try {
       // Point to a dir where no modules exist
@@ -69,7 +69,7 @@ describe('checkFeatureHealth', () => {
     }
   });
 
-  test('reports disabled when feature is toggled off', () => {
+  test('reports disabled when feature is toggled off', async () => {
     const config = { features: { pattern_routing: false } };
     const result = checkFeatureHealth('pattern_routing', config, __dirname);
 
@@ -77,7 +77,7 @@ describe('checkFeatureHealth', () => {
     expect(result.status).toBe('disabled');
   });
 
-  test('treats missing feature config as enabled (default true)', () => {
+  test('treats missing feature config as enabled (default true)', async () => {
     // Feature not in config.features at all -> defaults to enabled
     const config = { features: {} };
     const scriptsDir = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
@@ -86,7 +86,7 @@ describe('checkFeatureHealth', () => {
     expect(result.status).toBe('healthy');
   });
 
-  test('health output includes feature name and status string', () => {
+  test('health output includes feature name and status string', async () => {
     const config = { features: { pre_research: false } };
     const result = checkFeatureHealth('pre_research', config, __dirname);
 

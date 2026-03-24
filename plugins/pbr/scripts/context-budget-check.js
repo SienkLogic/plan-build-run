@@ -25,7 +25,7 @@ const { configLoad } = require('./lib/config');
 const { tailLines, lockedFileUpdate, sessionLoad } = require('./lib/core');
 // Session-scoped paths: sessionLoad accepts sessionId, delegates to resolveSessionPath internally
 
-function main() {
+async function main() {
   const cwd = process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const stateFile = path.join(planningDir, 'STATE.md');
@@ -101,7 +101,7 @@ function main() {
       content = content.trimEnd() + `\n\n${continuityHeader}\n${continuityContent}\n`;
     }
 
-    lockedFileUpdate(stateFile, () => content);
+    await lockedFileUpdate(stateFile, () => content);
 
     // Output additionalContext for post-compaction recovery
     const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents, activeSkill, blockers, pendingTodos);
@@ -373,7 +373,7 @@ function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighl
  * reqBody = { event, tool, data, planningDir, cache }
  * Returns { additionalContext: "..." } or null. Never calls process.exit().
  */
-function handleHttp(reqBody) {
+async function handleHttp(reqBody) {
   const planningDir = reqBody && reqBody.planningDir;
   const stateFile = planningDir && path.join(planningDir, 'STATE.md');
 
@@ -420,7 +420,7 @@ function handleHttp(reqBody) {
       content = content.trimEnd() + `\n\n${continuityHeader}\n${continuityContent}\n`;
     }
 
-    lockedFileUpdate(stateFile, () => content);
+    await lockedFileUpdate(stateFile, () => content);
 
     const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents, activeSkill, blockers, pendingTodos);
     if (recoveryContext) {
@@ -439,4 +439,4 @@ function handleHttp(reqBody) {
 }
 
 module.exports = { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents, readActiveSkill, readBlockers, readPendingTodos, handleHttp };
-if (require.main === module || process.argv[1] === __filename) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }

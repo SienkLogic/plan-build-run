@@ -4,62 +4,62 @@
 const { checkSkillArgs, suggestSkill, PLAN_VALID_PATTERN } = require('../plugins/pbr/scripts/validate-skill-args');
 
 describe('checkSkillArgs branch coverage', () => {
-  test('returns null for non-plan skills', () => {
+  test('returns null for non-plan skills', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:build', args: 'anything' } })).toBeNull();
   });
 
-  test('returns null for empty args', () => {
+  test('returns null for empty args', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: '' } })).toBeNull();
   });
 
-  test('returns null for phase number', () => {
+  test('returns null for phase number', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: '3' } })).toBeNull();
   });
 
-  test('returns null for phase number with flag', () => {
+  test('returns null for phase number with flag', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: '3 --skip-research' } })).toBeNull();
   });
 
-  test('returns null for subcommand add', () => {
+  test('returns null for subcommand add', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: 'add' } })).toBeNull();
   });
 
-  test('returns null for insert subcommand', () => {
+  test('returns null for insert subcommand', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: 'insert 3' } })).toBeNull();
   });
 
-  test('returns null for remove subcommand', () => {
+  test('returns null for remove subcommand', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: 'remove 2' } })).toBeNull();
   });
 
-  test('blocks freeform text', () => {
+  test('blocks freeform text', async () => {
     const result = checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: 'fix the login bug' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
     expect(result.output.reason).toContain('BLOCKED');
   });
 
-  test('truncates long args in output', () => {
+  test('truncates long args in output', async () => {
     const longArgs = 'a'.repeat(100);
     const result = checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: longArgs } });
     expect(result.output.reason).toContain('...');
   });
 
-  test('handles missing tool_input', () => {
+  test('handles missing tool_input', async () => {
     expect(checkSkillArgs({ tool_input: {} })).toBeNull();
   });
 
-  test('handles missing args field', () => {
+  test('handles missing args field', async () => {
     expect(checkSkillArgs({ tool_input: { skill: 'pbr:plan' } })).toBeNull();
   });
 
-  test('includes skill suggestion in block message', () => {
+  test('includes skill suggestion in block message', async () => {
     const result = checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: 'fix the bug in login' } });
     expect(result.output.reason).toContain('/pbr:debug');
     expect(result.output.reason).toContain('/pbr:do');
   });
 
-  test('blocks freeform text with phase-like prefix', () => {
+  test('blocks freeform text with phase-like prefix', async () => {
     const result = checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: '3 some extra text here' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
@@ -67,39 +67,39 @@ describe('checkSkillArgs branch coverage', () => {
 });
 
 describe('suggestSkill routing', () => {
-  test('routes bug-related text to debug', () => {
+  test('routes bug-related text to debug', async () => {
     const r = suggestSkill('fix the login bug');
     expect(r.skill).toBe('/pbr:debug');
   });
 
-  test('routes explore-related text to explore', () => {
+  test('routes explore-related text to explore', async () => {
     const r = suggestSkill('how does the auth system work');
     expect(r.skill).toBe('/pbr:explore');
   });
 
-  test('routes complex task to plan add', () => {
+  test('routes complex task to plan add', async () => {
     const r = suggestSkill('refactor the entire database layer');
     expect(r.skill).toBe('/pbr:plan-phase add');
   });
 
-  test('routes generic text to quick', () => {
+  test('routes generic text to quick', async () => {
     const r = suggestSkill('add a button to the navbar');
     expect(r.skill).toBe('/pbr:quick');
   });
 
-  test('routes crash text to debug', () => {
+  test('routes crash text to debug', async () => {
     expect(suggestSkill('app crashes on startup').skill).toBe('/pbr:debug');
   });
 
-  test('routes research text to explore', () => {
+  test('routes research text to explore', async () => {
     expect(suggestSkill('evaluate different approaches').skill).toBe('/pbr:explore');
   });
 
-  test('routes migrate text to plan add', () => {
+  test('routes migrate text to plan add', async () => {
     expect(suggestSkill('migrate to new infrastructure').skill).toBe('/pbr:plan-phase add');
   });
 
-  test('returns a reason with every suggestion', () => {
+  test('returns a reason with every suggestion', async () => {
     const result = suggestSkill('fix the bug');
     expect(result.reason).toBeTruthy();
     expect(typeof result.reason).toBe('string');
@@ -164,7 +164,7 @@ describe('PLAN_VALID_PATTERN', () => {
     expect(PLAN_VALID_PATTERN.test(input)).toBe(false);
   });
 
-  test('matches multiple flags', () => {
+  test('matches multiple flags', async () => {
     expect(PLAN_VALID_PATTERN.test('3 --assumptions --gaps')).toBe(true);
   });
 });

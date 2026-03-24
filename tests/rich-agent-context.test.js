@@ -59,26 +59,26 @@ describe('buildRichAgentContext', () => {
     cleanup(tmpDir);
   });
 
-  test('returns non-empty string when rich_agent_prompts is true', () => {
+  test('returns non-empty string when rich_agent_prompts is true', async () => {
     const config = { features: { rich_agent_prompts: true } };
     const result = buildRichAgentContext(planningDir, config);
     expect(result).toBeTruthy();
     expect(result).toContain('Test Project');
   });
 
-  test('returns empty string when rich_agent_prompts is false', () => {
+  test('returns empty string when rich_agent_prompts is false', async () => {
     const config = { features: { rich_agent_prompts: false } };
     const result = buildRichAgentContext(planningDir, config);
     expect(result).toBe('');
   });
 
-  test('respects budgetChars and truncates gracefully', () => {
+  test('respects budgetChars and truncates gracefully', async () => {
     const config = { features: { rich_agent_prompts: true } };
     const result = buildRichAgentContext(planningDir, config, 100);
     expect(result.length).toBeLessThanOrEqual(100);
   });
 
-  test('handles missing decisions directory without error', () => {
+  test('handles missing decisions directory without error', async () => {
     const config = { features: { rich_agent_prompts: true } };
     // No decisions/ or conventions/ directories created
     const result = buildRichAgentContext(planningDir, config);
@@ -86,7 +86,7 @@ describe('buildRichAgentContext', () => {
     expect(result).toContain('Test Project');
   });
 
-  test('includes decisions when directory exists', () => {
+  test('includes decisions when directory exists', async () => {
     const decisionsDir = path.join(planningDir, 'decisions');
     fs.mkdirSync(decisionsDir, { recursive: true });
     fs.writeFileSync(path.join(decisionsDir, '001-use-typescript.md'), [
@@ -101,7 +101,7 @@ describe('buildRichAgentContext', () => {
     expect(result).toContain('use-typescript');
   });
 
-  test('includes conventions when directory exists', () => {
+  test('includes conventions when directory exists', async () => {
     const convDir = path.join(planningDir, 'conventions');
     fs.mkdirSync(convDir, { recursive: true });
     fs.writeFileSync(path.join(convDir, 'commit-format.md'), '# Commit Format\nUse conventional commits.');
@@ -111,13 +111,13 @@ describe('buildRichAgentContext', () => {
     expect(result).toContain('commit-format');
   });
 
-  test('includes state info from STATE.md', () => {
+  test('includes state info from STATE.md', async () => {
     const config = { features: { rich_agent_prompts: true } };
     const result = buildRichAgentContext(planningDir, config);
     expect(result).toContain('building');
   });
 
-  test('defaults to enabled when rich_agent_prompts is undefined', () => {
+  test('defaults to enabled when rich_agent_prompts is undefined', async () => {
     const config = { features: {} };
     const result = buildRichAgentContext(planningDir, config);
     // Should return context (not disabled by default)

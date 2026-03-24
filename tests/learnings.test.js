@@ -32,19 +32,19 @@ function makeEntry(overrides = {}) {
 // --- Tests ---
 
 describe('computeConfidence', () => {
-  test('occurrences=1 returns low', () => {
+  test('occurrences=1 returns low', async () => {
     expect(computeConfidence(1)).toBe('low');
   });
 
-  test('occurrences=2 returns medium', () => {
+  test('occurrences=2 returns medium', async () => {
     expect(computeConfidence(2)).toBe('medium');
   });
 
-  test('occurrences=3 returns high', () => {
+  test('occurrences=3 returns high', async () => {
     expect(computeConfidence(3)).toBe('high');
   });
 
-  test('occurrences=5 returns high', () => {
+  test('occurrences=5 returns high', async () => {
     expect(computeConfidence(5)).toBe('high');
   });
 });
@@ -65,21 +65,21 @@ describe('validateEntry', () => {
     expect(result.errors[0]).toMatch(/summary/);
   });
 
-  test('invalid type returns { valid: false } with errors mentioning bad type', () => {
+  test('invalid type returns { valid: false } with errors mentioning bad type', async () => {
     const entry = makeEntry({ type: 'not-a-valid-type' });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('not-a-valid-type'))).toBe(true);
   });
 
-  test('invalid confidence value returns { valid: false }', () => {
+  test('invalid confidence value returns { valid: false }', async () => {
     const entry = makeEntry({ confidence: 'ultra-high' });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('ultra-high'))).toBe(true);
   });
 
-  test('tags must be non-empty array', () => {
+  test('tags must be non-empty array', async () => {
     const entry = makeEntry({ tags: [] });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
@@ -106,7 +106,7 @@ describe('learningsIngest + loadAll', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('ingest creates file if not exists', () => {
+  test('ingest creates file if not exists', async () => {
     expect(fs.existsSync(tmpFile)).toBe(false);
     learningsIngest(makeEntry(), { filePath: tmpFile });
     expect(fs.existsSync(tmpFile)).toBe(true);
@@ -126,13 +126,13 @@ describe('learningsIngest + loadAll', () => {
     expect(result.entry.occurrences).toBe(2);
   });
 
-  test('dedup updates confidence from low to medium on second occurrence', () => {
+  test('dedup updates confidence from low to medium on second occurrence', async () => {
     learningsIngest(makeEntry(), { filePath: tmpFile });
     const result = learningsIngest(makeEntry(), { filePath: tmpFile });
     expect(result.entry.confidence).toBe('medium');
   });
 
-  test('dedup updates confidence to high at 3 occurrences', () => {
+  test('dedup updates confidence to high at 3 occurrences', async () => {
     learningsIngest(makeEntry(), { filePath: tmpFile });
     learningsIngest(makeEntry(), { filePath: tmpFile });
     const result = learningsIngest(makeEntry(), { filePath: tmpFile });
@@ -140,14 +140,14 @@ describe('learningsIngest + loadAll', () => {
     expect(result.entry.occurrences).toBe(3);
   });
 
-  test('ingest generates id if missing', () => {
+  test('ingest generates id if missing', async () => {
     const entry = makeEntry();
     delete entry.id;
     const result = learningsIngest(entry, { filePath: tmpFile });
     expect(result.entry.id).toBeTruthy();
   });
 
-  test('ingest sets created_at if missing', () => {
+  test('ingest sets created_at if missing', async () => {
     const entry = makeEntry();
     delete entry.created_at;
     const result = learningsIngest(entry, { filePath: tmpFile });
@@ -155,18 +155,18 @@ describe('learningsIngest + loadAll', () => {
     expect(() => new Date(result.entry.created_at)).not.toThrow();
   });
 
-  test('ingest throws on invalid entry (missing required field)', () => {
+  test('ingest throws on invalid entry (missing required field)', async () => {
     const entry = makeEntry();
     delete entry.source_project;
     expect(() => learningsIngest(entry, { filePath: tmpFile })).toThrow(/Invalid learning entry/);
   });
 
-  test('loadAll returns [] when file does not exist', () => {
+  test('loadAll returns [] when file does not exist', async () => {
     const result = loadAll(tmpFile);
     expect(result).toEqual([]);
   });
 
-  test('loadAll skips malformed lines gracefully', () => {
+  test('loadAll skips malformed lines gracefully', async () => {
     fs.writeFileSync(tmpFile, 'not-json\n{"id":"ok","source_project":"p","type":"tech-pattern","tags":["x"],"confidence":"low","occurrences":1,"summary":"ok"}\nbad{json\n', 'utf8');
     const result = loadAll(tmpFile);
     expect(result.length).toBe(1);
@@ -219,18 +219,18 @@ describe('learningsQuery', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('no filters returns all entries', () => {
+  test('no filters returns all entries', async () => {
     const result = learningsQuery({}, { filePath: tmpFile });
     expect(result.length).toBe(3);
   });
 
-  test('--tags [react] returns only entries containing react tag', () => {
+  test('--tags [react] returns only entries containing react tag', async () => {
     const result = learningsQuery({ tags: ['react'] }, { filePath: tmpFile });
     expect(result.length).toBe(1);
     expect(result[0].id).toBe('q-001');
   });
 
-  test('--min-confidence medium returns medium + high entries only', () => {
+  test('--min-confidence medium returns medium + high entries only', async () => {
     const result = learningsQuery({ minConfidence: 'medium' }, { filePath: tmpFile });
     expect(result.length).toBe(2);
     const ids = result.map(e => e.id);
@@ -239,32 +239,32 @@ describe('learningsQuery', () => {
     expect(ids).not.toContain('q-003');
   });
 
-  test('--min-confidence high returns only high confidence entries', () => {
+  test('--min-confidence high returns only high confidence entries', async () => {
     const result = learningsQuery({ minConfidence: 'high' }, { filePath: tmpFile });
     expect(result.length).toBe(1);
     expect(result[0].id).toBe('q-001');
   });
 
-  test('--stack react matches entries with stack:react tag', () => {
+  test('--stack react matches entries with stack:react tag', async () => {
     const result = learningsQuery({ stack: 'react' }, { filePath: tmpFile });
     expect(result.length).toBe(1);
     expect(result[0].id).toBe('q-001');
   });
 
-  test('--type tech-pattern returns only tech-pattern entries', () => {
+  test('--type tech-pattern returns only tech-pattern entries', async () => {
     const result = learningsQuery({ type: 'tech-pattern' }, { filePath: tmpFile });
     expect(result.length).toBe(1);
     expect(result[0].type).toBe('tech-pattern');
   });
 
-  test('combined filters (tags + minConfidence) apply as AND', () => {
+  test('combined filters (tags + minConfidence) apply as AND', async () => {
     // react tag + medium confidence — reactEntry is high, so it qualifies
     const result = learningsQuery({ tags: ['react'], minConfidence: 'medium' }, { filePath: tmpFile });
     expect(result.length).toBe(1);
     expect(result[0].id).toBe('q-001');
   });
 
-  test('results sorted by occurrences descending', () => {
+  test('results sorted by occurrences descending', async () => {
     const result = learningsQuery({}, { filePath: tmpFile });
     expect(result[0].occurrences).toBeGreaterThanOrEqual(result[1].occurrences);
     expect(result[1].occurrences).toBeGreaterThanOrEqual(result[2].occurrences);
@@ -283,7 +283,7 @@ describe('checkDeferralThresholds', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns [] when count < 51', () => {
+  test('returns [] when count < 51', async () => {
     // Ingest 5 entries
     for (let i = 0; i < 5; i++) {
       learningsIngest(makeEntry({ id: `t-${i}`, summary: `pattern ${i}` }), { filePath: tmpFile });
@@ -295,7 +295,7 @@ describe('checkDeferralThresholds', () => {
     expect(orgTax).toBeUndefined();
   });
 
-  test('returns triggered threshold when count > 50', () => {
+  test('returns triggered threshold when count > 50', async () => {
     // Ingest 51 unique entries
     for (let i = 0; i < 51; i++) {
       learningsIngest(makeEntry({ id: `bulk-${i}`, summary: `unique pattern ${i}` }), { filePath: tmpFile });
@@ -307,20 +307,20 @@ describe('checkDeferralThresholds', () => {
     expect(orgTax.message).toMatch(/organic-taxonomy/);
   });
 
-  test('GLOBAL_LEARNINGS_PATH contains .claude and ends with learnings.jsonl', () => {
+  test('GLOBAL_LEARNINGS_PATH contains .claude and ends with learnings.jsonl', async () => {
     expect(GLOBAL_LEARNINGS_PATH).toMatch(/\.claude/);
     expect(GLOBAL_LEARNINGS_PATH.endsWith('learnings.jsonl')).toBe(true);
   });
 });
 
 describe('LEARNING_TYPES', () => {
-  test('is a non-empty array of strings', () => {
+  test('is a non-empty array of strings', async () => {
     expect(Array.isArray(LEARNING_TYPES)).toBe(true);
     expect(LEARNING_TYPES.length).toBeGreaterThan(0);
     LEARNING_TYPES.forEach(t => expect(typeof t).toBe('string'));
   });
 
-  test('includes tech-pattern and anti-pattern', () => {
+  test('includes tech-pattern and anti-pattern', async () => {
     expect(LEARNING_TYPES).toContain('tech-pattern');
     expect(LEARNING_TYPES).toContain('anti-pattern');
   });
@@ -329,53 +329,53 @@ describe('LEARNING_TYPES', () => {
 // --- Additional branch coverage tests ---
 
 describe('validateEntry - uncovered branches', () => {
-  test('null entry returns invalid with specific message', () => {
+  test('null entry returns invalid with specific message', async () => {
     const result = validateEntry(null);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('entry is null or undefined');
   });
 
-  test('undefined entry returns invalid with specific message', () => {
+  test('undefined entry returns invalid with specific message', async () => {
     const result = validateEntry(undefined);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('entry is null or undefined');
   });
 
-  test('non-integer occurrences (float) returns error', () => {
+  test('non-integer occurrences (float) returns error', async () => {
     const entry = makeEntry({ occurrences: 1.5 });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('positive integer'))).toBe(true);
   });
 
-  test('zero occurrences returns error', () => {
+  test('zero occurrences returns error', async () => {
     const entry = makeEntry({ occurrences: 0 });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('positive integer'))).toBe(true);
   });
 
-  test('negative occurrences returns error', () => {
+  test('negative occurrences returns error', async () => {
     const entry = makeEntry({ occurrences: -2 });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('positive integer'))).toBe(true);
   });
 
-  test('tags with non-string elements returns error', () => {
+  test('tags with non-string elements returns error', async () => {
     const entry = makeEntry({ tags: ['valid', 42, true] });
     const result = validateEntry(entry);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('non-string value'))).toBe(true);
   });
 
-  test('tags with all non-string elements counts them correctly', () => {
+  test('tags with all non-string elements counts them correctly', async () => {
     const entry = makeEntry({ tags: [1, 2, 3] });
     const result = validateEntry(entry);
     expect(result.errors.some(e => e.includes('3 non-string'))).toBe(true);
   });
 
-  test('undefined occurrences skips occurrences validation', () => {
+  test('undefined occurrences skips occurrences validation', async () => {
     const entry = makeEntry();
     delete entry.occurrences;
     const result = validateEntry(entry);
@@ -384,7 +384,7 @@ describe('validateEntry - uncovered branches', () => {
     expect(result.errors.some(e => e.includes('positive integer'))).toBe(false);
   });
 
-  test('undefined tags skips tags validation', () => {
+  test('undefined tags skips tags validation', async () => {
     const entry = makeEntry();
     delete entry.tags;
     const result = validateEntry(entry);
@@ -393,7 +393,7 @@ describe('validateEntry - uncovered branches', () => {
     expect(result.errors.some(e => e.includes('non-empty'))).toBe(false);
   });
 
-  test('valid tags with all strings passes', () => {
+  test('valid tags with all strings passes', async () => {
     const entry = makeEntry({ tags: ['a', 'b', 'c'] });
     const result = validateEntry(entry);
     expect(result.errors.some(e => e.includes('non-string'))).toBe(false);
@@ -412,7 +412,7 @@ describe('learningsIngest - crypto.randomUUID fallback', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('falls back to Date+Math id when crypto.randomUUID throws', () => {
+  test('falls back to Date+Math id when crypto.randomUUID throws', async () => {
     const crypto = require('crypto');
     const origRandomUUID = crypto.randomUUID;
     crypto.randomUUID = () => { throw new Error('not available'); };
@@ -442,14 +442,14 @@ describe('learningsQuery - additional branch coverage', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('minConfidence low skips filtering (returns all)', () => {
+  test('minConfidence low skips filtering (returns all)', async () => {
     learningsIngest(makeEntry({ id: 'a', summary: 'a', confidence: 'low', occurrences: 1 }), { filePath: tmpFile });
     learningsIngest(makeEntry({ id: 'b', summary: 'b', confidence: 'high', occurrences: 3 }), { filePath: tmpFile });
     const result = learningsQuery({ minConfidence: 'low' }, { filePath: tmpFile });
     expect(result.length).toBe(2);
   });
 
-  test('stack filter matches stack_tags array', () => {
+  test('stack filter matches stack_tags array', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       makeEntry({ id: 's1', summary: 's1', tags: ['backend'], stack_tags: ['express'] })
@@ -459,7 +459,7 @@ describe('learningsQuery - additional branch coverage', () => {
     expect(result[0].id).toBe('s1');
   });
 
-  test('entries missing tags are excluded by tag filter', () => {
+  test('entries missing tags are excluded by tag filter', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       makeEntry({ id: 'notags', summary: 'notags' }),
@@ -470,7 +470,7 @@ describe('learningsQuery - additional branch coverage', () => {
     expect(result[0].id).toBe('notags');
   });
 
-  test('entries missing tags/stack_tags are excluded by stack filter', () => {
+  test('entries missing tags/stack_tags are excluded by stack filter', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       { id: 'bare', summary: 'bare entry', occurrences: 1 }
@@ -479,7 +479,7 @@ describe('learningsQuery - additional branch coverage', () => {
     expect(result.length).toBe(0);
   });
 
-  test('entries without occurrences sort as 1', () => {
+  test('entries without occurrences sort as 1', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       { id: 'noocc', summary: 'no occurrences' },
@@ -489,7 +489,7 @@ describe('learningsQuery - additional branch coverage', () => {
     expect(result[0].id).toBe('has3');
   });
 
-  test('entries without confidence are filtered out by minConfidence medium', () => {
+  test('entries without confidence are filtered out by minConfidence medium', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       { id: 'noconf', summary: 'no confidence field', occurrences: 1 },
@@ -500,13 +500,13 @@ describe('learningsQuery - additional branch coverage', () => {
     expect(result[0].id).toBe('med');
   });
 
-  test('unknown minConfidence value skips confidence filtering', () => {
+  test('unknown minConfidence value skips confidence filtering', async () => {
     learningsIngest(makeEntry({ id: 'x', summary: 'x' }), { filePath: tmpFile });
     const result = learningsQuery({ minConfidence: 'super-ultra' }, { filePath: tmpFile });
     expect(result.length).toBe(1);
   });
 
-  test('empty tags array does not filter', () => {
+  test('empty tags array does not filter', async () => {
     learningsIngest(makeEntry({ id: 'et', summary: 'et' }), { filePath: tmpFile });
     const result = learningsQuery({ tags: [] }, { filePath: tmpFile });
     expect(result.length).toBe(1);
@@ -525,7 +525,7 @@ describe('checkDeferralThresholds - additional branches', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('statistical-confidence triggers when single tag has high occurrence sum', () => {
+  test('statistical-confidence triggers when single tag has high occurrence sum', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const entries = [];
     for (let i = 0; i < 4; i++) {
@@ -538,7 +538,7 @@ describe('checkDeferralThresholds - additional branches', () => {
     expect(stat.trigger).toBe('any_tag >= 20');
   });
 
-  test('audit-integration triggers when planning-failure + process-failure > 10', () => {
+  test('audit-integration triggers when planning-failure + process-failure > 10', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const entries = [];
     for (let i = 0; i < 6; i++) {
@@ -553,14 +553,14 @@ describe('checkDeferralThresholds - additional branches', () => {
     expect(audit).toBeDefined();
   });
 
-  test('entries without tags do not crash tag counting', () => {
+  test('entries without tags do not crash tag counting', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([{ id: 'nt', summary: 'no tags' }], tmpFile);
     const result = checkDeferralThresholds({ filePath: tmpFile });
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('entries without occurrences default to 1 in tag counting', () => {
+  test('entries without occurrences default to 1 in tag counting', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([{ id: 'no', summary: 'no occ', tags: ['x'] }], tmpFile);
     // Should not crash; tag 'x' gets count 1
@@ -568,7 +568,7 @@ describe('checkDeferralThresholds - additional branches', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('empty file returns empty thresholds', () => {
+  test('empty file returns empty thresholds', async () => {
     const result = checkDeferralThresholds({ filePath: path.join(tmpDir, 'nonexistent.jsonl') });
     expect(result).toEqual([]);
   });
@@ -579,14 +579,14 @@ describe('saveAll', () => {
   beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-learnings-save-')); });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  test('creates nested directories', () => {
+  test('creates nested directories', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const filePath = path.join(tmpDir, 'deep', 'nested', 'learnings.jsonl');
     saveAll([{ id: '1' }], filePath);
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
-  test('empty entries produces empty file content', () => {
+  test('empty entries produces empty file content', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const filePath = path.join(tmpDir, 'empty.jsonl');
     saveAll([], filePath);
@@ -613,13 +613,13 @@ describe('default filePath fallback (GLOBAL_LEARNINGS_PATH)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('loadAll with no filePath uses GLOBAL_LEARNINGS_PATH', () => {
+  test('loadAll with no filePath uses GLOBAL_LEARNINGS_PATH', async () => {
     // No file exists yet at the global path
     const result = learningsMod.loadAll();
     expect(result).toEqual([]);
   });
 
-  test('saveAll with no filePath uses GLOBAL_LEARNINGS_PATH', () => {
+  test('saveAll with no filePath uses GLOBAL_LEARNINGS_PATH', async () => {
     learningsMod.saveAll([{ id: 'global-1' }]);
     const globalFile = learningsMod.GLOBAL_LEARNINGS_PATH;
     expect(fs.existsSync(globalFile)).toBe(true);
@@ -627,7 +627,7 @@ describe('default filePath fallback (GLOBAL_LEARNINGS_PATH)', () => {
     expect(content).toContain('global-1');
   });
 
-  test('learningsIngest with no options uses GLOBAL_LEARNINGS_PATH', () => {
+  test('learningsIngest with no options uses GLOBAL_LEARNINGS_PATH', async () => {
     const entry = {
       id: 'g-1',
       source_project: 'proj',
@@ -641,7 +641,7 @@ describe('default filePath fallback (GLOBAL_LEARNINGS_PATH)', () => {
     expect(result.action).toBe('created');
   });
 
-  test('learningsQuery with no options uses GLOBAL_LEARNINGS_PATH', () => {
+  test('learningsQuery with no options uses GLOBAL_LEARNINGS_PATH', async () => {
     const entry = {
       id: 'g-2',
       source_project: 'proj',
@@ -656,12 +656,12 @@ describe('default filePath fallback (GLOBAL_LEARNINGS_PATH)', () => {
     expect(result).toHaveLength(1);
   });
 
-  test('checkDeferralThresholds with no options uses GLOBAL_LEARNINGS_PATH', () => {
+  test('checkDeferralThresholds with no options uses GLOBAL_LEARNINGS_PATH', async () => {
     const result = learningsMod.checkDeferralThresholds();
     expect(Array.isArray(result)).toBe(true);
   });
 
-  test('learningsQuery sorts entries without occurrences field using fallback', () => {
+  test('learningsQuery sorts entries without occurrences field using fallback', async () => {
     // Both entries lack occurrences — exercises both sides of (|| 1) in sort
     learningsMod.saveAll([
       { id: 'no-occ-a', summary: 'A', source_project: 'p', type: 'tech-pattern', tags: ['x'], confidence: 'low' },
@@ -677,13 +677,13 @@ describe('loadAll - edge cases', () => {
   beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-learnings-load-')); });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  test('empty file returns empty array', () => {
+  test('empty file returns empty array', async () => {
     const filePath = path.join(tmpDir, 'empty.jsonl');
     fs.writeFileSync(filePath, '');
     expect(loadAll(filePath)).toEqual([]);
   });
 
-  test('file with only whitespace returns empty array', () => {
+  test('file with only whitespace returns empty array', async () => {
     const filePath = path.join(tmpDir, 'ws.jsonl');
     fs.writeFileSync(filePath, '   \n  \n\n');
     expect(loadAll(filePath)).toEqual([]);
@@ -698,7 +698,7 @@ describe('learningsIngest - does not mutate input', () => {
   });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  test('original rawEntry is not mutated', () => {
+  test('original rawEntry is not mutated', async () => {
     const raw = makeEntry();
     delete raw.id;
     delete raw.created_at;
@@ -707,19 +707,19 @@ describe('learningsIngest - does not mutate input', () => {
     expect(raw.created_at).toBeUndefined();
   });
 
-  test('preserves existing created_at when provided', () => {
+  test('preserves existing created_at when provided', async () => {
     const entry = makeEntry({ created_at: '2020-01-01T00:00:00Z' });
     const result = learningsIngest(entry, { filePath: tmpFile });
     expect(result.entry.created_at).toBe('2020-01-01T00:00:00Z');
   });
 
-  test('preserves existing id when provided', () => {
+  test('preserves existing id when provided', async () => {
     const entry = makeEntry({ id: 'custom-id-999' });
     const result = learningsIngest(entry, { filePath: tmpFile });
     expect(result.entry.id).toBe('custom-id-999');
   });
 
-  test('dedup handles existing entry with no occurrences field', () => {
+  test('dedup handles existing entry with no occurrences field', async () => {
     const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     // Manually write an entry missing occurrences field
     saveAll([{
@@ -797,26 +797,26 @@ describe('global learnings aggregation', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns total count of all entries', () => {
+  test('returns total count of all entries', async () => {
     const result = learningsAggregate({}, { filePath: tmpFile });
     expect(result.total).toBe(4);
   });
 
-  test('groups entries by type', () => {
+  test('groups entries by type', async () => {
     const result = learningsAggregate({}, { filePath: tmpFile });
     expect(result.by_type).toBeDefined();
     expect(result.by_type['tech-pattern']).toBe(2);
     expect(result.by_type['anti-pattern']).toBe(2);
   });
 
-  test('groups entries by source_project', () => {
+  test('groups entries by source_project', async () => {
     const result = learningsAggregate({}, { filePath: tmpFile });
     expect(result.by_project).toBeDefined();
     expect(result.by_project['project-alpha']).toBe(2);
     expect(result.by_project['project-beta']).toBe(2);
   });
 
-  test('identifies cross-project patterns (same summary in 2+ projects)', () => {
+  test('identifies cross-project patterns (same summary in 2+ projects)', async () => {
     const result = learningsAggregate({}, { filePath: tmpFile });
     expect(Array.isArray(result.cross_project_patterns)).toBe(true);
     expect(result.cross_project_patterns.length).toBeGreaterThanOrEqual(1);
@@ -825,7 +825,7 @@ describe('global learnings aggregation', () => {
     expect(pattern.projects.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('returns top_insights sorted by occurrences', () => {
+  test('returns top_insights sorted by occurrences', async () => {
     const result = learningsAggregate({}, { filePath: tmpFile });
     expect(Array.isArray(result.top_insights)).toBe(true);
     if (result.top_insights.length >= 2) {
@@ -833,12 +833,12 @@ describe('global learnings aggregation', () => {
     }
   });
 
-  test('respects topN option', () => {
+  test('respects topN option', async () => {
     const result = learningsAggregate({ topN: 2 }, { filePath: tmpFile });
     expect(result.top_insights.length).toBeLessThanOrEqual(2);
   });
 
-  test('returns { enabled: false } when config toggle is off', () => {
+  test('returns { enabled: false } when config toggle is off', async () => {
     const result = learningsAggregate({}, {
       filePath: tmpFile,
       configFeatures: { global_learnings: false },
@@ -846,13 +846,13 @@ describe('global learnings aggregation', () => {
     expect(result).toEqual({ enabled: false });
   });
 
-  test('filters by project when project filter provided', () => {
+  test('filters by project when project filter provided', async () => {
     const result = learningsAggregate({ project: 'project-alpha' }, { filePath: tmpFile });
     expect(result.total).toBe(2);
     expect(Object.keys(result.by_project)).toEqual(['project-alpha']);
   });
 
-  test('filters by type when type filter provided', () => {
+  test('filters by type when type filter provided', async () => {
     const result = learningsAggregate({ type: 'tech-pattern' }, { filePath: tmpFile });
     expect(result.total).toBe(2);
     expect(result.by_type['anti-pattern']).toBeUndefined();

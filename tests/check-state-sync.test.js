@@ -13,23 +13,23 @@ const {
 
 describe('check-state-sync.js', () => {
   describe('extractPhaseNum', () => {
-    test('extracts number from standard dir name', () => {
+    test('extracts number from standard dir name', async () => {
       expect(extractPhaseNum('35-agent-output-budgets')).toBe('35');
     });
 
-    test('extracts zero-padded number', () => {
+    test('extracts zero-padded number', async () => {
       expect(extractPhaseNum('02-auth-system')).toBe('02');
     });
 
-    test('extracts single digit', () => {
+    test('extracts single digit', async () => {
       expect(extractPhaseNum('1-setup')).toBe('1');
     });
 
-    test('returns null for no match', () => {
+    test('returns null for no match', async () => {
       expect(extractPhaseNum('no-number-here')).toBeNull();
     });
 
-    test('returns null for empty string', () => {
+    test('returns null for empty string', async () => {
       expect(extractPhaseNum('')).toBeNull();
     });
   });
@@ -37,15 +37,15 @@ describe('check-state-sync.js', () => {
   describe('countPhaseArtifacts', () => {
     let tmpDir;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'state-sync-'));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('counts plans and summaries', () => {
+    test('counts plans and summaries', async () => {
       fs.writeFileSync(path.join(tmpDir, '01-PLAN.md'), '---\nphase: 01\n---');
       fs.writeFileSync(path.join(tmpDir, '02-PLAN.md'), '---\nphase: 01\n---');
       fs.writeFileSync(path.join(tmpDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
@@ -57,21 +57,21 @@ describe('check-state-sync.js', () => {
       expect(result.completeSummaries).toBe(1);
     });
 
-    test('returns zeros for empty directory', () => {
+    test('returns zeros for empty directory', async () => {
       const result = countPhaseArtifacts(tmpDir);
       expect(result.plans).toBe(0);
       expect(result.summaries).toBe(0);
       expect(result.completeSummaries).toBe(0);
     });
 
-    test('returns zeros for nonexistent directory', () => {
+    test('returns zeros for nonexistent directory', async () => {
       const result = countPhaseArtifacts('/nonexistent/path');
       expect(result.plans).toBe(0);
       expect(result.summaries).toBe(0);
       expect(result.completeSummaries).toBe(0);
     });
 
-    test('counts only files matching patterns', () => {
+    test('counts only files matching patterns', async () => {
       fs.writeFileSync(path.join(tmpDir, '01-PLAN.md'), '---\nphase: 01\n---');
       fs.writeFileSync(path.join(tmpDir, 'CONTEXT.md'), 'context');
       fs.writeFileSync(path.join(tmpDir, 'VERIFICATION.md'), '---\nstatus: passed\n---');
@@ -96,38 +96,38 @@ describe('check-state-sync.js', () => {
 | 35. Agent Output Budgets | 0/0 | Not started | — |
 `;
 
-    test('updates plans and status for matching phase', () => {
+    test('updates plans and status for matching phase', async () => {
       const result = updateProgressTable(progressTable, '35', '2/3', 'In progress', null);
       expect(result).toContain('| 35. Agent Output Budgets | 2/3 | In progress | — |');
     });
 
-    test('updates completed date when provided', () => {
+    test('updates completed date when provided', async () => {
       const result = updateProgressTable(progressTable, '02', '3/3', 'Complete', '2026-02-17');
       expect(result).toContain('| 02. Auth System | 3/3 | Complete | 2026-02-17 |');
     });
 
-    test('does not change completed date when null', () => {
+    test('does not change completed date when null', async () => {
       const result = updateProgressTable(progressTable, '02', '1/3', 'In progress', null);
       expect(result).toContain('| 02. Auth System | 1/3 | In progress | — |');
     });
 
-    test('returns unchanged content for missing phase', () => {
+    test('returns unchanged content for missing phase', async () => {
       const result = updateProgressTable(progressTable, '99', '1/1', 'Complete', '2026-02-17');
       expect(result).toBe(progressTable);
     });
 
-    test('returns unchanged for content without Progress table', () => {
+    test('returns unchanged for content without Progress table', async () => {
       const content = '# Roadmap\n\nNo table here\n';
       const result = updateProgressTable(content, '1', '1/1', 'Complete', null);
       expect(result).toBe(content);
     });
 
-    test('matches phase with different zero-padding', () => {
+    test('matches phase with different zero-padding', async () => {
       const result = updateProgressTable(progressTable, '1', '2/2', 'Complete', '2026-02-17');
       expect(result).toContain('| 01. Project Scaffolding | 2/2 | Complete | 2026-02-17 |');
     });
 
-    test('preserves other rows when updating one', () => {
+    test('preserves other rows when updating one', async () => {
       const result = updateProgressTable(progressTable, '02', '1/3', 'In progress', null);
       // Phase 01 unchanged
       expect(result).toContain('| 01. Project Scaffolding | 2/2 | Complete | 2026-02-08 |');
@@ -148,24 +148,24 @@ describe('check-state-sync.js', () => {
 | 03. API Endpoints | v2.0 | 0/0 | Not started | — |
 `;
 
-    test('updates plans and status for matching phase in 5-column table', () => {
+    test('updates plans and status for matching phase in 5-column table', async () => {
       const result = updateProgressTable(progressTable5col, '02', '1/3', 'In progress', null);
       expect(result).toContain('| 02. Auth System | v1.0 | 1/3 | In progress | — |');
     });
 
-    test('updates completed date in 5-column table', () => {
+    test('updates completed date in 5-column table', async () => {
       const result = updateProgressTable(progressTable5col, '03', '2/2', 'Complete', '2026-03-18');
       expect(result).toContain('| 03. API Endpoints | v2.0 | 2/2 | Complete | 2026-03-18 |');
     });
 
-    test('preserves Milestone column when updating', () => {
+    test('preserves Milestone column when updating', async () => {
       const result = updateProgressTable(progressTable5col, '02', '2/3', 'In progress', null);
       expect(result).toContain('v1.0');
       // Phase 01 row should be unchanged
       expect(result).toContain('| 01. Project Scaffolding | v1.0 | 2/2 | Complete | 2026-02-08 |');
     });
 
-    test('dynamic column detection works with different column order', () => {
+    test('dynamic column detection works with different column order', async () => {
       // The function detects columns by header text, not position
       const result = updateProgressTable(progressTable5col, '1', '2/2', 'Complete', '2026-02-17');
       expect(result).toContain('| 01. Project Scaffolding | v1.0 | 2/2 | Complete | 2026-02-17 |');
@@ -183,12 +183,12 @@ describe('check-state-sync.js', () => {
 | 02. Build | 0/1 | Not started | — |
 `;
 
-    test('updates correctly without Milestone column', () => {
+    test('updates correctly without Milestone column', async () => {
       const result = updateProgressTable(progressTable3col, '01', '1/2', 'In progress', null);
       expect(result).toContain('| 01. Setup | 1/2 | In progress | — |');
     });
 
-    test('sets completed date without Milestone column', () => {
+    test('sets completed date without Milestone column', async () => {
       const result = updateProgressTable(progressTable3col, '02', '1/1', 'Complete', '2026-03-18');
       expect(result).toContain('| 02. Build | 1/1 | Complete | 2026-03-18 |');
     });
@@ -214,27 +214,27 @@ Last activity: 2026-02-08 -- Project initialized
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 `;
 
-    test('updates plan line in body', () => {
+    test('updates plan line in body', async () => {
       const result = updateStatePosition(stateContent, { planLine: '1 of 2 in current phase' });
       expect(result).toContain('Plan: 1 of 2 in current phase');
     });
 
-    test('updates status in body', () => {
+    test('updates status in body', async () => {
       const result = updateStatePosition(stateContent, { status: 'Building' });
       expect(result).toContain('Status: Building');
     });
 
-    test('updates last activity', () => {
+    test('updates last activity', async () => {
       const result = updateStatePosition(stateContent, { lastActivity: '2026-02-17 -- Phase 3 plan completed' });
       expect(result).toContain('Last activity: 2026-02-17 -- Phase 3 plan completed');
     });
 
-    test('updates progress bar', () => {
+    test('updates progress bar', async () => {
       const result = updateStatePosition(stateContent, { progressPct: 50 });
       expect(result).toContain('Progress: [██████████░░░░░░░░░░] 50%');
     });
 
-    test('updates frontmatter fields', () => {
+    test('updates frontmatter fields', async () => {
       const result = updateStatePosition(stateContent, {
         fmPlansComplete: 2,
         fmStatus: 'built',
@@ -247,7 +247,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       expect(result).toContain('progress_percent: 60');
     });
 
-    test('handles multiple updates at once', () => {
+    test('handles multiple updates at once', async () => {
       const result = updateStatePosition(stateContent, {
         planLine: '2 of 2 in current phase',
         status: 'Built',
@@ -263,14 +263,14 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       expect(result).toContain('status: "built"');
     });
 
-    test('updates Phase line in body', () => {
+    test('updates Phase line in body', async () => {
       const result = updateStatePosition(stateContent, { phaseLine: '5 of 10 (Deployment)' });
       expect(result).toContain('Phase: 5 of 10 (Deployment)');
       // Other lines unchanged
       expect(result).toContain('Plan: 0 of 2 in current phase');
     });
 
-    test('updates phase frontmatter fields', () => {
+    test('updates phase frontmatter fields', async () => {
       const withPhaseFm = stateContent
         .replace('---\n# Project', 'phase_slug: "api-endpoints"\nphase_name: "Api Endpoints"\n---\n# Project');
       const result = updateStatePosition(withPhaseFm, {
@@ -283,7 +283,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       expect(result).toContain('phase_name: "Deployment"');
     });
 
-    test('handles legacy format without frontmatter', () => {
+    test('handles legacy format without frontmatter', async () => {
       const legacy = `# Project State
 
 ## Current Position
@@ -300,43 +300,43 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
   });
 
   describe('buildProgressBar', () => {
-    test('0% is all empty', () => {
+    test('0% is all empty', async () => {
       expect(buildProgressBar(0)).toBe('[░░░░░░░░░░░░░░░░░░░░] 0%');
     });
 
-    test('100% is all filled', () => {
+    test('100% is all filled', async () => {
       expect(buildProgressBar(100)).toBe('[████████████████████] 100%');
     });
 
-    test('50% is half filled', () => {
+    test('50% is half filled', async () => {
       expect(buildProgressBar(50)).toBe('[██████████░░░░░░░░░░] 50%');
     });
   });
 
   describe('checkStateSync', () => {
-    test('returns null for non-SUMMARY/VERIFICATION/PLAN files', () => {
-      expect(checkStateSync({ tool_input: { file_path: '/some/path/README.md' } })).toBeNull();
+    test('returns null for non-SUMMARY/VERIFICATION/PLAN files', async () => {
+      expect(await checkStateSync({ tool_input: { file_path: '/some/path/README.md' } })).toBeNull();
     });
 
-    test('returns null for STATE.md write (circular guard)', () => {
-      expect(checkStateSync({ tool_input: { file_path: '/project/.planning/STATE.md' } })).toBeNull();
+    test('returns null for STATE.md write (circular guard)', async () => {
+      expect(await checkStateSync({ tool_input: { file_path: '/project/.planning/STATE.md' } })).toBeNull();
     });
 
-    test('returns null for ROADMAP.md write (circular guard)', () => {
-      expect(checkStateSync({ tool_input: { file_path: '/project/.planning/ROADMAP.md' } })).toBeNull();
+    test('returns null for ROADMAP.md write (circular guard)', async () => {
+      expect(await checkStateSync({ tool_input: { file_path: '/project/.planning/ROADMAP.md' } })).toBeNull();
     });
 
-    test('returns null for SUMMARY outside .planning/phases/', () => {
-      expect(checkStateSync({ tool_input: { file_path: '/other/path/SUMMARY-01.md' } })).toBeNull();
+    test('returns null for SUMMARY outside .planning/phases/', async () => {
+      expect(await checkStateSync({ tool_input: { file_path: '/other/path/SUMMARY-01.md' } })).toBeNull();
     });
 
-    test('returns null for VERIFICATION outside .planning/phases/', () => {
-      expect(checkStateSync({ tool_input: { file_path: '/other/path/VERIFICATION.md' } })).toBeNull();
+    test('returns null for VERIFICATION outside .planning/phases/', async () => {
+      expect(await checkStateSync({ tool_input: { file_path: '/other/path/VERIFICATION.md' } })).toBeNull();
     });
 
-    test('returns null when phase dir name has no number', () => {
+    test('returns null when phase dir name has no number', async () => {
       const data = { tool_input: { file_path: '/project/.planning/phases/no-number/SUMMARY-01.md' } };
-      expect(checkStateSync(data)).toBeNull();
+      expect(await checkStateSync(data)).toBeNull();
     });
 
     describe('with filesystem fixtures', () => {
@@ -346,7 +346,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       let phaseDir;
       let origCwd;
 
-      beforeEach(() => {
+      beforeEach(async () => {
         tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'state-sync-int-'));
         planningDir = path.join(tmpDir, '.planning');
         phasesDir = path.join(planningDir, 'phases');
@@ -358,19 +358,19 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         process.chdir(tmpDir);
       });
 
-      afterEach(() => {
+      afterEach(async () => {
         process.chdir(origCwd);
         fs.rmSync(tmpDir, { recursive: true, force: true });
       });
 
-      test('returns null when phase has no plans', () => {
+      test('returns null when phase has no plans', async () => {
         // Write a SUMMARY but no PLANs
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        expect(checkStateSync(data)).toBeNull();
+        expect(await checkStateSync(data)).toBeNull();
       });
 
-      test('updates ROADMAP.md on SUMMARY write', () => {
+      test('updates ROADMAP.md on SUMMARY write', async () => {
         // Set up phase with 2 plans, 1 complete summary
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
         fs.writeFileSync(path.join(phaseDir, '02-PLAN.md'), '---\nphase: 03\nplan: 02\n---');
@@ -388,7 +388,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        const result = checkStateSync(data);
+        const result = await checkStateSync(data);
 
         expect(result).not.toBeNull();
         expect(result.output.additionalContext).toContain('ROADMAP.md');
@@ -398,7 +398,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         expect(updated).toContain('In progress');
       });
 
-      test('sets Complete when all plans done', () => {
+      test('sets Complete when all plans done', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -413,14 +413,14 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        checkStateSync(data);
+        await checkStateSync(data);
 
         const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
         expect(updated).toContain('1/1');
         expect(updated).toContain('Complete');
       });
 
-      test('updates STATE.md on SUMMARY write', () => {
+      test('updates STATE.md on SUMMARY write', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -436,7 +436,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        checkStateSync(data);
+        await checkStateSync(data);
 
         const updated = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
         expect(updated).toContain('Plan: 1');
@@ -444,7 +444,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         expect(updated).toMatch(/Status:\s*(Built|built)/);
       });
 
-      test('updates STATE.md on VERIFICATION write with passed status', () => {
+      test('updates STATE.md on VERIFICATION write with passed status', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
         fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), '---\nstatus: passed\n---');
@@ -461,14 +461,14 @@ Progress: [██████████░░░░░░░░░░] 50%
         fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'VERIFICATION.md') } };
-        checkStateSync(data);
+        await checkStateSync(data);
 
         const updated = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
         // Legacy format: stateUpdate writes lowercase status (v2 format uses syncBodyLine for casing)
         expect(updated).toMatch(/Status:\s*(Verified|verified)/);
       });
 
-      test('sets Needs fixes on VERIFICATION with gaps_found', () => {
+      test('sets Needs fixes on VERIFICATION with gaps_found', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
         fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), '---\nstatus: gaps_found\n---');
@@ -484,21 +484,21 @@ Progress: [██████████░░░░░░░░░░] 50%
         fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'VERIFICATION.md') } };
-        checkStateSync(data);
+        await checkStateSync(data);
 
         const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
         expect(updated).toContain('Needs fixes');
       });
 
-      test('skips VERIFICATION without status field', () => {
+      test('skips VERIFICATION without status field', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), '# No frontmatter here');
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'VERIFICATION.md') } };
-        expect(checkStateSync(data)).toBeNull();
+        expect(await checkStateSync(data)).toBeNull();
       });
 
-      test('skips gracefully when STATE.md does not exist', () => {
+      test('skips gracefully when STATE.md does not exist', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -514,7 +514,7 @@ Progress: [██████████░░░░░░░░░░] 50%
 
         // No STATE.md — should still update ROADMAP
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        const result = checkStateSync(data);
+        const result = await checkStateSync(data);
 
         expect(result).not.toBeNull();
         expect(result.output.additionalContext).toContain('ROADMAP.md');
@@ -523,7 +523,7 @@ Progress: [██████████░░░░░░░░░░] 50%
         expect(updated).toContain('1/1');
       });
 
-      test('skips gracefully when ROADMAP.md does not exist', () => {
+      test('skips gracefully when ROADMAP.md does not exist', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -540,13 +540,13 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
         // No ROADMAP.md — should still update STATE
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        const result = checkStateSync(data);
+        const result = await checkStateSync(data);
 
         expect(result).not.toBeNull();
         expect(result.output.additionalContext).toContain('STATE.md');
       });
 
-      test('detects phase mismatch and updates Phase line on SUMMARY write', () => {
+      test('detects phase mismatch and updates Phase line on SUMMARY write', async () => {
         // Phase dir is 03-api-endpoints, but STATE.md says current_phase: 1
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
@@ -577,7 +577,7 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 10%
         fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        const result = checkStateSync(data);
+        const result = await checkStateSync(data);
 
         expect(result).not.toBeNull();
         expect(result.output.additionalContext).toContain('Phase 1');
@@ -590,7 +590,7 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 10%
         expect(updated).toContain('phase_name: "Api Endpoints"');
       });
 
-      test('does not update Phase line when phase matches', () => {
+      test('does not update Phase line when phase matches', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -615,7 +615,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
 
         const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-        checkStateSync(data);
+        await checkStateSync(data);
 
         const updated = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
         // Phase line should remain unchanged
@@ -623,7 +623,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         expect(updated).toContain('current_phase: 3');
       });
 
-      test('triggers ROADMAP sync on PLAN.md write with Planning status', () => {
+      test('triggers ROADMAP sync on PLAN.md write with Planning status', async () => {
         // Write a PLAN.md (the trigger) — but no summaries yet
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
 
@@ -639,7 +639,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
         // The trigger file is the PLAN.md itself
         const data = { tool_input: { file_path: path.join(phaseDir, '01-PLAN.md') } };
-        const result = checkStateSync(data);
+        const result = await checkStateSync(data);
 
         expect(result).not.toBeNull();
         expect(result.output.additionalContext).toContain('ROADMAP.md');
@@ -648,7 +648,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         expect(updated).toContain('Planning');
       });
 
-      test('does not regress ROADMAP status from Built/Complete to Planning on PLAN.md write', () => {
+      test('does not regress ROADMAP status from Built/Complete to Planning on PLAN.md write', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -663,7 +663,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
         const data = { tool_input: { file_path: path.join(phaseDir, '01-PLAN.md') } };
-        checkStateSync(data);
+        await checkStateSync(data);
 
         // Should not regress — either null or no change to status
         const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -671,12 +671,12 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         expect(updated).not.toContain('Planning');
       });
 
-      test('PLAN.md outside .planning/phases/ is ignored', () => {
+      test('PLAN.md outside .planning/phases/ is ignored', async () => {
         const data = { tool_input: { file_path: '/some/other/01-PLAN.md' } };
-        expect(checkStateSync(data)).toBeNull();
+        expect(await checkStateSync(data)).toBeNull();
       });
 
-      test('handles Windows-style backslash paths', () => {
+      test('handles Windows-style backslash paths', async () => {
         fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
         fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
 
@@ -684,7 +684,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         const winPath = path.join(phaseDir, 'SUMMARY-01.md').replace(/\//g, '\\');
         const data = { tool_input: { file_path: winPath } };
         // Should not crash — the .planning/phases/ check normalizes slashes
-        const result = checkStateSync(data);
+        const result = await checkStateSync(data);
         // It may or may not find tracking files depending on cwd, but it should not return null
         // due to path normalization (the file is inside .planning/phases/)
         // The important thing is it doesn't crash and the path guard doesn't reject it
@@ -700,7 +700,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     let phaseDir;
     let origCwd;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       clearMtimeCache();
       tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'dirty-flag-'));
       planningDir = path.join(tmpDir, '.planning');
@@ -717,31 +717,31 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       process.chdir(origCwd);
       fs.rmSync(tmpDir, { recursive: true, force: true });
       clearMtimeCache();
     });
 
-    test('first sync proceeds when no prior mtime recorded', () => {
+    test('first sync proceeds when no prior mtime recorded', async () => {
       const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-      const result = checkStateSync(data);
+      const result = await checkStateSync(data);
 
       expect(result).not.toBeNull();
       const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
       expect(updated).toContain('1/1');
     });
 
-    test('skips overwrite when external edit detected on ROADMAP.md', () => {
+    test('skips overwrite when external edit detected on ROADMAP.md', async () => {
       const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
       // First sync — establishes mtime baseline
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-      checkStateSync(data);
+      await checkStateSync(data);
 
       // Simulate external edit by touching the file with a new mtime
       const roadmapPath = path.join(planningDir, 'ROADMAP.md');
@@ -750,14 +750,14 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       fs.writeFileSync(roadmapPath, content + '\n<!-- user edit -->');
 
       // Second sync — should detect dirty file and skip
-      const _result2 = checkStateSync(data);
+      const _result2 = await checkStateSync(data);
 
       // The ROADMAP should still have the user edit intact
       const final = fs.readFileSync(roadmapPath, 'utf8');
       expect(final).toContain('<!-- user edit -->');
     });
 
-    test('proceeds with second sync when no external edit', () => {
+    test('proceeds with second sync when no external edit', async () => {
       const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
@@ -767,7 +767,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
 
       // First sync
-      checkStateSync(data);
+      await checkStateSync(data);
       const afterFirst = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
       expect(afterFirst).toContain('1/2');
 
@@ -775,20 +775,20 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-02.md'), '---\nstatus: complete\n---');
 
       // Second sync — no external edit, should proceed
-      checkStateSync({ tool_input: { file_path: path.join(phaseDir, 'SUMMARY-02.md') } });
+      await checkStateSync({ tool_input: { file_path: path.join(phaseDir, 'SUMMARY-02.md') } });
 
       const afterSecond = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
       expect(afterSecond).toContain('2/2');
     });
 
-    test('clearMtimeCache resets dirty flag state', () => {
+    test('clearMtimeCache resets dirty flag state', async () => {
       const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
 
       // First sync — establishes baseline
-      checkStateSync(data);
+      await checkStateSync(data);
 
       // Simulate external edit
       const roadmapPath = path.join(planningDir, 'ROADMAP.md');
@@ -798,7 +798,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       clearMtimeCache();
 
       // Should proceed since cache was cleared
-      checkStateSync(data);
+      await checkStateSync(data);
 
       const final = fs.readFileSync(roadmapPath, 'utf8');
       // The sync should have overwritten (or updated) because cache was cleared
@@ -813,7 +813,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     let phaseDir;
     let origCwd;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       clearMtimeCache();
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-labels-'));
       planningDir = path.join(tmpDir, '.planning');
@@ -826,23 +826,23 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       process.chdir(tmpDir);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       process.chdir(origCwd);
       fs.rmSync(tmpDir, { recursive: true, force: true });
       clearMtimeCache();
     });
 
-    test('ready_to_execute maps to Ready to Execute in STATUS_LABELS', () => {
+    test('ready_to_execute maps to Ready to Execute in STATUS_LABELS', async () => {
       const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/core');
       expect(STATUS_LABELS.ready_to_execute).toBe('Ready to Execute');
     });
 
-    test('ready_to_plan maps to Ready to Plan in STATUS_LABELS', () => {
+    test('ready_to_plan maps to Ready to Plan in STATUS_LABELS', async () => {
       const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/core');
       expect(STATUS_LABELS.ready_to_plan).toBe('Ready to Plan');
     });
 
-    test('updateStatePosition with ready_to_execute updates body Status line', () => {
+    test('updateStatePosition with ready_to_execute updates body Status line', async () => {
       const stateContent = `---\nversion: 2\ncurrent_phase: 3\nstatus: "ready_to_execute"\n---\n# State\n\n## Current Position\nPhase: 3 of 10\nStatus: Planned\n`;
       // syncBodyLine converts underscores to spaces and title-cases each word
       const result = updateStatePosition(stateContent, { status: 'ready_to_execute' });
@@ -851,24 +851,24 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
   });
 
   describe('extractPhaseNum edge cases', () => {
-    test('returns null for phase name containing no number', () => {
+    test('returns null for phase name containing no number', async () => {
       expect(extractPhaseNum('setup-project')).toBeNull();
     });
 
-    test('extracts from phase "00-init"', () => {
+    test('extracts from phase "00-init"', async () => {
       expect(extractPhaseNum('00-init')).toBe('00');
     });
 
-    test('returns null for null-like input', () => {
+    test('returns null for null-like input', async () => {
       // undefined/null would throw, but empty string and number-only are valid edge cases
       expect(extractPhaseNum('just-words')).toBeNull();
     });
 
-    test('extracts three-digit phase number', () => {
+    test('extracts three-digit phase number', async () => {
       expect(extractPhaseNum('100-large-phase')).toBe('100');
     });
 
-    test('returns null for hyphen without leading digits', () => {
+    test('returns null for hyphen without leading digits', async () => {
       expect(extractPhaseNum('-missing-digits')).toBeNull();
     });
   });
@@ -880,7 +880,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     let phaseDir;
     let origCwd;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       clearMtimeCache();
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-crlf-'));
       planningDir = path.join(tmpDir, '.planning');
@@ -892,13 +892,13 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       process.chdir(tmpDir);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       process.chdir(origCwd);
       fs.rmSync(tmpDir, { recursive: true, force: true });
       clearMtimeCache();
     });
 
-    test('STATE.md with \\r\\n line endings parses correctly', () => {
+    test('STATE.md with \\r\\n line endings parses correctly', async () => {
       fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\r\nphase: 03\r\n---');
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\r\nstatus: complete\r\n---');
 
@@ -909,12 +909,12 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-      const result = checkStateSync(data);
+      const result = await checkStateSync(data);
       expect(result).not.toBeNull();
       expect(result.output.additionalContext).toContain('STATE.md');
     });
 
-    test('progress bar renders correctly with \\r\\n content', () => {
+    test('progress bar renders correctly with \\r\\n content', async () => {
       const bar = buildProgressBar(50);
       expect(bar).toContain('50%');
       expect(bar).toContain('██████████');
@@ -928,7 +928,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     let phaseDir;
     let origCwd;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       clearMtimeCache();
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-empty-'));
       planningDir = path.join(tmpDir, '.planning');
@@ -940,13 +940,13 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       process.chdir(tmpDir);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       process.chdir(origCwd);
       fs.rmSync(tmpDir, { recursive: true, force: true });
       clearMtimeCache();
     });
 
-    test('completely empty STATE.md does not crash', () => {
+    test('completely empty STATE.md does not crash', async () => {
       fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), '');
@@ -956,42 +956,42 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
       // Should not throw — STATE.md update may fail gracefully
-      expect(() => checkStateSync(data)).not.toThrow();
+      await expect(checkStateSync(data)).resolves.not.toThrow();
     });
 
-    test('STATE.md with only frontmatter delimiters is handled', () => {
+    test('STATE.md with only frontmatter delimiters is handled', async () => {
       fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\n---\n');
 
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-      expect(() => checkStateSync(data)).not.toThrow();
+      await expect(checkStateSync(data)).resolves.not.toThrow();
     });
 
-    test('STATE.md with frontmatter but no body is handled', () => {
+    test('STATE.md with frontmatter but no body is handled', async () => {
       fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
       fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\nversion: 2\ncurrent_phase: 3\nstatus: "building"\n---\n');
 
       const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
-      expect(() => checkStateSync(data)).not.toThrow();
+      await expect(checkStateSync(data)).resolves.not.toThrow();
     });
   });
 
   describe('updateProgressTable with missing data', () => {
-    test('returns unchanged when ROADMAP has no progress table', () => {
+    test('returns unchanged when ROADMAP has no progress table', async () => {
       const content = '# Roadmap\n\nNo table here at all\n';
       const result = updateProgressTable(content, '1', '1/1', 'Complete', null);
       expect(result).toBe(content);
     });
 
-    test('returns unchanged when phases list is empty (no matching phase)', () => {
+    test('returns unchanged when phases list is empty (no matching phase)', async () => {
       const content = '# Roadmap\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|------|---|\n';
       const result = updateProgressTable(content, '5', '1/1', 'Complete', null);
       expect(result).toBe(content);
     });
 
-    test('handles table with only header and separator (no rows)', () => {
+    test('handles table with only header and separator (no rows)', async () => {
       const content = '# Roadmap\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|------|---|\n\nSome other content\n';
       const result = updateProgressTable(content, '1', '1/1', 'Complete', null);
       expect(result).toBe(content);
@@ -1001,15 +1001,15 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
   describe('countPhaseArtifacts edge cases', () => {
     let tmpDir;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-count-'));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('handles unreadable SUMMARY file gracefully', () => {
+    test('handles unreadable SUMMARY file gracefully', async () => {
       fs.writeFileSync(path.join(tmpDir, 'PLAN-01.md'), '---\nphase: 01\n---');
       // Create SUMMARY as a directory (unreadable as file)
       fs.mkdirSync(path.join(tmpDir, 'SUMMARY-01.md'));
@@ -1019,7 +1019,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       expect(result.completeSummaries).toBe(0); // cannot read → not counted
     });
 
-    test('SUMMARY without status: complete is not counted as complete', () => {
+    test('SUMMARY without status: complete is not counted as complete', async () => {
       fs.writeFileSync(path.join(tmpDir, 'PLAN-01.md'), '---\nphase: 01\n---');
       fs.writeFileSync(path.join(tmpDir, 'SUMMARY-01.md'), '---\nstatus: partial\n---');
       const result = countPhaseArtifacts(tmpDir);
@@ -1032,7 +1032,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
   describe('CLI-routed state mutations', () => {
     const scriptPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-state-sync.js');
 
-    test('STATE.md updates use stateUpdate not atomicWriteFile', () => {
+    test('STATE.md updates use stateUpdate not atomicWriteFile', async () => {
       const source = fs.readFileSync(scriptPath, 'utf8');
       // atomicWriteFile function definition should be removed
       expect(source).not.toMatch(/function\s+atomicWriteFile/);
@@ -1041,7 +1041,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       expect(source).toMatch(/getStateLib/);
     });
 
-    test('ROADMAP.md updates use lockedFileUpdate', () => {
+    test('ROADMAP.md updates use lockedFileUpdate', async () => {
       const source = fs.readFileSync(scriptPath, 'utf8');
       // Should use lockedFileUpdate for ROADMAP.md writes
       expect(source).toMatch(/lockedFileUpdate\s*\(\s*roadmapPath/);
@@ -1052,11 +1052,11 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     describe('sequential stateUpdate calls', () => {
       let tmpDir;
 
-      afterEach(() => {
+      afterEach(async () => {
         if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
       });
 
-      test('concurrent STATE.md writes via stateUpdate do not corrupt', () => {
+      test('concurrent STATE.md writes via stateUpdate do not corrupt', async () => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-update-'));
 
         // Create a v2 STATE.md with frontmatter
@@ -1084,9 +1084,9 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         const stateLibPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'state.js');
         const { stateUpdate } = require(stateLibPath);
 
-        stateUpdate('plans_complete', '1', tmpDir);
-        stateUpdate('status', 'building', tmpDir);
-        stateUpdate('progress_percent', '33', tmpDir);
+        await stateUpdate('plans_complete', '1', tmpDir);
+        await stateUpdate('status', 'building', tmpDir);
+        await stateUpdate('progress_percent', '33', tmpDir);
 
         // Read and verify all fields updated correctly
         const result = fs.readFileSync(path.join(tmpDir, 'STATE.md'), 'utf8');
@@ -1099,7 +1099,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         expect(result).toMatch(/Progress:.*33%/);
       });
 
-      test('stateUpdate preserves unrelated fields', () => {
+      test('stateUpdate preserves unrelated fields', async () => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-preserve-'));
 
         const stateContent = `---
@@ -1127,7 +1127,7 @@ Progress: [████████████████░░░░] 80%
         const { stateUpdate } = require(stateLibPath);
 
         // Update only status
-        stateUpdate('status', 'building', tmpDir);
+        await stateUpdate('status', 'building', tmpDir);
 
         const result = fs.readFileSync(path.join(tmpDir, 'STATE.md'), 'utf8');
         // Changed field

@@ -65,17 +65,17 @@ function createMockServer(responseBody) {
 describe('hook-server-client.js exports', () => {
   const { probePort, postHook, HOOK_EVENT_MAP, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server-client');
 
-  test('DEFAULT_PORT is 19836', () => {
+  test('DEFAULT_PORT is 19836', async () => {
     expect(DEFAULT_PORT).toBe(19836);
   });
 
-  test('HOOK_EVENT_MAP contains known hook names', () => {
+  test('HOOK_EVENT_MAP contains known hook names', async () => {
     expect(HOOK_EVENT_MAP['track-context-budget']).toBeDefined();
     expect(HOOK_EVENT_MAP['track-context-budget'].event).toBe('PostToolUse');
     expect(HOOK_EVENT_MAP['track-context-budget'].tool).toBe('Read|Glob|Grep');
   });
 
-  test('HOOK_EVENT_MAP has session-cleanup mapped', () => {
+  test('HOOK_EVENT_MAP has session-cleanup mapped', async () => {
     expect(HOOK_EVENT_MAP['session-cleanup']).toBeDefined();
     expect(HOOK_EVENT_MAP['session-cleanup'].event).toBe('SessionEnd');
   });
@@ -163,18 +163,18 @@ describe('hook-server-client.js exports', () => {
 describe('hook-server-client.js process behavior', () => {
   const validStdin = JSON.stringify({ tool_input: { file_path: '/foo/bar.md' } });
 
-  test('exits 0 when no server is running (fail-open)', () => {
+  test('exits 0 when no server is running (fail-open)', async () => {
     // Port 19999 should not have a server
     const { status } = runClient('track-context-budget', 19999, validStdin);
     expect(status).toBe(0);
   });
 
-  test('exits 0 for unknown hook name', () => {
+  test('exits 0 for unknown hook name', async () => {
     const { status } = runClient('not-a-real-hook', 19999, validStdin);
     expect(status).toBe(0);
   });
 
-  test('exits 0 with malformed stdin JSON', () => {
+  test('exits 0 with malformed stdin JSON', async () => {
     const { status } = runClient('track-context-budget', 19999, 'not valid json');
     expect(status).toBe(0);
   });

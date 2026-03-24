@@ -38,27 +38,27 @@ afterEach(() => {
 });
 
 describe('tryLaunchDashboard', () => {
-  test('is a function', () => {
+  test('is a function', async () => {
     expect(typeof tryLaunchDashboard).toBe('function');
   });
 
-  test('does not crash when called', () => {
+  test('does not crash when called', async () => {
     expect(() => tryLaunchDashboard(19999, planningDir, tmpDir)).not.toThrow();
   });
 });
 
 describe('tryLaunchHookServer', () => {
-  test('is a function', () => {
+  test('is a function', async () => {
     expect(typeof tryLaunchHookServer).toBe('function');
   });
 
-  test('skips when hook_server.enabled is false', () => {
+  test('skips when hook_server.enabled is false', async () => {
     expect(() => tryLaunchHookServer({ hook_server: { enabled: false } }, planningDir)).not.toThrow();
     // Should not spawn when disabled
     expect(spawnSpy).not.toHaveBeenCalled();
   });
 
-  test('does not crash when config has no hook_server', () => {
+  test('does not crash when config has no hook_server', async () => {
     expect(() => tryLaunchHookServer({}, planningDir)).not.toThrow();
   });
 });
@@ -235,7 +235,7 @@ describe('startup timeout sentinel', () => {
 });
 
 describe('getEnrichedContext', () => {
-  test('is an async function', () => {
+  test('is an async function', async () => {
     expect(typeof getEnrichedContext).toBe('function');
   });
 

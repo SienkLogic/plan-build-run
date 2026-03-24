@@ -35,7 +35,7 @@ afterEach(() => {
 // ─── frontmatter get ────────────────────────────────────────────────────────
 
 describe('frontmatter get', () => {
-  test('returns all fields as JSON', () => {
+  test('returns all fields as JSON', async () => {
     const file = writeTempFile('---\nphase: 01\nplan: 01\ntype: execute\n---\nbody text');
     const result = runPbrTools(`frontmatter get ${file}`);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -45,7 +45,7 @@ describe('frontmatter get', () => {
     assert.strictEqual(parsed.type, 'execute');
   });
 
-  test('returns specific field with --field', () => {
+  test('returns specific field with --field', async () => {
     const file = writeTempFile('---\nphase: 01\nplan: 02\ntype: tdd\n---\nbody');
     const result = runPbrTools(`frontmatter get ${file} --field phase`);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -53,7 +53,7 @@ describe('frontmatter get', () => {
     assert.strictEqual(parsed.phase, '01');
   });
 
-  test('returns error for missing field', () => {
+  test('returns error for missing field', async () => {
     const file = writeTempFile('---\nphase: 01\n---\n');
     const result = runPbrTools(`frontmatter get ${file} --field nonexistent`);
     // The command succeeds (exit 0) but returns an error object in JSON
@@ -63,14 +63,14 @@ describe('frontmatter get', () => {
     assert.ok(parsed.error.includes('Field not found'), 'Error should mention "Field not found"');
   });
 
-  test('returns error for missing file', () => {
+  test('returns error for missing file', async () => {
     const result = runPbrTools('frontmatter get /nonexistent/path/file.md');
     assert.ok(result.success, 'Command should exit 0 with error JSON');
     const parsed = JSON.parse(result.output);
     assert.ok(parsed.error, 'Should have error field');
   });
 
-  test('handles file with no frontmatter', () => {
+  test('handles file with no frontmatter', async () => {
     const file = writeTempFile('Plain text with no frontmatter delimiters.');
     const result = runPbrTools(`frontmatter get ${file}`);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -82,7 +82,7 @@ describe('frontmatter get', () => {
 // ─── frontmatter set ────────────────────────────────────────────────────────
 
 describe('frontmatter set', () => {
-  test('updates existing field', () => {
+  test('updates existing field', async () => {
     const file = writeTempFile('---\nphase: 01\ntype: execute\n---\nbody');
     const result = runPbrTools(`frontmatter set ${file} --field phase --value "02"`);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -94,7 +94,7 @@ describe('frontmatter set', () => {
     assert.strictEqual(fm.phase, '02');
   });
 
-  test('adds new field', () => {
+  test('adds new field', async () => {
     const file = writeTempFile('---\nphase: 01\n---\nbody');
     const result = runPbrTools(`frontmatter set ${file} --field status --value "active"`);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -105,7 +105,7 @@ describe('frontmatter set', () => {
     assert.strictEqual(fm.status, 'active');
   });
 
-  test('handles JSON array value', () => {
+  test('handles JSON array value', async () => {
     const file = writeTempFile('---\nphase: 01\n---\nbody');
     const result = runPbrTools(['frontmatter', 'set', file, '--field', 'tags', '--value', '["a","b"]']);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -117,14 +117,14 @@ describe('frontmatter set', () => {
     assert.deepStrictEqual(fm.tags, ['a', 'b']);
   });
 
-  test('returns error for missing file', () => {
+  test('returns error for missing file', async () => {
     const result = runPbrTools('frontmatter set /nonexistent/file.md --field phase --value "01"');
     assert.ok(result.success, 'Command should exit 0 with error JSON');
     const parsed = JSON.parse(result.output);
     assert.ok(parsed.error, 'Should have error field');
   });
 
-  test('preserves body content after set', () => {
+  test('preserves body content after set', async () => {
     const bodyText = '\n\n# My Heading\n\nSome paragraph with special chars: $, %, &.';
     const file = writeTempFile('---\nphase: 01\n---' + bodyText);
     runPbrTools(`frontmatter set ${file} --field phase --value "02"`);
@@ -138,7 +138,7 @@ describe('frontmatter set', () => {
 // ─── frontmatter merge ──────────────────────────────────────────────────────
 
 describe('frontmatter merge', () => {
-  test('merges multiple fields into frontmatter', () => {
+  test('merges multiple fields into frontmatter', async () => {
     const file = writeTempFile('---\nphase: 01\n---\nbody');
     const result = runPbrTools(['frontmatter', 'merge', file, '--data', '{"plan":"02","type":"tdd"}']);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -151,7 +151,7 @@ describe('frontmatter merge', () => {
     assert.strictEqual(fm.type, 'tdd', 'merged field should be present');
   });
 
-  test('overwrites existing fields on conflict', () => {
+  test('overwrites existing fields on conflict', async () => {
     const file = writeTempFile('---\nphase: 01\ntype: execute\n---\nbody');
     const result = runPbrTools(['frontmatter', 'merge', file, '--data', '{"phase":"02"}']);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -163,14 +163,14 @@ describe('frontmatter merge', () => {
     assert.strictEqual(fm.type, 'execute', 'non-conflicting field should be preserved');
   });
 
-  test('returns error for missing file', () => {
+  test('returns error for missing file', async () => {
     const result = runPbrTools(`frontmatter merge /nonexistent/file.md --data '{"phase":"01"}'`);
     assert.ok(result.success, 'Command should exit 0 with error JSON');
     const parsed = JSON.parse(result.output);
     assert.ok(parsed.error, 'Should have error field');
   });
 
-  test('returns error for invalid JSON data', () => {
+  test('returns error for invalid JSON data', async () => {
     const file = writeTempFile('---\nphase: 01\n---\nbody');
     const result = runPbrTools(`frontmatter merge ${file} --data 'not json'`);
     // cmdFrontmatterMerge calls error() which exits with code 1
@@ -182,7 +182,7 @@ describe('frontmatter merge', () => {
 // ─── frontmatter validate ───────────────────────────────────────────────────
 
 describe('frontmatter validate', () => {
-  test('reports valid for complete plan frontmatter', () => {
+  test('reports valid for complete plan frontmatter', async () => {
     const content = `---
 phase: 01
 plan: 01
@@ -205,7 +205,7 @@ body`;
     assert.strictEqual(parsed.schema, 'plan');
   });
 
-  test('reports invalid with missing fields', () => {
+  test('reports invalid with missing fields', async () => {
     const file = writeTempFile('---\nphase: 01\n---\nbody');
     const result = runPbrTools(`frontmatter validate ${file} --schema plan`);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -220,7 +220,7 @@ body`;
     assert.ok(parsed.missing.includes('must_haves'), 'must_haves should be in missing');
   });
 
-  test('validates against summary schema', () => {
+  test('validates against summary schema', async () => {
     const content = `---
 phase: 01
 plan: 01
@@ -238,7 +238,7 @@ body`;
     assert.strictEqual(parsed.schema, 'summary');
   });
 
-  test('validates against verification schema', () => {
+  test('validates against verification schema', async () => {
     const content = `---
 phase: 01
 verified: 2026-02-25
@@ -254,7 +254,7 @@ body`;
     assert.strictEqual(parsed.schema, 'verification');
   });
 
-  test('returns error for unknown schema', () => {
+  test('returns error for unknown schema', async () => {
     const file = writeTempFile('---\nphase: 01\n---\n');
     const result = runPbrTools(`frontmatter validate ${file} --schema unknown`);
     // cmdFrontmatterValidate calls error() which exits with code 1
@@ -262,7 +262,7 @@ body`;
     assert.ok(result.error.includes('Unknown schema'), 'Error should mention unknown schema');
   });
 
-  test('returns error for missing file', () => {
+  test('returns error for missing file', async () => {
     const result = runPbrTools('frontmatter validate /nonexistent/file.md --schema plan');
     assert.ok(result.success, 'Command should exit 0 with error JSON');
     const parsed = JSON.parse(result.output);

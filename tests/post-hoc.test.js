@@ -193,7 +193,7 @@ Test plan
 `;
 
   describe('generateSummary (phase-level)', () => {
-    test('returns object with path and content keys', () => {
+    test('returns object with path and content keys', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateSummary: genSum } = require(phasePostHocPath);
       const result = genSum(phaseDir, planningDir);
@@ -201,7 +201,7 @@ Test plan
       expect(result).toHaveProperty('content');
     });
 
-    test('content includes key_files in frontmatter', () => {
+    test('content includes key_files in frontmatter', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateSummary: genSum } = require(phasePostHocPath);
       const result = genSum(phaseDir, planningDir);
@@ -210,7 +210,7 @@ Test plan
       expect(result.content).toContain('src/bar.js');
     });
 
-    test('content includes What Was Built section with provides', () => {
+    test('content includes What Was Built section with provides', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateSummary: genSum } = require(phasePostHocPath);
       const result = genSum(phaseDir, planningDir);
@@ -219,7 +219,7 @@ Test plan
       expect(result.content).toContain('bar() function');
     });
 
-    test('content includes Must-Have Results section', () => {
+    test('content includes Must-Have Results section', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateSummary: genSum } = require(phasePostHocPath);
       const result = genSum(phaseDir, planningDir);
@@ -227,7 +227,7 @@ Test plan
       expect(result.content).toContain('foo does X');
     });
 
-    test('path points to SUMMARY.md in phaseDir', () => {
+    test('path points to SUMMARY.md in phaseDir', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateSummary: genSum } = require(phasePostHocPath);
       const result = genSum(phaseDir, planningDir);
@@ -236,7 +236,7 @@ Test plan
   });
 
   describe('generateLearnings', () => {
-    test('returns object with path and content keys', () => {
+    test('returns object with path and content keys', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateLearnings } = require(phasePostHocPath);
       const result = generateLearnings(phaseDir, planningDir);
@@ -244,7 +244,7 @@ Test plan
       expect(result).toHaveProperty('content');
     });
 
-    test('includes gap info when VERIFICATION.md has gaps', () => {
+    test('includes gap info when VERIFICATION.md has gaps', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), `---
 status: "partial"
@@ -262,7 +262,7 @@ gaps:
       expect(result.content).toContain('No tests for edge case');
     });
 
-    test('path points to LEARNINGS.md in phaseDir', () => {
+    test('path points to LEARNINGS.md in phaseDir', async () => {
       fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
       const { generateLearnings } = require(phasePostHocPath);
       const result = generateLearnings(phaseDir, planningDir);
@@ -271,19 +271,19 @@ gaps:
   });
 
   describe('isEnabled', () => {
-    test('returns true when config has no features section', () => {
+    test('returns true when config has no features section', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ version: 2 }));
       const { isEnabled } = require(phasePostHocPath);
       expect(isEnabled(planningDir)).toBe(true);
     });
 
-    test('returns false when features.post_hoc_artifacts is false', () => {
+    test('returns false when features.post_hoc_artifacts is false', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ version: 2, features: { post_hoc_artifacts: false } }));
       const { isEnabled } = require(phasePostHocPath);
       expect(isEnabled(planningDir)).toBe(false);
     });
 
-    test('returns true when features.post_hoc_artifacts is true', () => {
+    test('returns true when features.post_hoc_artifacts is true', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ version: 2, features: { post_hoc_artifacts: true } }));
       const { isEnabled } = require(phasePostHocPath);
       expect(isEnabled(planningDir)).toBe(true);

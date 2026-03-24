@@ -46,13 +46,13 @@ describe('feedback-loop.js', () => {
   });
 
   describe('extractFeedback', () => {
-    test('returns null when no VERIFICATION.md exists', () => {
+    test('returns null when no VERIFICATION.md exists', async () => {
       const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-auth');
       const result = feedbackLoop.extractFeedback(phaseDir);
       expect(result).toBeNull();
     });
 
-    test('returns structured object when VERIFICATION.md has status "gaps_found"', () => {
+    test('returns structured object when VERIFICATION.md has status "gaps_found"', async () => {
       const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-auth');
       writeVerification(phaseDir, {
         status: 'gaps_found',
@@ -85,7 +85,7 @@ describe('feedback-loop.js', () => {
       expect(result.gaps[1].category).toBe('stub');
     });
 
-    test('returns null when VERIFICATION.md has status "passed"', () => {
+    test('returns null when VERIFICATION.md has status "passed"', async () => {
       const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-auth');
       writeVerification(phaseDir, {
         status: 'passed',
@@ -98,7 +98,7 @@ describe('feedback-loop.js', () => {
       expect(result).toBeNull();
     });
 
-    test('returns null when VERIFICATION.md has status "all_passed"', () => {
+    test('returns null when VERIFICATION.md has status "all_passed"', async () => {
       const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-auth');
       writeVerification(phaseDir, {
         status: 'all_passed',
@@ -111,7 +111,7 @@ describe('feedback-loop.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handles VERIFICATION.md with no gaps in body', () => {
+    test('handles VERIFICATION.md with no gaps in body', async () => {
       const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-auth');
       writeVerification(phaseDir, {
         status: 'gaps_found',
@@ -128,7 +128,7 @@ describe('feedback-loop.js', () => {
   });
 
   describe('formatFeedbackPrompt', () => {
-    test('produces markdown with gap descriptions', () => {
+    test('produces markdown with gap descriptions', async () => {
       const feedback = {
         status: 'gaps_found',
         attempt: 2,
@@ -152,7 +152,7 @@ describe('feedback-loop.js', () => {
       expect(result).toContain('**Fix:** Create auth/middleware.js with JWT validation');
     });
 
-    test('includes suggested fixes from VERIFICATION.md', () => {
+    test('includes suggested fixes from VERIFICATION.md', async () => {
       const feedback = {
         status: 'gaps_found',
         attempt: 3,
@@ -170,12 +170,12 @@ describe('feedback-loop.js', () => {
       expect(result).toContain('40%');
     });
 
-    test('returns empty string when feedback is null', () => {
+    test('returns empty string when feedback is null', async () => {
       const result = feedbackLoop.formatFeedbackPrompt(null);
       expect(result).toBe('');
     });
 
-    test('output is under 500 tokens (roughly 2000 chars for reasonable gap count)', () => {
+    test('output is under 500 tokens (roughly 2000 chars for reasonable gap count)', async () => {
       const feedback = {
         status: 'gaps_found',
         attempt: 1,
@@ -194,7 +194,7 @@ describe('feedback-loop.js', () => {
   });
 
   describe('isEnabled', () => {
-    test('returns true by default when config has no features section', () => {
+    test('returns true by default when config has no features section', async () => {
       fs.writeFileSync(
         path.join(tmpDir, '.planning', 'config.json'),
         JSON.stringify({ depth: 'standard' })
@@ -203,7 +203,7 @@ describe('feedback-loop.js', () => {
       expect(result).toBe(true);
     });
 
-    test('returns true when agent_feedback_loop is explicitly true', () => {
+    test('returns true when agent_feedback_loop is explicitly true', async () => {
       fs.writeFileSync(
         path.join(tmpDir, '.planning', 'config.json'),
         JSON.stringify({ features: { agent_feedback_loop: true } })
@@ -212,7 +212,7 @@ describe('feedback-loop.js', () => {
       expect(result).toBe(true);
     });
 
-    test('returns false when agent_feedback_loop is explicitly false', () => {
+    test('returns false when agent_feedback_loop is explicitly false', async () => {
       fs.writeFileSync(
         path.join(tmpDir, '.planning', 'config.json'),
         JSON.stringify({ features: { agent_feedback_loop: false } })
@@ -221,7 +221,7 @@ describe('feedback-loop.js', () => {
       expect(result).toBe(false);
     });
 
-    test('returns true when config.json does not exist', () => {
+    test('returns true when config.json does not exist', async () => {
       const result = feedbackLoop.isEnabled(path.join(tmpDir, '.planning'));
       expect(result).toBe(true);
     });

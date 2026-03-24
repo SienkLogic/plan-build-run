@@ -51,7 +51,7 @@ describe('event-logger.js', () => {
     expect(new Date(entry.ts).toISOString()).toBe(entry.ts);
   });
 
-  test('appends to existing log', () => {
+  test('appends to existing log', async () => {
     const { logEvent } = getLogger();
     logEvent('workflow', 'event-1');
     logEvent('agent', 'event-2');
@@ -66,7 +66,7 @@ describe('event-logger.js', () => {
     expect(entry2.cat).toBe('agent');
   });
 
-  test('appends many entries without rotation (canonical uses daily files)', () => {
+  test('appends many entries without rotation (canonical uses daily files)', async () => {
     const { logEvent } = getLogger();
 
     for (let i = 0; i < 50; i++) {
@@ -86,7 +86,7 @@ describe('event-logger.js', () => {
     expect(last.event).toBe('entry-49');
   });
 
-  test('missing .planning dir auto-creates it', () => {
+  test('missing .planning dir auto-creates it', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
 
     const { logEvent } = getLogger();
@@ -96,7 +96,7 @@ describe('event-logger.js', () => {
     expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs'))).toBe(true);
   });
 
-  test('auto-creates logs directory', () => {
+  test('auto-creates logs directory', async () => {
     // planningDir exists but logs/ does not
     expect(fs.existsSync(path.join(planningDir, 'logs'))).toBe(false);
 
@@ -112,7 +112,7 @@ describe('event-logger.js', () => {
     expect(entry.event).toBe('init');
   });
 
-  test('CLI logs event and exits 0', () => {
+  test('CLI logs event and exits 0', async () => {
     const script = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     const jsonArg = '{"phase":1}';
     const result = execSync(
@@ -133,7 +133,7 @@ describe('event-logger.js', () => {
     expect(entry.cat).toBe('workflow');
   });
 
-  test('CLI exits 1 with no args', () => {
+  test('CLI exits 1 with no args', async () => {
     const script = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     let exitCode = 0;
     try {

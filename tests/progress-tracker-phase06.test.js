@@ -19,7 +19,7 @@ describe('progress-tracker phase06 integration', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('includes snapshot briefing in output when snapshot exists and toggle enabled', () => {
+  test('includes snapshot briefing in output when snapshot exists and toggle enabled', async () => {
     // Create a snapshot
     writeSnapshot(tmpDir, {
       session_id: 'prev-session',
@@ -39,7 +39,7 @@ describe('progress-tracker phase06 integration', () => {
     expect(briefing).toContain('src/app.js');
   });
 
-  test('skips snapshot when features.mental_model_snapshots is false', () => {
+  test('skips snapshot when features.mental_model_snapshots is false', async () => {
     const config = { features: { mental_model_snapshots: false } };
     const snapshotsEnabled = config.features && config.features.mental_model_snapshots !== false;
     expect(snapshotsEnabled).toBe(false);
@@ -49,7 +49,7 @@ describe('progress-tracker phase06 integration', () => {
     expect(snapshot).toBeNull();
   });
 
-  test('includes convention summary when conventions exist and toggle enabled', () => {
+  test('includes convention summary when conventions exist and toggle enabled', async () => {
     // Create convention files
     const convDir = path.join(tmpDir, 'conventions');
     fs.mkdirSync(convDir, { recursive: true });
@@ -93,13 +93,13 @@ describe('progress-tracker phase06 integration', () => {
     expect(briefing.length).toBeLessThanOrEqual(800);
   });
 
-  test('skips conventions when features.convention_memory is false', () => {
+  test('skips conventions when features.convention_memory is false', async () => {
     const config = { features: { convention_memory: false } };
     const conventionsEnabled = config.features && config.features.convention_memory !== false;
     expect(conventionsEnabled).toBe(false);
   });
 
-  test('handles missing conventions directory gracefully', () => {
+  test('handles missing conventions directory gracefully', async () => {
     // No conventions directory exists
     const conventions = loadConventions(tmpDir);
     expect(Object.keys(conventions).length).toBe(0);

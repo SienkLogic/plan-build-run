@@ -196,7 +196,7 @@ function _findColumnIndex(lines, rowIdx, pattern) {
  * @param {string} newStatus - New status value
  * @param {string} [planningDir] - Path to .planning directory
  */
-function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
+async function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const roadmapPath = path.join(dir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
@@ -205,7 +205,7 @@ function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
 
   let oldStatus = null;
 
-  const result = lockedFileUpdate(roadmapPath, (content) => {
+  const result = await lockedFileUpdate(roadmapPath, (content) => {
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
     const lines = content.replace(/\r\n/g, '\n').split('\n');
     const rowIdx = findRoadmapRow(lines, phaseNum);
@@ -255,7 +255,7 @@ function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
  * @param {string} total - Total plan count
  * @param {string} [planningDir] - Path to .planning directory
  */
-function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
+async function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const roadmapPath = path.join(dir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
@@ -265,7 +265,7 @@ function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
   let oldPlans = null;
   const newPlans = `${complete}/${total}`;
 
-  const result = lockedFileUpdate(roadmapPath, (content) => {
+  const result = await lockedFileUpdate(roadmapPath, (content) => {
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
     const lines = content.replace(/\r\n/g, '\n').split('\n');
     const rowIdx = findRoadmapRow(lines, phaseNum);
@@ -305,7 +305,7 @@ function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
  * @param {string} phaseNum - Phase number
  * @param {string} [planningDir] - Path to .planning directory
  */
-function roadmapUpdatePlanProgress(phaseNum, planningDir) {
+async function roadmapUpdatePlanProgress(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const roadmapPath = path.join(dir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
@@ -350,7 +350,7 @@ function roadmapUpdatePlanProgress(phaseNum, planningDir) {
   const { escapeRegex } = require('./core');
   const phaseEscaped = escapeRegex(String(phaseNum));
 
-  const result = lockedFileUpdate(roadmapPath, (content) => {
+  const result = await lockedFileUpdate(roadmapPath, (content) => {
     let updated = content;
 
     // Progress table row: update Plans column (summaries/plans) and Status column
@@ -738,13 +738,13 @@ function _computeStats(phases) {
  * @param {number|null} [dependsOn] - Phase number this depends on
  * @returns {{ success: boolean, error?: string }}
  */
-function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
+async function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
   const roadmapPath = path.join(planningDir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
     return { success: false, error: 'ROADMAP.md not found' };
   }
 
-  return lockedFileUpdate(roadmapPath, (content) => {
+  return await lockedFileUpdate(roadmapPath, (content) => {
     const lines = content.split(/\r?\n/);
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
 
@@ -828,13 +828,13 @@ function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
  * @param {number} phaseNum - Phase number to remove
  * @returns {{ success: boolean, error?: string }}
  */
-function roadmapRemovePhase(planningDir, phaseNum) {
+async function roadmapRemovePhase(planningDir, phaseNum) {
   const roadmapPath = path.join(planningDir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
     return { success: false, error: 'ROADMAP.md not found' };
   }
 
-  return lockedFileUpdate(roadmapPath, (content) => {
+  return await lockedFileUpdate(roadmapPath, (content) => {
     const lines = content.split(/\r?\n/);
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
 
@@ -886,13 +886,13 @@ function roadmapRemovePhase(planningDir, phaseNum) {
  * @param {number} delta - Amount to shift (+1 for insert, -1 for remove)
  * @returns {{ success: boolean, error?: string }}
  */
-function roadmapRenumberPhases(planningDir, startNum, delta) {
+async function roadmapRenumberPhases(planningDir, startNum, delta) {
   const roadmapPath = path.join(planningDir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
     return { success: false, error: 'ROADMAP.md not found' };
   }
 
-  return lockedFileUpdate(roadmapPath, (content) => {
+  return await lockedFileUpdate(roadmapPath, (content) => {
     const lines = content.split(/\r?\n/);
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
 
@@ -959,13 +959,13 @@ function roadmapRenumberPhases(planningDir, startNum, delta) {
  * @param {number|null} [dependsOn] - Dependency phase number
  * @returns {{ success: boolean, error?: string }}
  */
-function roadmapInsertPhase(planningDir, position, name, goal, dependsOn) {
+async function roadmapInsertPhase(planningDir, position, name, goal, dependsOn) {
   const roadmapPath = path.join(planningDir, 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) {
     return { success: false, error: 'ROADMAP.md not found' };
   }
 
-  return lockedFileUpdate(roadmapPath, (content) => {
+  return await lockedFileUpdate(roadmapPath, (content) => {
     const lines = content.split(/\r?\n/);
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
 

@@ -61,7 +61,7 @@ describe('validate health command', () => {
 
   // ─── Check 1: .planning/ exists ───────────────────────────────────────────
 
-  test("returns 'broken' when .planning directory is missing", () => {
+  test("returns 'broken' when .planning directory is missing", async () => {
     // createTempProject creates .planning/phases — remove it entirely
     fs.rmSync(path.join(tmpDir, '.planning'), { recursive: true, force: true });
 
@@ -78,7 +78,7 @@ describe('validate health command', () => {
 
   // ─── Check 2: PROJECT.md exists and has required sections ─────────────────
 
-  test('warns when PROJECT.md is missing', () => {
+  test('warns when PROJECT.md is missing', async () => {
     // No PROJECT.md in .planning
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -96,7 +96,7 @@ describe('validate health command', () => {
     );
   });
 
-  test('warns when PROJECT.md missing required sections', () => {
+  test('warns when PROJECT.md missing required sections', async () => {
     // PROJECT.md missing "## Core Value" section
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'PROJECT.md'),
@@ -119,7 +119,7 @@ describe('validate health command', () => {
     );
   });
 
-  test('passes when PROJECT.md has all required sections', () => {
+  test('passes when PROJECT.md has all required sections', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -142,7 +142,7 @@ describe('validate health command', () => {
 
   // ─── Check 3: ROADMAP.md exists ───────────────────────────────────────────
 
-  test('errors when ROADMAP.md is missing', () => {
+  test('errors when ROADMAP.md is missing', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalStateMd(tmpDir);
     writeValidConfigJson(tmpDir);
@@ -160,7 +160,7 @@ describe('validate health command', () => {
 
   // ─── Check 4: STATE.md exists and references valid phases ─────────────────
 
-  test('errors when STATE.md is missing with repairable true', () => {
+  test('errors when STATE.md is missing with repairable true', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeValidConfigJson(tmpDir);
@@ -176,7 +176,7 @@ describe('validate health command', () => {
     assert.strictEqual(e004.repairable, true, 'E004 should be repairable');
   });
 
-  test('warns when STATE.md references nonexistent phase', () => {
+  test('warns when STATE.md references nonexistent phase', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeValidConfigJson(tmpDir);
@@ -199,7 +199,7 @@ describe('validate health command', () => {
 
   // ─── Check 5: config.json valid JSON + valid schema ───────────────────────
 
-  test('warns when config.json is missing with repairable true', () => {
+  test('warns when config.json is missing with repairable true', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -215,7 +215,7 @@ describe('validate health command', () => {
     assert.strictEqual(w003.repairable, true, 'W003 should be repairable');
   });
 
-  test('errors when config.json has invalid JSON', () => {
+  test('errors when config.json has invalid JSON', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -235,7 +235,7 @@ describe('validate health command', () => {
     );
   });
 
-  test('warns when config.json has invalid model_profile', () => {
+  test('warns when config.json has invalid model_profile', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -257,7 +257,7 @@ describe('validate health command', () => {
 
   // ─── Check 6: Phase directory naming (NN-name format) ─────────────────────
 
-  test('warns about incorrectly named phase directories', () => {
+  test('warns about incorrectly named phase directories', async () => {
     writeMinimalProjectMd(tmpDir);
     // Roadmap with no phases to avoid W006
     fs.writeFileSync(
@@ -281,7 +281,7 @@ describe('validate health command', () => {
 
   // ─── Check 7: Orphaned plans (PLAN without SUMMARY) ───────────────────────
 
-  test('reports orphaned plans (PLAN without SUMMARY) as info', () => {
+  test('reports orphaned plans (PLAN without SUMMARY) as info', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -304,7 +304,7 @@ describe('validate health command', () => {
 
   // ─── Check 8: Consistency (roadmap/disk sync) ─────────────────────────────
 
-  test('warns about phase in ROADMAP but not on disk', () => {
+  test('warns about phase in ROADMAP but not on disk', async () => {
     writeMinimalProjectMd(tmpDir);
     // ROADMAP mentions Phase 5 but no 05-xxx dir
     fs.writeFileSync(
@@ -325,7 +325,7 @@ describe('validate health command', () => {
     );
   });
 
-  test('warns about phase on disk but not in ROADMAP', () => {
+  test('warns about phase on disk but not in ROADMAP', async () => {
     writeMinimalProjectMd(tmpDir);
     // ROADMAP has no phases
     fs.writeFileSync(
@@ -349,7 +349,7 @@ describe('validate health command', () => {
 
   // ─── Check 5b: Nyquist validation key presence (W008) ─────────────────────
 
-  test('detects W008 when workflow.nyquist_validation absent from config', () => {
+  test('detects W008 when workflow.nyquist_validation absent from config', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
@@ -370,7 +370,7 @@ describe('validate health command', () => {
     );
   });
 
-  test('does not emit W008 when nyquist_validation is explicitly set', () => {
+  test('does not emit W008 when nyquist_validation is explicitly set', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
@@ -393,7 +393,7 @@ describe('validate health command', () => {
 
   // ─── Check 7b: Nyquist VALIDATION.md consistency (W009) ──────────────────
 
-  test('detects W009 when RESEARCH.md has Validation Architecture but no VALIDATION.md', () => {
+  test('detects W009 when RESEARCH.md has Validation Architecture but no VALIDATION.md', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
@@ -417,7 +417,7 @@ describe('validate health command', () => {
     );
   });
 
-  test('does not emit W009 when VALIDATION.md exists alongside RESEARCH.md', () => {
+  test('does not emit W009 when VALIDATION.md exists alongside RESEARCH.md', async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
@@ -446,7 +446,7 @@ describe('validate health command', () => {
 
   // ─── Overall status ────────────────────────────────────────────────────────
 
-  test("returns 'healthy' when all checks pass", () => {
+  test("returns 'healthy' when all checks pass", async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
@@ -467,7 +467,7 @@ describe('validate health command', () => {
     assert.deepStrictEqual(output.warnings, [], 'should have no warnings');
   });
 
-  test("returns 'degraded' when only warnings exist", () => {
+  test("returns 'degraded' when only warnings exist", async () => {
     writeMinimalProjectMd(tmpDir);
     writeMinimalRoadmap(tmpDir, ['1']);
     writeMinimalStateMd(tmpDir);
@@ -504,7 +504,7 @@ describe('validate health --repair command', () => {
     cleanup(tmpDir);
   });
 
-  test('creates config.json with defaults when missing', () => {
+  test('creates config.json with defaults when missing', async () => {
     // STATE.md present so no STATE repair; no config.json
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
     // Ensure no config.json
@@ -529,7 +529,7 @@ describe('validate health --repair command', () => {
     assert.strictEqual(diskConfig.model_profile, 'balanced', 'default model_profile should be balanced');
   });
 
-  test('resets config.json when JSON is invalid', () => {
+  test('resets config.json when JSON is invalid', async () => {
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
     const configPath = path.join(tmpDir, '.planning', 'config.json');
     fs.writeFileSync(configPath, '{broken json');
@@ -550,7 +550,7 @@ describe('validate health --repair command', () => {
     assert.ok(typeof diskConfig === 'object', 'config.json should be valid JSON after repair');
   });
 
-  test('regenerates STATE.md when missing', () => {
+  test('regenerates STATE.md when missing', async () => {
     writeValidConfigJson(tmpDir);
     // No STATE.md
     const statePath = path.join(tmpDir, '.planning', 'STATE.md');
@@ -574,7 +574,7 @@ describe('validate health --repair command', () => {
     assert.ok(stateContent.includes('# Session State'), 'regenerated STATE.md should contain "# Session State"');
   });
 
-  test('backs up existing STATE.md before regenerating', () => {
+  test('backs up existing STATE.md before regenerating', async () => {
     writeValidConfigJson(tmpDir);
     const statePath = path.join(tmpDir, '.planning', 'STATE.md');
     const originalContent = '# Session State\n\nOriginal content here.\n';
@@ -606,7 +606,7 @@ describe('validate health --repair command', () => {
     assert.ok(backupContent.includes('Phase 99'), 'backup should contain the original STATE.md content');
   });
 
-  test('adds nyquist_validation key to config.json via addNyquistKey repair', () => {
+  test('adds nyquist_validation key to config.json via addNyquistKey repair', async () => {
     writeMinimalStateMd(tmpDir, '# Session State\n\nPhase 1 in progress.\n');
     // Config with workflow section but missing nyquist_validation
     const configPath = path.join(tmpDir, '.planning', 'config.json');
@@ -632,7 +632,7 @@ describe('validate health --repair command', () => {
     assert.strictEqual(diskConfig.workflow.nyquist_validation, true, 'nyquist_validation should be true');
   });
 
-  test('reports repairable_count correctly', () => {
+  test('reports repairable_count correctly', async () => {
     // No config.json (W003, repairable=true) and no STATE.md (E004, repairable=true)
     const configPath = path.join(tmpDir, '.planning', 'config.json');
     if (fs.existsSync(configPath)) fs.unlinkSync(configPath);

@@ -40,7 +40,7 @@ describe('natural_language_routing health', () => {
     checkNLRoutingHealth = verify.checkNLRoutingHealth;
   });
 
-  test('when feature enabled and intent-router.cjs loadable -> status: healthy', () => {
+  test('when feature enabled and intent-router.cjs loadable -> status: healthy', async () => {
     const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
     const result = checkNLRoutingHealth(planningDir, pluginRoot);
     expect(result.feature).toBe('natural_language_routing');
@@ -48,7 +48,7 @@ describe('natural_language_routing health', () => {
     cleanup(tmpDir);
   });
 
-  test('when feature disabled -> status: disabled', () => {
+  test('when feature disabled -> status: disabled', async () => {
     const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: false } });
     const result = checkNLRoutingHealth(planningDir, pluginRoot);
     expect(result.feature).toBe('natural_language_routing');
@@ -56,7 +56,7 @@ describe('natural_language_routing health', () => {
     cleanup(tmpDir);
   });
 
-  test('when feature enabled but intent-router.cjs missing -> status: degraded', () => {
+  test('when feature enabled but intent-router.cjs missing -> status: degraded', async () => {
     const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
     // Use a nonexistent plugin root so the module can't be found
     const result = checkNLRoutingHealth(planningDir, path.join(tmpDir, 'nonexistent'));
@@ -75,7 +75,7 @@ describe('adaptive_ceremony health', () => {
     checkAdaptiveCeremonyHealth = verify.checkAdaptiveCeremonyHealth;
   });
 
-  test('when feature enabled and risk-classifier.cjs loadable -> status: healthy', () => {
+  test('when feature enabled and risk-classifier.cjs loadable -> status: healthy', async () => {
     const { tmpDir, planningDir } = makeTmpDir({ features: { adaptive_ceremony: true } });
     const result = checkAdaptiveCeremonyHealth(planningDir, pluginRoot);
     expect(result.feature).toBe('adaptive_ceremony');
@@ -83,7 +83,7 @@ describe('adaptive_ceremony health', () => {
     cleanup(tmpDir);
   });
 
-  test('when feature disabled -> status: disabled', () => {
+  test('when feature disabled -> status: disabled', async () => {
     const { tmpDir, planningDir } = makeTmpDir({ features: { adaptive_ceremony: false } });
     const result = checkAdaptiveCeremonyHealth(planningDir, pluginRoot);
     expect(result.feature).toBe('adaptive_ceremony');
@@ -91,7 +91,7 @@ describe('adaptive_ceremony health', () => {
     cleanup(tmpDir);
   });
 
-  test('when feature enabled but risk-classifier.cjs missing -> status: degraded', () => {
+  test('when feature enabled but risk-classifier.cjs missing -> status: degraded', async () => {
     const { tmpDir, planningDir } = makeTmpDir({ features: { adaptive_ceremony: true } });
     const result = checkAdaptiveCeremonyHealth(planningDir, path.join(tmpDir, 'nonexistent'));
     expect(result.feature).toBe('adaptive_ceremony');

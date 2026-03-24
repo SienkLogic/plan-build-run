@@ -12,7 +12,7 @@ jest.mock('../plugins/pbr/scripts/hook-logger', () => ({
 const { handleHttp } = require('../plugins/pbr/scripts/post-bash-triage');
 
 describe('post-bash-triage handleHttp', () => {
-  test('exports handleHttp', () => {
+  test('exports handleHttp', async () => {
     expect(typeof handleHttp).toBe('function');
   });
 

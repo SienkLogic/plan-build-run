@@ -29,7 +29,7 @@ describe('stateUpdate — expanded field coverage', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-state-update-test-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -37,15 +37,15 @@ describe('stateUpdate — expanded field coverage', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   // --- Fields that were already in validFields ---
 
-  test('updates status field in frontmatter AND body', () => {
-    const result = stateUpdate('status', 'built');
+  test('updates status field in frontmatter AND body', async () => {
+    const result = await stateUpdate('status', 'built');
     expect(result.success).toBe(true);
     expect(result.field).toBe('status');
     expect(result.value).toBe('built');
@@ -54,24 +54,24 @@ describe('stateUpdate — expanded field coverage', () => {
     expect(content).toMatch(/^Status: Built$/m);
   });
 
-  test('updates current_phase field in frontmatter AND body', () => {
-    const result = stateUpdate('current_phase', '4');
+  test('updates current_phase field in frontmatter AND body', async () => {
+    const result = await stateUpdate('current_phase', '4');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/current_phase:\s*4/);
     expect(content).toMatch(/^Phase: 4 of 5/m);
   });
 
-  test('updates plans_complete field in frontmatter AND body', () => {
-    const result = stateUpdate('plans_complete', '2');
+  test('updates plans_complete field in frontmatter AND body', async () => {
+    const result = await stateUpdate('plans_complete', '2');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/plans_complete:\s*2/);
     expect(content).toMatch(/^Plan: 2 of 2/m);
   });
 
-  test('updates last_activity in frontmatter AND body', () => {
-    const result = stateUpdate('last_activity', '2026-03-01 12:00:00');
+  test('updates last_activity in frontmatter AND body', async () => {
+    const result = await stateUpdate('last_activity', '2026-03-01 12:00:00');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('2026-03-01 12:00:00');
@@ -80,8 +80,8 @@ describe('stateUpdate — expanded field coverage', () => {
 
   // --- Fields newly added to validFields ---
 
-  test('updates progress_percent in frontmatter AND body', () => {
-    const result = stateUpdate('progress_percent', '60');
+  test('updates progress_percent in frontmatter AND body', async () => {
+    const result = await stateUpdate('progress_percent', '60');
     expect(result.success).toBe(true);
     expect(result.field).toBe('progress_percent');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
@@ -89,29 +89,29 @@ describe('stateUpdate — expanded field coverage', () => {
     expect(content).toMatch(/^Progress: \[████████████░░░░░░░░\] 60%$/m);
   });
 
-  test('updates phase_slug in frontmatter AND body', () => {
-    const result = stateUpdate('phase_slug', 'api-layer');
+  test('updates phase_slug in frontmatter AND body', async () => {
+    const result = await stateUpdate('phase_slug', 'api-layer');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('api-layer');
     expect(content).toMatch(/^Phase: 3 of 5 \(Api Layer\)$/m);
   });
 
-  test('rejects total_phases field (removed field)', () => {
-    const result = stateUpdate('total_phases', '6');
+  test('rejects total_phases field (removed field)', async () => {
+    const result = await stateUpdate('total_phases', '6');
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Invalid field/);
   });
 
-  test('updates last_command field', () => {
-    const result = stateUpdate('last_command', '/pbr:plan-phase 4');
+  test('updates last_command field', async () => {
+    const result = await stateUpdate('last_command', '/pbr:plan-phase 4');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('/pbr:plan-phase 4');
   });
 
-  test('updates blockers field', () => {
-    const result = stateUpdate('blockers', 'waiting for API keys');
+  test('updates blockers field', async () => {
+    const result = await stateUpdate('blockers', 'waiting for API keys');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('waiting for API keys');
@@ -119,9 +119,9 @@ describe('stateUpdate — expanded field coverage', () => {
 
   // --- last_activity 'now' auto-timestamp ---
 
-  test('last_activity with "now" auto-timestamps with ISO-like format', () => {
+  test('last_activity with "now" auto-timestamps with ISO-like format', async () => {
     const before = Date.now();
-    const result = stateUpdate('last_activity', 'now');
+    const result = await stateUpdate('last_activity', 'now');
     const after = Date.now();
     expect(result.success).toBe(true);
     // value should be a timestamp, not the literal string 'now'
@@ -136,35 +136,35 @@ describe('stateUpdate — expanded field coverage', () => {
 
   // --- Error cases ---
 
-  test('rejects unknown field', () => {
-    const result = stateUpdate('nonexistent_field', 'value');
+  test('rejects unknown field', async () => {
+    const result = await stateUpdate('nonexistent_field', 'value');
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Invalid field/);
     expect(result.error).toContain('nonexistent_field');
   });
 
-  test('error message for unknown field lists valid fields', () => {
-    const result = stateUpdate('bogus', 'x');
+  test('error message for unknown field lists valid fields', async () => {
+    const result = await stateUpdate('bogus', 'x');
     expect(result.success).toBe(false);
     // Error should mention some valid fields to guide the caller
     expect(result.error).toMatch(/current_phase|status|progress_percent/);
   });
 
-  test('returns error when STATE.md is missing', () => {
+  test('returns error when STATE.md is missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
-    const result = stateUpdate('status', 'built');
+    const result = await stateUpdate('status', 'built');
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/STATE\.md not found/);
   });
 
-  test('body lines without matching body content are left unchanged', () => {
+  test('body lines without matching body content are left unchanged', async () => {
     // Write STATE.md with frontmatter but no body position lines
     const minimal = [
       '---', 'version: 2', 'current_phase: 1', 'status: "planned"', '---',
       '# Project State', '', 'No position section here.',
     ].join('\n');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), minimal);
-    const result = stateUpdate('status', 'building');
+    const result = await stateUpdate('status', 'building');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/status:\s*"building"/);
@@ -172,18 +172,18 @@ describe('stateUpdate — expanded field coverage', () => {
     expect(content).toContain('No position section here.');
   });
 
-  test('phase_slug updates body with -- format', () => {
+  test('phase_slug updates body with -- format', async () => {
     // Write STATE.md with double-dash phase line format
     const dashState = STATE_FM.replace('Phase: 3 of 5 (Auth)', 'Phase: 3 of 5 -- Auth');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), dashState);
-    const result = stateUpdate('phase_slug', 'api-layer');
+    const result = await stateUpdate('phase_slug', 'api-layer');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/^Phase: 3 of 5 -- Api Layer$/m);
   });
 
-  test('status with underscores displays as title case with spaces', () => {
-    const result = stateUpdate('status', 'needs_fixes');
+  test('status with underscores displays as title case with spaces', async () => {
+    const result = await stateUpdate('status', 'needs_fixes');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/^Status: Needs Fixes$/m);
@@ -203,54 +203,54 @@ describe('syncBodyLine — unit tests', () => {
     'Progress: [████████░░░░░░░░░░░░] 40%',
   ].join('\n');
 
-  test('syncBodyLine for status replaces Status: line', () => {
+  test('syncBodyLine for status replaces Status: line', async () => {
     const result = syncBodyLine(sampleContent, 'status', 'verified');
     expect(result).toMatch(/^Status: Verified$/m);
     expect(result).not.toMatch(/^Status: Building$/m);
   });
 
-  test('syncBodyLine for plans_complete replaces plan count', () => {
+  test('syncBodyLine for plans_complete replaces plan count', async () => {
     const result = syncBodyLine(sampleContent, 'plans_complete', '2');
     expect(result).toMatch(/^Plan: 2 of 2/m);
   });
 
-  test('syncBodyLine for progress_percent replaces progress bar', () => {
+  test('syncBodyLine for progress_percent replaces progress bar', async () => {
     const result = syncBodyLine(sampleContent, 'progress_percent', '80');
     expect(result).toMatch(/^Progress: \[████████████████░░░░\] 80%$/m);
   });
 
-  test('syncBodyLine for current_phase replaces phase number', () => {
+  test('syncBodyLine for current_phase replaces phase number', async () => {
     const result = syncBodyLine(sampleContent, 'current_phase', '4');
     expect(result).toMatch(/^Phase: 4 of 5/m);
   });
 
-  test('syncBodyLine for phase_slug replaces parenthesized name', () => {
+  test('syncBodyLine for phase_slug replaces parenthesized name', async () => {
     const result = syncBodyLine(sampleContent, 'phase_slug', 'api-layer');
     expect(result).toMatch(/^Phase: 3 of 5 \(Api Layer\)$/m);
   });
 
-  test('syncBodyLine for last_activity replaces activity line', () => {
+  test('syncBodyLine for last_activity replaces activity line', async () => {
     const result = syncBodyLine(sampleContent, 'last_activity', '2026-03-01 -- Done');
     expect(result).toMatch(/^Last activity: 2026-03-01 -- Done$/m);
   });
 
-  test('syncBodyLine for last_command is a no-op', () => {
+  test('syncBodyLine for last_command is a no-op', async () => {
     const result = syncBodyLine(sampleContent, 'last_command', '/pbr:execute-phase');
     expect(result).toBe(sampleContent);
   });
 
-  test('syncBodyLine for blockers is a no-op', () => {
+  test('syncBodyLine for blockers is a no-op', async () => {
     const result = syncBodyLine(sampleContent, 'blockers', 'none');
     expect(result).toBe(sampleContent);
   });
 
-  test('buildProgressBar renders correctly at boundaries', () => {
+  test('buildProgressBar renders correctly at boundaries', async () => {
     expect(buildProgressBar(0)).toBe('[░░░░░░░░░░░░░░░░░░░░] 0%');
     expect(buildProgressBar(100)).toBe('[████████████████████] 100%');
     expect(buildProgressBar(50)).toBe('[██████████░░░░░░░░░░] 50%');
   });
 
-  test('syncBodyLine for plans_total replaces total in Plan line', () => {
+  test('syncBodyLine for plans_total replaces total in Plan line', async () => {
     const result = syncBodyLine(sampleContent, 'plans_total', '5');
     expect(result).toMatch(/^Plan: 1 of 5/m);
   });
@@ -260,7 +260,7 @@ describe('stateUpdate — plans_total field', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-plans-total-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -268,19 +268,19 @@ describe('stateUpdate — plans_total field', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('stateUpdate accepts plans_total as valid field', () => {
-    const result = stateUpdate('plans_total', '5');
+  test('stateUpdate accepts plans_total as valid field', async () => {
+    const result = await stateUpdate('plans_total', '5');
     expect(result.success).toBe(true);
     expect(result.field).toBe('plans_total');
   });
 
-  test('plans_total updates frontmatter and body', () => {
-    stateUpdate('plans_total', '5');
+  test('plans_total updates frontmatter and body', async () => {
+    await stateUpdate('plans_total', '5');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/plans_total:\s*5/);
     expect(content).toMatch(/^Plan: 1 of 5/m);
@@ -291,7 +291,7 @@ describe('stateRecordActivity', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-record-activity-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -299,35 +299,35 @@ describe('stateRecordActivity', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns success with today date and description', () => {
-    const result = stateRecordActivity('Built phase 3');
+  test('returns success with today date and description', async () => {
+    const result = await stateRecordActivity('Built phase 3');
     expect(result.success).toBe(true);
     const today = new Date().toISOString().slice(0, 10);
     expect(result.last_activity).toBe(`${today} Built phase 3`);
   });
 
-  test('updates both frontmatter and body last_activity', () => {
-    stateRecordActivity('Phase 3 planned');
+  test('updates both frontmatter and body last_activity', async () => {
+    await stateRecordActivity('Phase 3 planned');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     const today = new Date().toISOString().slice(0, 10);
     expect(content).toContain(`${today} Phase 3 planned`);
     expect(content).toMatch(/^Last activity:.*Phase 3 planned$/m);
   });
 
-  test('multi-word description preserved', () => {
-    const result = stateRecordActivity('Phase 3 built with 5 commits and 200 lines');
+  test('multi-word description preserved', async () => {
+    const result = await stateRecordActivity('Phase 3 built with 5 commits and 200 lines');
     expect(result.success).toBe(true);
     expect(result.last_activity).toContain('Phase 3 built with 5 commits and 200 lines');
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
-    const result = stateRecordActivity('test');
+    const result = await stateRecordActivity('test');
     expect(result.success).toBe(false);
   });
 });
@@ -336,7 +336,7 @@ describe('stateUpdateProgress', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-update-progress-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -344,42 +344,42 @@ describe('stateUpdateProgress', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
-    const result = stateUpdateProgress();
+    const result = await stateUpdateProgress();
     expect(result.success).toBe(false);
   });
 
-  test('returns 0% with empty phases dir', () => {
+  test('returns 0% with empty phases dir', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
-    const result = stateUpdateProgress();
+    const result = await stateUpdateProgress();
     expect(result.success).toBe(true);
     expect(result.percent).toBe(0);
     expect(result.completed_plans).toBe(0);
     expect(result.total_plans).toBe(0);
   });
 
-  test('calculates progress from plans and summaries', () => {
+  test('calculates progress from plans and summaries', async () => {
     const phasesDir = path.join(tmpDir, '.planning', 'phases');
     const phase3 = path.join(phasesDir, '03-auth');
     fs.mkdirSync(phase3, { recursive: true });
     fs.writeFileSync(path.join(phase3, 'PLAN-01.md'), '---\nplan: "3-01"\n---\n');
     fs.writeFileSync(path.join(phase3, 'PLAN-02.md'), '---\nplan: "3-02"\n---\n');
     fs.writeFileSync(path.join(phase3, 'SUMMARY.md'), '---\nstatus: complete\n---\n');
-    const result = stateUpdateProgress();
+    const result = await stateUpdateProgress();
     expect(result.success).toBe(true);
     expect(result.total_plans).toBeGreaterThanOrEqual(1);
   });
 
-  test('updates frontmatter progress_percent atomically', () => {
+  test('updates frontmatter progress_percent atomically', async () => {
     const phasesDir = path.join(tmpDir, '.planning', 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
-    stateUpdateProgress();
+    await stateUpdateProgress();
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/progress_percent:\s*\d+/);
     expect(content).toMatch(/^Progress: \[/m);
@@ -390,7 +390,7 @@ describe('stateUpdate — velocity and session fields', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-velocity-session-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -398,46 +398,46 @@ describe('stateUpdate — velocity and session fields', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('stateUpdate accepts velocity as valid field', () => {
-    const result = stateUpdate('velocity', '{"plan_duration":{"history":[],"trend":"stable"}}');
+  test('stateUpdate accepts velocity as valid field', async () => {
+    const result = await stateUpdate('velocity', '{"plan_duration":{"history":[],"trend":"stable"}}');
     expect(result.success).toBe(true);
     expect(result.field).toBe('velocity');
   });
 
-  test('stateUpdate accepts session_last as valid field', () => {
-    const result = stateUpdate('session_last', '2026-03-18 10:00:00');
+  test('stateUpdate accepts session_last as valid field', async () => {
+    const result = await stateUpdate('session_last', '2026-03-18 10:00:00');
     expect(result.success).toBe(true);
     expect(result.field).toBe('session_last');
   });
 
-  test('stateUpdate accepts session_stopped_at as valid field', () => {
-    const result = stateUpdate('session_stopped_at', 'Phase 3, Plan 2, Task 4');
+  test('stateUpdate accepts session_stopped_at as valid field', async () => {
+    const result = await stateUpdate('session_stopped_at', 'Phase 3, Plan 2, Task 4');
     expect(result.success).toBe(true);
     expect(result.field).toBe('session_stopped_at');
   });
 
-  test('stateUpdate accepts session_resume as valid field', () => {
-    const result = stateUpdate('session_resume', '.PROGRESS-03-02');
+  test('stateUpdate accepts session_resume as valid field', async () => {
+    const result = await stateUpdate('session_resume', '.PROGRESS-03-02');
     expect(result.success).toBe(true);
     expect(result.field).toBe('session_resume');
   });
 
-  test('velocity field persists in frontmatter', () => {
-    stateUpdate('velocity', '{"test":"data"}');
+  test('velocity field persists in frontmatter', async () => {
+    await stateUpdate('velocity', '{"test":"data"}');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('velocity:');
     expect(content).toContain('test');
   });
 
-  test('session fields persist in frontmatter', () => {
-    stateUpdate('session_last', '2026-03-18 14:30:00');
-    stateUpdate('session_stopped_at', 'Plan 02-01 task 3');
-    stateUpdate('session_resume', '.PROGRESS-02-01');
+  test('session fields persist in frontmatter', async () => {
+    await stateUpdate('session_last', '2026-03-18 14:30:00');
+    await stateUpdate('session_stopped_at', 'Plan 02-01 task 3');
+    await stateUpdate('session_resume', '.PROGRESS-02-01');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('session_last:');
     expect(content).toContain('session_stopped_at:');
@@ -449,7 +449,7 @@ describe('stateRecordVelocity', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-record-velocity-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -457,29 +457,29 @@ describe('stateRecordVelocity', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('records a velocity metric and returns success', () => {
-    const result = stateRecordVelocity('plan_duration', 15);
+  test('records a velocity metric and returns success', async () => {
+    const result = await stateRecordVelocity('plan_duration', 15);
     expect(result.success).toBe(true);
     expect(result.metricType).toBe('plan_duration');
     expect(result.value).toBe(15);
     expect(result.trend).toBe('stable');
   });
 
-  test('stores metric in frontmatter velocity field', () => {
-    stateRecordVelocity('plan_duration', 10);
+  test('stores metric in frontmatter velocity field', async () => {
+    await stateRecordVelocity('plan_duration', 10);
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('velocity:');
     expect(content).toContain('plan_duration');
   });
 
-  test('keeps last 5 entries per metric type', () => {
+  test('keeps last 5 entries per metric type', async () => {
     for (let i = 1; i <= 7; i++) {
-      stateRecordVelocity('plan_duration', i * 10);
+      await stateRecordVelocity('plan_duration', i * 10);
     }
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     const parsed = parseStateMd(content);
@@ -489,19 +489,19 @@ describe('stateRecordVelocity', () => {
     expect(velocity.plan_duration.history[0].value).toBe(30);
   });
 
-  test('calculates improving trend when recent values are lower', () => {
+  test('calculates improving trend when recent values are lower', async () => {
     // First entry with high value
-    stateRecordVelocity('phase_duration', 100);
+    await stateRecordVelocity('phase_duration', 100);
     // Add lower values
-    stateRecordVelocity('phase_duration', 50);
-    stateRecordVelocity('phase_duration', 40);
-    const result = stateRecordVelocity('phase_duration', 30);
+    await stateRecordVelocity('phase_duration', 50);
+    await stateRecordVelocity('phase_duration', 40);
+    const result = await stateRecordVelocity('phase_duration', 30);
     expect(result.trend).toBe('improving');
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
-    const result = stateRecordVelocity('plan_duration', 10);
+    const result = await stateRecordVelocity('plan_duration', 10);
     expect(result.success).toBe(false);
   });
 });
@@ -510,7 +510,7 @@ describe('stateRecordSession', () => {
   let tmpDir;
   let origCwd;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-record-session-'));
     buildFixture(tmpDir);
     origCwd = process.cwd();
@@ -518,21 +518,21 @@ describe('stateRecordSession', () => {
     configClearCache();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(origCwd);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('records session info and returns success', () => {
-    const result = stateRecordSession('Phase 3, Plan 2, Task 4', '.PROGRESS-03-02');
+  test('records session info and returns success', async () => {
+    const result = await stateRecordSession('Phase 3, Plan 2, Task 4', '.PROGRESS-03-02');
     expect(result.success).toBe(true);
     expect(result.session_last).toBeTruthy();
     expect(result.session_stopped_at).toBe('Phase 3, Plan 2, Task 4');
     expect(result.session_resume).toBe('.PROGRESS-03-02');
   });
 
-  test('sets all three session fields in frontmatter', () => {
-    stateRecordSession('Plan 01-01 task 2', '.PROGRESS-01-01');
+  test('sets all three session fields in frontmatter', async () => {
+    await stateRecordSession('Plan 01-01 task 2', '.PROGRESS-01-01');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toContain('session_last:');
     expect(content).toContain('session_stopped_at:');
@@ -541,26 +541,26 @@ describe('stateRecordSession', () => {
     expect(content).toContain('.PROGRESS-01-01');
   });
 
-  test('session_last is auto-timestamped', () => {
-    const result = stateRecordSession('test', 'test-file');
+  test('session_last is auto-timestamped', async () => {
+    const result = await stateRecordSession('test', 'test-file');
     expect(result.session_last).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
   });
 
-  test('returns error when STATE.md missing', () => {
+  test('returns error when STATE.md missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
-    const result = stateRecordSession('test', 'test-file');
+    const result = await stateRecordSession('test', 'test-file');
     expect(result.success).toBe(false);
   });
 });
 
 describe('parseStateMd — velocity and session extraction', () => {
-  test('extracts velocity from frontmatter', () => {
+  test('extracts velocity from frontmatter', async () => {
     const content = '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\nvelocity: "{\\"plan_duration\\":{\\"history\\":[],\\"trend\\":\\"stable\\"}}"\n---\n# State\n';
     const result = parseStateMd(content);
     expect(result.velocity).toBeTruthy();
   });
 
-  test('extracts session fields from frontmatter', () => {
+  test('extracts session fields from frontmatter', async () => {
     const content = '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\nsession_last: "2026-03-18 10:00:00"\nsession_stopped_at: "Plan 2 task 3"\nsession_resume: ".PROGRESS-02-01"\n---\n# State\n';
     const result = parseStateMd(content);
     expect(result.session_last).toBe('2026-03-18 10:00:00');
@@ -568,7 +568,7 @@ describe('parseStateMd — velocity and session extraction', () => {
     expect(result.session_resume).toBe('.PROGRESS-02-01');
   });
 
-  test('returns null for missing session fields', () => {
+  test('returns null for missing session fields', async () => {
     const content = '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\n---\n# State\n';
     const result = parseStateMd(content);
     expect(result.session_last).toBeNull();
@@ -589,22 +589,22 @@ describe('syncBodyLine — session fields', () => {
     'Resume: .PROGRESS-01-01',
   ].join('\n');
 
-  test('syncBodyLine for session_last replaces Last session line', () => {
+  test('syncBodyLine for session_last replaces Last session line', async () => {
     const result = syncBodyLine(contentWithSessionLines, 'session_last', '2026-03-18 14:00:00');
     expect(result).toMatch(/^Last session: 2026-03-18 14:00:00$/m);
   });
 
-  test('syncBodyLine for session_stopped_at replaces Stopped at line', () => {
+  test('syncBodyLine for session_stopped_at replaces Stopped at line', async () => {
     const result = syncBodyLine(contentWithSessionLines, 'session_stopped_at', 'Plan 02-01 task 5');
     expect(result).toMatch(/^Stopped at: Plan 02-01 task 5$/m);
   });
 
-  test('syncBodyLine for session_resume replaces Resume line', () => {
+  test('syncBodyLine for session_resume replaces Resume line', async () => {
     const result = syncBodyLine(contentWithSessionLines, 'session_resume', '.PROGRESS-02-01');
     expect(result).toMatch(/^Resume: .PROGRESS-02-01$/m);
   });
 
-  test('syncBodyLine for session fields is no-op when body lines are absent', () => {
+  test('syncBodyLine for session fields is no-op when body lines are absent', async () => {
     const noSessionContent = [
       '---', 'version: 2', '---',
       '## Position',

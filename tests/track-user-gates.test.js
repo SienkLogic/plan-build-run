@@ -23,7 +23,7 @@ describe('track-user-gates.js', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('writes signal file when .planning/ exists', () => {
+  test('writes signal file when .planning/ exists', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'health', 'utf8');
@@ -46,7 +46,7 @@ describe('track-user-gates.js', () => {
     expect(data.timestamp).toBeDefined();
   });
 
-  test('exits cleanly when .planning/ does not exist', () => {
+  test('exits cleanly when .planning/ does not exist', async () => {
     const scriptPath = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'track-user-gates.js');
 
     // Should not throw
@@ -79,14 +79,14 @@ describe('checkUserGateCompliance', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns warning for gate-requiring skill without signal', () => {
+  test('returns warning for gate-requiring skill without signal', async () => {
     const result = checkUserGateCompliance(planningDir, 'health');
     expect(result).not.toBeNull();
     expect(result).toContain("Skill 'health'");
     expect(result).toContain('without any AskUserQuestion calls');
   });
 
-  test('returns null for skill with matching signal present', () => {
+  test('returns null for skill with matching signal present', async () => {
     const signalPath = path.join(planningDir, '.user-gate-passed');
     fs.writeFileSync(signalPath, JSON.stringify({
       skill: 'health',
@@ -101,17 +101,17 @@ describe('checkUserGateCompliance', () => {
     expect(fs.existsSync(signalPath)).toBe(false);
   });
 
-  test('returns null for non-gate skill', () => {
+  test('returns null for non-gate skill', async () => {
     const result = checkUserGateCompliance(planningDir, 'status');
     expect(result).toBeNull();
   });
 
-  test('returns null for empty/undefined skill name', () => {
+  test('returns null for empty/undefined skill name', async () => {
     expect(checkUserGateCompliance(planningDir, '')).toBeNull();
     expect(checkUserGateCompliance(planningDir, undefined)).toBeNull();
   });
 
-  test('returns warning when signal has different skill name', () => {
+  test('returns warning when signal has different skill name', async () => {
     const signalPath = path.join(planningDir, '.user-gate-passed');
     fs.writeFileSync(signalPath, JSON.stringify({
       skill: 'discuss',
@@ -124,7 +124,7 @@ describe('checkUserGateCompliance', () => {
     expect(result).toContain("Skill 'health'");
   });
 
-  test('SKILLS_REQUIRING_GATES includes expected skills', () => {
+  test('SKILLS_REQUIRING_GATES includes expected skills', async () => {
     expect(SKILLS_REQUIRING_GATES).toHaveProperty('health');
     expect(SKILLS_REQUIRING_GATES).toHaveProperty('milestone');
     expect(SKILLS_REQUIRING_GATES).toHaveProperty('import');

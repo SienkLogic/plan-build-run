@@ -81,7 +81,7 @@ function runPbrTools(args, cwd) {
 
 describe('pbr-tools.js graph subcommand', () => {
   describe('graph build', () => {
-    test('creates graph.json in .planning/codebase/', () => {
+    test('creates graph.json in .planning/codebase/', async () => {
       const { tmp, codebaseDir } = makeTempProject();
       try {
         const result = runPbrTools(['graph', 'build'], tmp);
@@ -93,7 +93,7 @@ describe('pbr-tools.js graph subcommand', () => {
       }
     });
 
-    test('returns disabled message when feature off', () => {
+    test('returns disabled message when feature off', async () => {
       const { tmp } = makeTempProject({ graphEnabled: false });
       try {
         const result = runPbrTools(['graph', 'build'], tmp);
@@ -105,7 +105,7 @@ describe('pbr-tools.js graph subcommand', () => {
   });
 
   describe('graph query', () => {
-    test('returns node data with dependents and dependencies', () => {
+    test('returns node data with dependents and dependencies', async () => {
       const { tmp } = makeTempProject();
       try {
         // Build first
@@ -124,7 +124,7 @@ describe('pbr-tools.js graph subcommand', () => {
       }
     });
 
-    test('with --depth=2 returns transitive dependencies', () => {
+    test('with --depth=2 returns transitive dependencies', async () => {
       const { tmp } = makeTempProject();
       try {
         runPbrTools(['graph', 'build'], tmp);
@@ -139,7 +139,7 @@ describe('pbr-tools.js graph subcommand', () => {
   });
 
   describe('graph impact', () => {
-    test('returns list of impacted files', () => {
+    test('returns list of impacted files', async () => {
       const { tmp } = makeTempProject();
       try {
         runPbrTools(['graph', 'build'], tmp);

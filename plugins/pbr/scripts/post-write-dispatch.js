@@ -151,7 +151,7 @@ async function processEvent(data, planningDir) {
 
   // STATE.md frontmatter validation (advisory only)
   try {
-    const stateResult = checkStateWrite(data);
+    const stateResult = await checkStateWrite(data);
     const ctx = extractContext(stateResult);
     if (ctx) results.push(ctx);
   } catch (e) {
@@ -160,7 +160,7 @@ async function processEvent(data, planningDir) {
 
   // State sync check (SUMMARY/VERIFICATION → STATE.md + ROADMAP.md)
   try {
-    const stateSyncResult = checkStateSync(data);
+    const stateSyncResult = await checkStateSync(data);
     const ctx = extractContext(stateSyncResult);
     if (ctx) results.push(ctx);
   } catch (e) {

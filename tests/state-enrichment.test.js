@@ -99,18 +99,18 @@ describe('readEventLogTail', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns empty array when log file does not exist', () => {
+  test('returns empty array when log file does not exist', async () => {
     const result = readEventLogTail(logFile, 500);
     expect(result).toEqual([]);
   });
 
-  test('returns empty array for empty log file', () => {
+  test('returns empty array for empty log file', async () => {
     fs.writeFileSync(logFile, '', 'utf8');
     const result = readEventLogTail(logFile, 500);
     expect(result).toEqual([]);
   });
 
-  test('parses valid JSONL lines', () => {
+  test('parses valid JSONL lines', async () => {
     const events = [
       { ts: '2026-01-01T00:00:00Z', event: 'PostToolUse', tool: 'Read' },
       { ts: '2026-01-01T00:01:00Z', event: 'PostToolUse', tool: 'Write' }
@@ -122,7 +122,7 @@ describe('readEventLogTail', () => {
     expect(result[1].tool).toBe('Write');
   });
 
-  test('skips malformed lines', () => {
+  test('skips malformed lines', async () => {
     const content = '{ bad json\n{"ts":"x","event":"ok"}\nnot json either\n';
     fs.writeFileSync(logFile, content, 'utf8');
     const result = readEventLogTail(logFile, 500);
@@ -130,7 +130,7 @@ describe('readEventLogTail', () => {
     expect(result[0].event).toBe('ok');
   });
 
-  test('respects maxLines limit (takes last N)', () => {
+  test('respects maxLines limit (takes last N)', async () => {
     const lines = [];
     for (let i = 0; i < 10; i++) {
       lines.push(JSON.stringify({ ts: `2026-01-01T00:0${i}:00Z`, event: 'E', seq: i }));
@@ -142,7 +142,7 @@ describe('readEventLogTail', () => {
     expect(result[2].seq).toBe(9);
   });
 
-  test('defaults to 500 maxLines', () => {
+  test('defaults to 500 maxLines', async () => {
     const lines = [];
     for (let i = 0; i < 10; i++) {
       lines.push(JSON.stringify({ event: 'E', seq: i }));

@@ -20,7 +20,7 @@ const {
  * @param {string[]} args - Full CLI args (args[0] === 'config' or 'validate')
  * @param {{ planningDir: string, cwd: string, output: function, error: function }} ctx
  */
-function handleConfig(args, ctx) {
+async function handleConfig(args, ctx) {
   const command = args[0];
   const subcommand = args[1];
 
@@ -45,7 +45,7 @@ function handleConfig(args, ctx) {
   } else if (subcommand === 'format') {
     const config = _configLoad(ctx.planningDir);
     if (!config) ctx.error('No config.json found.');
-    _configWrite(ctx.planningDir, config);
+    await _configWrite(ctx.planningDir, config);
     ctx.output({ formatted: true, path: path.join(ctx.planningDir, 'config.json') });
   } else if (subcommand === 'resolve-depth') {
     const dir = args[2] || undefined;

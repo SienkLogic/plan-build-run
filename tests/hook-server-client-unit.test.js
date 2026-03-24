@@ -28,21 +28,21 @@ afterEach(() => {
 });
 
 describe('circuit breaker', () => {
-  test('isCircuitOpen returns false with no planningDir', () => {
+  test('isCircuitOpen returns false with no planningDir', async () => {
     expect(isCircuitOpen(null)).toBe(false);
   });
 
-  test('isCircuitOpen returns false when no circuit file exists', () => {
+  test('isCircuitOpen returns false when no circuit file exists', async () => {
     expect(isCircuitOpen(planningDir)).toBe(false);
   });
 
-  test('isCircuitOpen returns false when failures below threshold', () => {
+  test('isCircuitOpen returns false when failures below threshold', async () => {
     const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
     fs.writeFileSync(circuitPath, JSON.stringify({ failures: 2, openedAt: 0 }));
     expect(isCircuitOpen(planningDir)).toBe(false);
   });
 
-  test('isCircuitOpen returns true when failures at threshold and within cooldown', () => {
+  test('isCircuitOpen returns true when failures at threshold and within cooldown', async () => {
     const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
     fs.writeFileSync(circuitPath, JSON.stringify({
       failures: CIRCUIT_FAILURE_THRESHOLD,
@@ -51,7 +51,7 @@ describe('circuit breaker', () => {
     expect(isCircuitOpen(planningDir)).toBe(true);
   });
 
-  test('isCircuitOpen returns false after cooldown expires (half-open)', () => {
+  test('isCircuitOpen returns false after cooldown expires (half-open)', async () => {
     const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
     fs.writeFileSync(circuitPath, JSON.stringify({
       failures: CIRCUIT_FAILURE_THRESHOLD,
@@ -60,18 +60,18 @@ describe('circuit breaker', () => {
     expect(isCircuitOpen(planningDir)).toBe(false);
   });
 
-  test('isCircuitOpen handles corrupt circuit file', () => {
+  test('isCircuitOpen handles corrupt circuit file', async () => {
     fs.writeFileSync(path.join(planningDir, '.hook-server-circuit.json'), 'not json');
     expect(isCircuitOpen(planningDir)).toBe(false);
   });
 });
 
 describe('recordFailure', () => {
-  test('does nothing with null planningDir', () => {
+  test('does nothing with null planningDir', async () => {
     expect(() => recordFailure(null)).not.toThrow();
   });
 
-  test('creates circuit file on first failure', () => {
+  test('creates circuit file on first failure', async () => {
     recordFailure(planningDir);
     const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
     expect(fs.existsSync(circuitPath)).toBe(true);
@@ -79,7 +79,7 @@ describe('recordFailure', () => {
     expect(data.failures).toBe(1);
   });
 
-  test('increments failure count', () => {
+  test('increments failure count', async () => {
     recordFailure(planningDir);
     recordFailure(planningDir);
     recordFailure(planningDir);
@@ -88,7 +88,7 @@ describe('recordFailure', () => {
     expect(data.failures).toBe(3);
   });
 
-  test('sets openedAt when reaching threshold', () => {
+  test('sets openedAt when reaching threshold', async () => {
     for (let i = 0; i < CIRCUIT_FAILURE_THRESHOLD; i++) {
       recordFailure(planningDir);
     }
@@ -100,11 +100,11 @@ describe('recordFailure', () => {
 });
 
 describe('recordSuccess', () => {
-  test('does nothing with null planningDir', () => {
+  test('does nothing with null planningDir', async () => {
     expect(() => recordSuccess(null)).not.toThrow();
   });
 
-  test('removes circuit file on success', () => {
+  test('removes circuit file on success', async () => {
     recordFailure(planningDir);
     const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
     expect(fs.existsSync(circuitPath)).toBe(true);
@@ -112,24 +112,24 @@ describe('recordSuccess', () => {
     expect(fs.existsSync(circuitPath)).toBe(false);
   });
 
-  test('handles missing circuit file gracefully', () => {
+  test('handles missing circuit file gracefully', async () => {
     expect(() => recordSuccess(planningDir)).not.toThrow();
   });
 });
 
 describe('exports', () => {
-  test('HOOK_EVENT_MAP has expected entries', () => {
+  test('HOOK_EVENT_MAP has expected entries', async () => {
     expect(HOOK_EVENT_MAP).toBeDefined();
     expect(HOOK_EVENT_MAP['track-context-budget']).toBeDefined();
     expect(HOOK_EVENT_MAP['post-write-dispatch']).toBeDefined();
     expect(HOOK_EVENT_MAP['check-subagent-output']).toBeDefined();
   });
 
-  test('DEFAULT_PORT is defined', () => {
+  test('DEFAULT_PORT is defined', async () => {
     expect(DEFAULT_PORT).toBe(19836);
   });
 
-  test('CIRCUIT constants are defined', () => {
+  test('CIRCUIT constants are defined', async () => {
     expect(CIRCUIT_FAILURE_THRESHOLD).toBe(5);
     expect(CIRCUIT_COOLDOWN_MS).toBe(30000);
   });

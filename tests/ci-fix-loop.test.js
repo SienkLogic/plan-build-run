@@ -8,7 +8,7 @@
 const { parseJestOutput, parseLintOutput } = require('../plugins/pbr/scripts/lib/ci-fix-loop');
 
 describe('parseJestOutput', () => {
-  test('all-passing output returns passed=true with empty failedSuites', () => {
+  test('all-passing output returns passed=true with empty failedSuites', async () => {
     const output = [
       ' PASS tests/foo.test.js',
       ' PASS tests/bar.test.js',
@@ -25,7 +25,7 @@ describe('parseJestOutput', () => {
     expect(result.summary).toContain('2 passed');
   });
 
-  test('failing output extracts failed suite paths', () => {
+  test('failing output extracts failed suite paths', async () => {
     const output = [
       ' PASS tests/alpha.test.js',
       ' FAIL tests/broken.test.js',
@@ -46,21 +46,21 @@ describe('parseJestOutput', () => {
     expect(result.summary).toContain('2 failed');
   });
 
-  test('empty input returns passed=false with empty arrays', () => {
+  test('empty input returns passed=false with empty arrays', async () => {
     const result = parseJestOutput('');
     expect(result.passed).toBe(false);
     expect(result.failedSuites).toEqual([]);
     expect(result.summary).toBe('');
   });
 
-  test('null input returns passed=false with empty arrays', () => {
+  test('null input returns passed=false with empty arrays', async () => {
     const result = parseJestOutput(null);
     expect(result.passed).toBe(false);
     expect(result.failedSuites).toEqual([]);
     expect(result.summary).toBe('');
   });
 
-  test('garbage input returns passed=false', () => {
+  test('garbage input returns passed=false', async () => {
     const result = parseJestOutput('some random text\nno test output here');
     expect(result.passed).toBe(false);
     expect(result.failedSuites).toEqual([]);
@@ -69,7 +69,7 @@ describe('parseJestOutput', () => {
 });
 
 describe('parseLintOutput', () => {
-  test('clean output returns zero errors', () => {
+  test('clean output returns zero errors', async () => {
     const result = parseLintOutput('');
     expect(result.errorCount).toBe(0);
     expect(result.files).toEqual([]);
@@ -102,7 +102,7 @@ describe('parseLintOutput', () => {
     expect(result.errors[2].rule).toBe('no-unused-vars');
   });
 
-  test('warnings only returns zero errors', () => {
+  test('warnings only returns zero errors', async () => {
     const output = [
       '/home/user/project/src/index.js',
       '  5:1  warning  Unexpected var, use let or const instead  no-var',
@@ -116,14 +116,14 @@ describe('parseLintOutput', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('null input returns zero errors', () => {
+  test('null input returns zero errors', async () => {
     const result = parseLintOutput(null);
     expect(result.errorCount).toBe(0);
     expect(result.files).toEqual([]);
     expect(result.errors).toEqual([]);
   });
 
-  test('Windows-style paths are handled', () => {
+  test('Windows-style paths are handled', async () => {
     const output = [
       'D:\\Repos\\project\\hooks\\baz.js',
       '  1:1  error  Missing strict mode directive  strict',

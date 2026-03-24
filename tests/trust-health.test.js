@@ -42,7 +42,7 @@ describe('trust tracking health check', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('validate health returns phase10 array (trust/confidence checks removed with legacy lib)', () => {
+  test('validate health returns phase10 array (trust/confidence checks removed with legacy lib)', async () => {
     const result = runHealth(tmpDir);
     // After legacy bin/lib/ deletion, validate health only returns phase10 checks
     expect(result.phase10).toBeDefined();

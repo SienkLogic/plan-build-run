@@ -16,7 +16,7 @@ describe('session-tracker', () => {
     return { tmpDir, planningDir };
   }
 
-  afterEach(() => {
+  afterEach(async () => {
     for (const dir of tmpDirs) {
       try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) { /* best effort */ }
     }
@@ -24,20 +24,20 @@ describe('session-tracker', () => {
   });
 
   describe('TRACKER_FILE constant', () => {
-    test('equals .session-tracker', () => {
+    test('equals .session-tracker', async () => {
       expect(TRACKER_FILE).toBe('.session-tracker');
     });
   });
 
   describe('resetTracker', () => {
-    test('creates .session-tracker with phases_completed=0', () => {
+    test('creates .session-tracker with phases_completed=0', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
       expect(data.phases_completed).toBe(0);
     });
 
-    test('sets session_start to valid ISO date', () => {
+    test('sets session_start to valid ISO date', async () => {
       const { planningDir } = makeTmpDir();
       const before = new Date().toISOString();
       resetTracker(planningDir);
@@ -48,14 +48,14 @@ describe('session-tracker', () => {
       expect(data.session_start <= after).toBe(true);
     });
 
-    test('sets last_phase_completed to null', () => {
+    test('sets last_phase_completed to null', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
       expect(data.last_phase_completed).toBeNull();
     });
 
-    test('overwrites existing tracker on reset', () => {
+    test('overwrites existing tracker on reset', async () => {
       const { planningDir } = makeTmpDir();
       const trackerPath = path.join(planningDir, TRACKER_FILE);
       fs.writeFileSync(trackerPath, JSON.stringify({ phases_completed: 5 }), 'utf8');
@@ -66,7 +66,7 @@ describe('session-tracker', () => {
   });
 
   describe('incrementTracker', () => {
-    test('increments phases_completed by 1', () => {
+    test('increments phases_completed by 1', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       incrementTracker(planningDir);
@@ -74,14 +74,14 @@ describe('session-tracker', () => {
       expect(data.phases_completed).toBe(1);
     });
 
-    test('returns new count', () => {
+    test('returns new count', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       const count = incrementTracker(planningDir);
       expect(count).toBe(1);
     });
 
-    test('increments multiple times', () => {
+    test('increments multiple times', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       incrementTracker(planningDir);
@@ -92,7 +92,7 @@ describe('session-tracker', () => {
       expect(data.phases_completed).toBe(3);
     });
 
-    test('updates last_phase_completed timestamp', () => {
+    test('updates last_phase_completed timestamp', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       const before = new Date().toISOString();
@@ -104,7 +104,7 @@ describe('session-tracker', () => {
       expect(data.last_phase_completed <= after).toBe(true);
     });
 
-    test('creates tracker if missing', () => {
+    test('creates tracker if missing', async () => {
       const { planningDir } = makeTmpDir();
       const count = incrementTracker(planningDir);
       expect(count).toBe(1);
@@ -112,7 +112,7 @@ describe('session-tracker', () => {
       expect(data.phases_completed).toBe(1);
     });
 
-    test('preserves session_start across increments', () => {
+    test('preserves session_start across increments', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       const data1 = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
@@ -124,7 +124,7 @@ describe('session-tracker', () => {
     });
 
     describe('verify-and-retry (TOCTOU protection)', () => {
-      test('verifies write by re-reading file after write', () => {
+      test('verifies write by re-reading file after write', async () => {
         const { planningDir } = makeTmpDir();
         resetTracker(planningDir);
 
@@ -136,7 +136,7 @@ describe('session-tracker', () => {
         expect(data.phases_completed).toBe(1);
       });
 
-      test('retries once when file is modified between write and verify', () => {
+      test('retries once when file is modified between write and verify', async () => {
         const { planningDir } = makeTmpDir();
         resetTracker(planningDir);
         const trackerPath = path.join(planningDir, TRACKER_FILE);
@@ -166,7 +166,7 @@ describe('session-tracker', () => {
         }
       });
 
-      test('logs warning and returns stale value on double-failure', () => {
+      test('logs warning and returns stale value on double-failure', async () => {
         const { planningDir } = makeTmpDir();
         // Create logs dir for logHook
         fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -196,7 +196,7 @@ describe('session-tracker', () => {
   });
 
   describe('loadTracker', () => {
-    test('returns parsed tracker data', () => {
+    test('returns parsed tracker data', async () => {
       const { planningDir } = makeTmpDir();
       resetTracker(planningDir);
       const data = loadTracker(planningDir);
@@ -206,12 +206,12 @@ describe('session-tracker', () => {
       expect(data).toHaveProperty('last_phase_completed', null);
     });
 
-    test('returns null when file missing', () => {
+    test('returns null when file missing', async () => {
       const { planningDir } = makeTmpDir();
       expect(loadTracker(planningDir)).toBeNull();
     });
 
-    test('returns null on corrupted JSON', () => {
+    test('returns null on corrupted JSON', async () => {
       const { planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, TRACKER_FILE), '{not valid json!!!', 'utf8');
       expect(loadTracker(planningDir)).toBeNull();
@@ -219,7 +219,7 @@ describe('session-tracker', () => {
   });
 
   describe('config schema', () => {
-    test('session_phase_limit is in schema with correct constraints', () => {
+    test('session_phase_limit is in schema with correct constraints', async () => {
       const schema = require('../plugins/pbr/scripts/config-schema.json');
       const prop = schema.properties.session_phase_limit;
       expect(prop).toBeDefined();
@@ -231,12 +231,12 @@ describe('session-tracker', () => {
   });
 
   describe('progress-tracker integration', () => {
-    test('progress-tracker module loads without error (proves session-tracker require works)', () => {
+    test('progress-tracker module loads without error (proves session-tracker require works)', async () => {
       const progressTracker = require('../plugins/pbr/scripts/progress-tracker');
       expect(progressTracker).toBeDefined();
     });
 
-    test('session tracker file is reset after progress-tracker runs', () => {
+    test('session tracker file is reset after progress-tracker runs', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
 
       // Pre-write a .session-tracker with phases_completed: 5
@@ -279,7 +279,7 @@ describe('session-tracker', () => {
       return { tmpDir, planningDir };
     }
 
-    test('incrementTracker is called on executor SubagentStop', () => {
+    test('incrementTracker is called on executor SubagentStop', async () => {
       const { planningDir } = makeEventDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ features: { goal_verification: true } }), 'utf8');
@@ -292,7 +292,7 @@ describe('session-tracker', () => {
       expect(data.phases_completed).toBe(1);
     });
 
-    test('counter increments even when auto-verify is disabled', () => {
+    test('counter increments even when auto-verify is disabled', async () => {
       const { planningDir } = makeEventDir();
       // depth: "quick" disables auto-verify
       fs.writeFileSync(path.join(planningDir, 'config.json'),
@@ -306,7 +306,7 @@ describe('session-tracker', () => {
       expect(data.phases_completed).toBe(1);
     });
 
-    test('counter does not increment for non-executor agents', () => {
+    test('counter does not increment for non-executor agents', async () => {
       const { planningDir } = makeEventDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ features: { goal_verification: true } }), 'utf8');
@@ -318,7 +318,7 @@ describe('session-tracker', () => {
       expect(fs.existsSync(path.join(planningDir, TRACKER_FILE))).toBe(false);
     });
 
-    test('counter does not increment when status is not building', () => {
+    test('counter does not increment when status is not building', async () => {
       const { planningDir } = makeEventDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ features: { goal_verification: true } }), 'utf8');

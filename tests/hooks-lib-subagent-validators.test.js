@@ -39,11 +39,11 @@ afterEach(() => {
 });
 
 describe('findInPhaseDir', () => {
-  test('returns empty when no phases dir', () => {
+  test('returns empty when no phases dir', async () => {
     expect(findInPhaseDir(planningDir, /^PLAN.*\.md$/i)).toEqual([]);
   });
 
-  test('finds matching files in current phase dir', () => {
+  test('finds matching files in current phase dir', async () => {
     const phaseDir = path.join(planningDir, 'phases', '02-auth');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'content');
@@ -53,7 +53,7 @@ describe('findInPhaseDir', () => {
     expect(result[0]).toContain('PLAN-01.md');
   });
 
-  test('skips empty files', () => {
+  test('skips empty files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), '');
@@ -63,11 +63,11 @@ describe('findInPhaseDir', () => {
 });
 
 describe('findInQuickDir', () => {
-  test('returns empty when no quick dir', () => {
+  test('returns empty when no quick dir', async () => {
     expect(findInQuickDir(planningDir, /^SUMMARY.*\.md$/i)).toEqual([]);
   });
 
-  test('finds SUMMARY.md in the most recent quick task', () => {
+  test('finds SUMMARY.md in the most recent quick task', async () => {
     const dir001 = path.join(planningDir, 'quick', '001-task-a');
     const dir002 = path.join(planningDir, 'quick', '002-task-b');
     fs.mkdirSync(dir001, { recursive: true });
@@ -79,24 +79,24 @@ describe('findInQuickDir', () => {
     expect(result[0]).toContain('002-task-b');
   });
 
-  test('returns empty when no numbered dirs', () => {
+  test('returns empty when no numbered dirs', async () => {
     fs.mkdirSync(path.join(planningDir, 'quick', 'not-numbered'), { recursive: true });
     expect(findInQuickDir(planningDir, /^SUMMARY.*\.md$/i)).toEqual([]);
   });
 });
 
 describe('isRecent', () => {
-  test('returns true for recently created file', () => {
+  test('returns true for recently created file', async () => {
     const filePath = path.join(tmpDir, 'recent.txt');
     fs.writeFileSync(filePath, 'data');
     expect(isRecent(filePath)).toBe(true);
   });
 
-  test('returns false for nonexistent file', () => {
+  test('returns false for nonexistent file', async () => {
     expect(isRecent(path.join(tmpDir, 'nope.txt'))).toBe(false);
   });
 
-  test('returns false for old file when threshold is small', () => {
+  test('returns false for old file when threshold is small', async () => {
     const filePath = path.join(tmpDir, 'old.txt');
     fs.writeFileSync(filePath, 'data');
     const oldTime = new Date(Date.now() - 5000);
@@ -106,35 +106,35 @@ describe('isRecent', () => {
 });
 
 describe('getCurrentPhase', () => {
-  test('extracts from frontmatter', () => {
+  test('extracts from frontmatter', async () => {
     expect(getCurrentPhase('---\ncurrent_phase: 5\n---\nPhase: 3 of 10')).toBe('5');
   });
 
-  test('falls back to body text', () => {
+  test('falls back to body text', async () => {
     expect(getCurrentPhase('# State\nPhase: 7 of 10')).toBe('7');
   });
 
-  test('returns null when no phase info', () => {
+  test('returns null when no phase info', async () => {
     expect(getCurrentPhase('# No phase info')).toBeNull();
   });
 
-  test('prefers frontmatter over body', () => {
+  test('prefers frontmatter over body', async () => {
     expect(getCurrentPhase('---\ncurrent_phase: 12\n---\nPhase: 3 of 10')).toBe('12');
   });
 });
 
 describe('checkRoadmapStaleness', () => {
-  test('returns null when no ROADMAP.md', () => {
+  test('returns null when no ROADMAP.md', async () => {
     expect(checkRoadmapStaleness(planningDir)).toBeNull();
   });
 
-  test('warns when no Progress table', () => {
+  test('warns when no Progress table', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Milestone\n');
     const result = checkRoadmapStaleness(planningDir);
     expect(result).toContain('no Progress table');
   });
 
-  test('warns when current phase not in Progress table', () => {
+  test('warns when current phase not in Progress table', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
       '# Roadmap\n| Phase | Plans Complete |\n|---|---|\n| 01. Setup | yes |\n');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\n');
@@ -142,7 +142,7 @@ describe('checkRoadmapStaleness', () => {
     expect(result).toContain('no row for Phase 3');
   });
 
-  test('returns null when current phase is in Progress table', () => {
+  test('returns null when current phase is in Progress table', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
       '# Roadmap\n| Phase | Plans Complete |\n|---|---|\n| 02. Auth | yes |\n');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 2\n---\n');
@@ -151,7 +151,7 @@ describe('checkRoadmapStaleness', () => {
 });
 
 describe('checkSummaryCommits', () => {
-  test('no warnings when SUMMARY has commits', () => {
+  test('no warnings when SUMMARY has commits', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -161,7 +161,7 @@ describe('checkSummaryCommits', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('warns when SUMMARY has no commits field', () => {
+  test('warns when SUMMARY has no commits field', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -172,7 +172,7 @@ describe('checkSummaryCommits', () => {
     expect(warnings[0]).toContain('No "commits" field');
   });
 
-  test('warns when commits field is empty array', () => {
+  test('warns when commits field is empty array', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -185,7 +185,7 @@ describe('checkSummaryCommits', () => {
 });
 
 describe('AGENT_OUTPUTS', () => {
-  test('has all expected agent types', () => {
+  test('has all expected agent types', async () => {
     const expected = [
       'pbr:executor', 'pbr:planner', 'pbr:verifier', 'pbr:researcher',
       'pbr:synthesizer', 'pbr:plan-checker', 'pbr:integration-checker',
@@ -200,11 +200,11 @@ describe('AGENT_OUTPUTS', () => {
     }
   });
 
-  test('exactly 17 agent types are defined', () => {
+  test('exactly 17 agent types are defined', async () => {
     expect(Object.keys(AGENT_OUTPUTS)).toHaveLength(17);
   });
 
-  test('noFileExpected agents return empty array', () => {
+  test('noFileExpected agents return empty array', async () => {
     expect(AGENT_OUTPUTS['pbr:plan-checker'].check(planningDir)).toEqual([]);
     expect(AGENT_OUTPUTS['pbr:general'].check(planningDir)).toEqual([]);
     expect(AGENT_OUTPUTS['pbr:dev-sync'].check(planningDir)).toEqual([]);
@@ -212,7 +212,7 @@ describe('AGENT_OUTPUTS', () => {
 });
 
 describe('SKILL_CHECKS', () => {
-  test('has expected keys', () => {
+  test('has expected keys', async () => {
     const expectedKeys = [
       'begin:pbr:planner', 'plan:pbr:researcher', 'scan:pbr:codebase-mapper',
       'review:pbr:verifier', 'build:pbr:executor', 'quick:pbr:executor',
@@ -226,7 +226,7 @@ describe('SKILL_CHECKS', () => {
     }
   });
 
-  test('begin:pbr:planner warns when core files missing', () => {
+  test('begin:pbr:planner warns when core files missing', async () => {
     const warnings = [];
     SKILL_CHECKS['begin:pbr:planner'].check(planningDir, [], warnings);
     expect(warnings.length).toBe(3);
@@ -235,7 +235,7 @@ describe('SKILL_CHECKS', () => {
     expect(warnings.some(w => w.includes('STATE.md'))).toBe(true);
   });
 
-  test('begin:pbr:planner no warning when all present', () => {
+  test('begin:pbr:planner no warning when all present', async () => {
     fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Req');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
@@ -246,18 +246,18 @@ describe('SKILL_CHECKS', () => {
 });
 
 describe('loadFeatureFlag', () => {
-  test('returns flag value when config exists', () => {
+  test('returns flag value when config exists', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ features: { trust_tracking: true, post_hoc_artifacts: false } }));
     expect(loadFeatureFlag(planningDir, 'trust_tracking')).toBe(true);
     expect(loadFeatureFlag(planningDir, 'post_hoc_artifacts')).toBe(false);
   });
 
-  test('returns undefined when config missing', () => {
+  test('returns undefined when config missing', async () => {
     expect(loadFeatureFlag(planningDir, 'trust_tracking')).toBeUndefined();
   });
 
-  test('returns undefined when flag not in config', () => {
+  test('returns undefined when flag not in config', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ features: {} }));
     expect(loadFeatureFlag(planningDir, 'nonexistent')).toBeUndefined();
@@ -265,17 +265,17 @@ describe('loadFeatureFlag', () => {
 });
 
 describe('shouldTrackTrust', () => {
-  test('returns true by default (no config)', () => {
+  test('returns true by default (no config)', async () => {
     expect(shouldTrackTrust(planningDir)).toBe(true);
   });
 
-  test('returns false when explicitly disabled', () => {
+  test('returns false when explicitly disabled', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ features: { trust_tracking: false } }));
     expect(shouldTrackTrust(planningDir)).toBe(false);
   });
 
-  test('returns true when explicitly enabled', () => {
+  test('returns true when explicitly enabled', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ features: { trust_tracking: true } }));
     expect(shouldTrackTrust(planningDir)).toBe(true);
@@ -283,12 +283,12 @@ describe('shouldTrackTrust', () => {
 });
 
 describe('extractVerificationOutcome', () => {
-  test('returns null when no VERIFICATION.md', () => {
+  test('returns null when no VERIFICATION.md', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     expect(extractVerificationOutcome(planningDir)).toBeNull();
   });
 
-  test('extracts passed status from VERIFICATION.md', () => {
+  test('extracts passed status from VERIFICATION.md', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'),
@@ -303,7 +303,7 @@ describe('extractVerificationOutcome', () => {
     expect(result.mustHavesTotal).toBe(3);
   });
 
-  test('extracts failed status', () => {
+  test('extracts failed status', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'),
@@ -316,16 +316,16 @@ describe('extractVerificationOutcome', () => {
 });
 
 describe('validateSelfCheck', () => {
-  test('returns empty when self_verification disabled', () => {
+  test('returns empty when self_verification disabled', async () => {
     const result = validateSelfCheck('/fake/path', { features: {} });
     expect(result).toEqual([]);
   });
 
-  test('returns empty when config is null', () => {
+  test('returns empty when config is null', async () => {
     expect(validateSelfCheck('/fake/path', null)).toEqual([]);
   });
 
-  test('warns when self_check missing from frontmatter', () => {
+  test('warns when self_check missing from frontmatter', async () => {
     const summaryPath = path.join(tmpDir, 'SUMMARY.md');
     fs.writeFileSync(summaryPath, '---\nstatus: complete\n---\nDone');
     const result = validateSelfCheck(summaryPath, { features: { self_verification: true } });
@@ -333,7 +333,7 @@ describe('validateSelfCheck', () => {
     expect(result[0]).toContain('self_check');
   });
 
-  test('warns when self_check has failures', () => {
+  test('warns when self_check has failures', async () => {
     const summaryPath = path.join(tmpDir, 'SUMMARY.md');
     fs.writeFileSync(summaryPath,
       '---\nstatus: partial\nself_check:\n  passed: 2\n  failed: 1\n  retries: 2\n---\nPartial');
@@ -343,7 +343,7 @@ describe('validateSelfCheck', () => {
     expect(result[0]).toContain('2 retries');
   });
 
-  test('no warnings when self_check all passed', () => {
+  test('no warnings when self_check all passed', async () => {
     const summaryPath = path.join(tmpDir, 'SUMMARY.md');
     fs.writeFileSync(summaryPath,
       '---\nstatus: complete\nself_check:\n  passed: 3\n  failed: 0\n  retries: 0\n---\nDone');
@@ -353,7 +353,7 @@ describe('validateSelfCheck', () => {
 });
 
 describe('checkTriggeredSeeds', () => {
-  test('surfaces warning when seed trigger matches phase slug', () => {
+  test('surfaces warning when seed trigger matches phase slug', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '---\nphase_slug: "03-auth"\n---\nPhase: 3 of 8');
     const seedsDir = path.join(planningDir, 'seeds');
@@ -366,7 +366,7 @@ describe('checkTriggeredSeeds', () => {
     expect(warnings[0]).toContain('SEED-001');
   });
 
-  test('no warning when trigger does not match', () => {
+  test('no warning when trigger does not match', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '---\nphase_slug: "03-auth"\n---\n');
     const seedsDir = path.join(planningDir, 'seeds');
@@ -378,7 +378,7 @@ describe('checkTriggeredSeeds', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('does not error when no seeds dir', () => {
+  test('does not error when no seeds dir', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '---\nphase_slug: "01-setup"\n---\n');
     const warnings = [];
@@ -387,7 +387,7 @@ describe('checkTriggeredSeeds', () => {
 });
 
 describe('checkLearningsRequired', () => {
-  test('warns when no LEARNINGS.md in phase dir', () => {
+  test('warns when no LEARNINGS.md in phase dir', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -398,7 +398,7 @@ describe('checkLearningsRequired', () => {
     expect(warnings[0]).toContain('executor');
   });
 
-  test('no warning when LEARNINGS.md exists', () => {
+  test('no warning when LEARNINGS.md exists', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'LEARNINGS.md'), '# Learnings\nStuff');
@@ -410,7 +410,7 @@ describe('checkLearningsRequired', () => {
 });
 
 describe('checkDeviationsRequiringReview', () => {
-  test('warns on ask deviations', () => {
+  test('warns on ask deviations', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
@@ -423,7 +423,7 @@ describe('checkDeviationsRequiringReview', () => {
     expect(warnings[0]).toContain('1 deviation(s)');
   });
 
-  test('no warning on auto deviations', () => {
+  test('no warning on auto deviations', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
@@ -437,7 +437,7 @@ describe('checkDeviationsRequiringReview', () => {
 });
 
 describe('logInlineDecision', () => {
-  test('writes entry to hooks.jsonl', () => {
+  test('writes entry to hooks.jsonl', async () => {
     logInlineDecision(planningDir, {
       inline: true, reason: 'test', taskCount: 1, fileCount: 2
     });
@@ -449,14 +449,14 @@ describe('logInlineDecision', () => {
     expect(entry.reason).toBe('test');
   });
 
-  test('does not throw on missing logs dir', () => {
+  test('does not throw on missing logs dir', async () => {
     const noLogDir = path.join(tmpDir, 'no-planning');
     expect(() => logInlineDecision(noLogDir, { inline: false })).not.toThrow();
   });
 });
 
 describe('logCompliance', () => {
-  test('writes entry to compliance.jsonl', () => {
+  test('writes entry to compliance.jsonl', async () => {
     logCompliance(planningDir, 'pbr:executor', 'Missing output', 'required');
     const logFile = path.join(planningDir, 'logs', 'compliance.jsonl');
     expect(fs.existsSync(logFile)).toBe(true);
@@ -469,14 +469,14 @@ describe('logCompliance', () => {
 });
 
 describe('AGENT_TO_SKILL', () => {
-  test('maps known agent types to skills', () => {
+  test('maps known agent types to skills', async () => {
     expect(AGENT_TO_SKILL['pbr:executor']).toBe('build');
     expect(AGENT_TO_SKILL['pbr:planner']).toBe('plan');
     expect(AGENT_TO_SKILL['pbr:verifier']).toBe('review');
     expect(AGENT_TO_SKILL['pbr:debugger']).toBe('debug');
   });
 
-  test('returns undefined for unknown agent types', () => {
+  test('returns undefined for unknown agent types', async () => {
     expect(AGENT_TO_SKILL['pbr:unknown']).toBeUndefined();
   });
 });

@@ -51,22 +51,22 @@ Last activity: 2026-03-06 Built all plans
 describe('phaseComplete', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = makeTempDir();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('happy path: advance from phase 88 to 89', () => {
+  test('happy path: advance from phase 88 to 89', async () => {
     writeFixture(tmpDir, 'ROADMAP.md', ROADMAP_3PHASES);
     writeFixture(tmpDir, 'STATE.md', STATE_PHASE88);
     // Create phase directories for progress calculation
     writeFixture(tmpDir, 'phases/88-compound-state-cli/PLAN-01.md', '---\nplan: "88-01"\n---\n');
     writeFixture(tmpDir, 'phases/88-compound-state-cli/SUMMARY-88-01.md', '---\nstatus: complete\n---\n');
 
-    const result = phaseComplete('88', tmpDir);
+    const result = await phaseComplete('88', tmpDir);
 
     expect(result.success).toBe(true);
     expect(result.completed_phase).toBe(88);
@@ -91,7 +91,7 @@ describe('phaseComplete', () => {
     // so it reflects actual completed summaries across all phases
   });
 
-  test('final phase in milestone: sets status to verified', () => {
+  test('final phase in milestone: sets status to verified', async () => {
     const singlePhaseRoadmap = `# Roadmap
 
 ## Progress
@@ -105,7 +105,7 @@ describe('phaseComplete', () => {
     writeFixture(tmpDir, 'phases/88-compound-state-cli/PLAN-01.md', '---\nplan: "88-01"\n---\n');
     writeFixture(tmpDir, 'phases/88-compound-state-cli/SUMMARY-88-01.md', '---\nstatus: complete\n---\n');
 
-    const result = phaseComplete('88', tmpDir);
+    const result = await phaseComplete('88', tmpDir);
 
     expect(result.success).toBe(true);
     expect(result.final_phase).toBe(true);
@@ -119,35 +119,35 @@ describe('phaseComplete', () => {
     expect(fm.current_phase).toBe(88);
   });
 
-  test('missing STATE.md returns error', () => {
+  test('missing STATE.md returns error', async () => {
     writeFixture(tmpDir, 'ROADMAP.md', ROADMAP_3PHASES);
 
-    const result = phaseComplete('88', tmpDir);
+    const result = await phaseComplete('88', tmpDir);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/STATE\.md not found/);
   });
 
-  test('missing ROADMAP.md returns error', () => {
+  test('missing ROADMAP.md returns error', async () => {
     writeFixture(tmpDir, 'STATE.md', STATE_PHASE88);
 
-    const result = phaseComplete('88', tmpDir);
+    const result = await phaseComplete('88', tmpDir);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/ROADMAP\.md not found/);
   });
 
-  test('phase not found in progress table returns error', () => {
+  test('phase not found in progress table returns error', async () => {
     writeFixture(tmpDir, 'ROADMAP.md', ROADMAP_3PHASES);
     writeFixture(tmpDir, 'STATE.md', STATE_PHASE88);
 
-    const result = phaseComplete('99', tmpDir);
+    const result = await phaseComplete('99', tmpDir);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Phase 99 not found/);
   });
 
-  test('phase checklist is updated from [ ] to [x]', () => {
+  test('phase checklist is updated from [ ] to [x]', async () => {
     const roadmapWithChecklist = `# Roadmap
 
 ## Phase Checklist
@@ -167,7 +167,7 @@ describe('phaseComplete', () => {
     writeFixture(tmpDir, 'phases/88-compound-state-cli/PLAN-01.md', '---\nplan: "88-01"\n---\n');
     writeFixture(tmpDir, 'phases/88-compound-state-cli/SUMMARY-88-01.md', '---\nstatus: complete\n---\n');
 
-    const result = phaseComplete('88', tmpDir);
+    const result = await phaseComplete('88', tmpDir);
     expect(result.success).toBe(true);
 
     const roadmap = fs.readFileSync(path.join(tmpDir, 'ROADMAP.md'), 'utf8');
@@ -175,13 +175,13 @@ describe('phaseComplete', () => {
     expect(roadmap).toMatch(/- \[ \] Phase 89:/);
   });
 
-  test('cross-file consistency: STATE.md frontmatter matches body', () => {
+  test('cross-file consistency: STATE.md frontmatter matches body', async () => {
     writeFixture(tmpDir, 'ROADMAP.md', ROADMAP_3PHASES);
     writeFixture(tmpDir, 'STATE.md', STATE_PHASE88);
     writeFixture(tmpDir, 'phases/88-compound-state-cli/PLAN-01.md', '---\nplan: "88-01"\n---\n');
     writeFixture(tmpDir, 'phases/88-compound-state-cli/SUMMARY-88-01.md', '---\nstatus: complete\n---\n');
 
-    phaseComplete('88', tmpDir);
+    await phaseComplete('88', tmpDir);
 
     const state = fs.readFileSync(path.join(tmpDir, 'STATE.md'), 'utf8');
     const fm = parseYamlFrontmatter(state);

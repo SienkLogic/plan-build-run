@@ -27,7 +27,7 @@ describe('config defaults — Phase 15 feature toggles', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('quality profile config includes features.progress_visualization = true', () => {
+  test('quality profile config includes features.progress_visualization = true', async () => {
     const config = {
       model_profile: 'quality',
       features: { progress_visualization: true },
@@ -37,7 +37,7 @@ describe('config defaults — Phase 15 feature toggles', () => {
     expect(loaded.features.progress_visualization).toBe(true);
   });
 
-  test('quality profile config includes features.contextual_help = true', () => {
+  test('quality profile config includes features.contextual_help = true', async () => {
     const config = {
       model_profile: 'quality',
       features: { contextual_help: true },
@@ -47,7 +47,7 @@ describe('config defaults — Phase 15 feature toggles', () => {
     expect(loaded.features.contextual_help).toBe(true);
   });
 
-  test('quality profile config includes features.team_onboarding = true', () => {
+  test('quality profile config includes features.team_onboarding = true', async () => {
     const config = {
       model_profile: 'quality',
       features: { team_onboarding: true },
@@ -57,7 +57,7 @@ describe('config defaults — Phase 15 feature toggles', () => {
     expect(loaded.features.team_onboarding).toBe(true);
   });
 
-  test('budget profile sets all three features to false', () => {
+  test('budget profile sets all three features to false', async () => {
     const config = {
       model_profile: 'budget',
       features: {
@@ -96,7 +96,7 @@ describe('getProgressData', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('getPhaseDependencyGraph returns nodes and edges from ROADMAP.md', () => {
+  test('getPhaseDependencyGraph returns nodes and edges from ROADMAP.md', async () => {
     const roadmapContent = `---
 title: Test Roadmap
 ---
@@ -125,7 +125,7 @@ title: Test Roadmap
     expect(result.nodes.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('getAgentActivity returns recent agent sessions from hooks.jsonl', () => {
+  test('getAgentActivity returns recent agent sessions from hooks.jsonl', async () => {
     const logsDir = path.join(planningDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     const entries = [
@@ -142,7 +142,7 @@ title: Test Roadmap
     expect(result[0]).toHaveProperty('startTime');
   });
 
-  test('getProgressData combines phase graph and agent activity', () => {
+  test('getProgressData combines phase graph and agent activity', async () => {
     const roadmapContent = `# Roadmap\n\n## Phase 1: Setup\n- [x] Plan 1-01\n\n## Phase 2: Build\n**Depends on:** Phase 1\n- [ ] Plan 2-01\n`;
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmapContent);
     const config = { features: { progress_visualization: true } };
@@ -155,7 +155,7 @@ title: Test Roadmap
     expect(result.summary).toHaveProperty('completed');
   });
 
-  test('getProgressData returns empty structure when feature disabled', () => {
+  test('getProgressData returns empty structure when feature disabled', async () => {
     const config = { features: { progress_visualization: false } };
     const result = getProgressData(planningDir, config);
     expect(result.enabled).toBe(false);

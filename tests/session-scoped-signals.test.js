@@ -41,17 +41,17 @@ function makePlanningDir(tmpDir) {
 // resolveSessionPath
 // ─────────────────────────────────────────────────────────────────────────────
 describe('resolveSessionPath', () => {
-  test('returns .sessions/{id}/{filename} path', () => {
+  test('returns .sessions/{id}/{filename} path', async () => {
     const result = resolveSessionPath('/fake/.planning', '.session.json', 'abc123');
     expect(result).toBe(path.join('/fake/.planning', '.sessions', 'abc123', '.session.json'));
   });
 
-  test('always includes .sessions/ in the path', () => {
+  test('always includes .sessions/ in the path', async () => {
     const result = resolveSessionPath('/any/dir', 'file.txt', 'xyz');
     expect(result).toContain(path.join('.sessions', 'xyz'));
   });
 
-  test('uses path.join for cross-platform safety', () => {
+  test('uses path.join for cross-platform safety', async () => {
     const result = resolveSessionPath('/a/b', 'f', 'id');
     // Should not contain double separators or forward slashes on Windows
     expect(result).toBe(path.join('/a/b', '.sessions', 'id', 'f'));
@@ -73,7 +73,7 @@ describe('ensureSessionDir', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('creates .sessions/{id}/ directory with meta.json', () => {
+  test('creates .sessions/{id}/ directory with meta.json', async () => {
     ensureSessionDir(planningDir, 'sess-001');
     const dirPath = path.join(planningDir, '.sessions', 'sess-001');
     expect(fs.existsSync(dirPath)).toBe(true);
@@ -87,7 +87,7 @@ describe('ensureSessionDir', () => {
     expect(typeof meta.pid).toBe('number');
   });
 
-  test('meta.json created field is a valid ISO string', () => {
+  test('meta.json created field is a valid ISO string', async () => {
     ensureSessionDir(planningDir, 'sess-002');
     const meta = JSON.parse(fs.readFileSync(
       path.join(planningDir, '.sessions', 'sess-002', 'meta.json'), 'utf8'
@@ -96,7 +96,7 @@ describe('ensureSessionDir', () => {
     expect(parsed.toISOString()).toBe(meta.created);
   });
 
-  test('is idempotent — calling twice does not error or overwrite meta.json', () => {
+  test('is idempotent — calling twice does not error or overwrite meta.json', async () => {
     ensureSessionDir(planningDir, 'sess-idem');
     const metaPath = path.join(planningDir, '.sessions', 'sess-idem', 'meta.json');
     const meta1 = fs.readFileSync(metaPath, 'utf8');
@@ -125,7 +125,7 @@ describe('removeSessionDir', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('removes .sessions/{id}/ directory and all contents', () => {
+  test('removes .sessions/{id}/ directory and all contents', async () => {
     ensureSessionDir(planningDir, 'to-remove');
     // Add an extra file
     fs.writeFileSync(
@@ -139,7 +139,7 @@ describe('removeSessionDir', () => {
     expect(fs.existsSync(dirPath)).toBe(false);
   });
 
-  test('does not error when directory does not exist', () => {
+  test('does not error when directory does not exist', async () => {
     expect(() => removeSessionDir(planningDir, 'nonexistent')).not.toThrow();
   });
 });
@@ -159,19 +159,19 @@ describe('cleanStaleSessions', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns empty array when .sessions/ does not exist', () => {
+  test('returns empty array when .sessions/ does not exist', async () => {
     const result = cleanStaleSessions(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('does not remove sessions younger than 4 hours', () => {
+  test('does not remove sessions younger than 4 hours', async () => {
     ensureSessionDir(planningDir, 'young-sess');
     const result = cleanStaleSessions(planningDir);
     expect(result).toEqual([]);
     expect(fs.existsSync(path.join(planningDir, '.sessions', 'young-sess'))).toBe(true);
   });
 
-  test('removes sessions older than 4 hours', () => {
+  test('removes sessions older than 4 hours', async () => {
     ensureSessionDir(planningDir, 'old-sess');
     // Backdate meta.json mtime to 5 hours ago
     const metaPath = path.join(planningDir, '.sessions', 'old-sess', 'meta.json');
@@ -207,7 +207,7 @@ describe('cleanStaleSessions', () => {
     }
   });
 
-  test('keeps young sessions while removing old ones', () => {
+  test('keeps young sessions while removing old ones', async () => {
     ensureSessionDir(planningDir, 'keep-me');
     ensureSessionDir(planningDir, 'remove-me');
 
@@ -240,7 +240,7 @@ describe('sessionLoad/sessionSave with sessionId', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('sessionSave with sessionId writes to .sessions/{id}/.session.json', () => {
+  test('sessionSave with sessionId writes to .sessions/{id}/.session.json', async () => {
     const result = sessionSave(planningDir, { activeSkill: 'build' }, 'sess-save');
     expect(result.success).toBe(true);
 
@@ -250,18 +250,18 @@ describe('sessionLoad/sessionSave with sessionId', () => {
     expect(data.activeSkill).toBe('build');
   });
 
-  test('sessionLoad with sessionId reads from .sessions/{id}/.session.json', () => {
+  test('sessionLoad with sessionId reads from .sessions/{id}/.session.json', async () => {
     sessionSave(planningDir, { compactCounter: 3 }, 'sess-load');
     const data = sessionLoad(planningDir, 'sess-load');
     expect(data.compactCounter).toBe(3);
   });
 
-  test('sessionLoad returns {} when session file does not exist', () => {
+  test('sessionLoad returns {} when session file does not exist', async () => {
     const data = sessionLoad(planningDir, 'nonexistent');
     expect(data).toEqual({});
   });
 
-  test('sessionSave merges with existing data', () => {
+  test('sessionSave merges with existing data', async () => {
     sessionSave(planningDir, { activeSkill: 'plan' }, 'sess-merge');
     sessionSave(planningDir, { compactCounter: 5 }, 'sess-merge');
     const data = sessionLoad(planningDir, 'sess-merge');
@@ -285,7 +285,7 @@ describe('writeActiveSkill with sessionId', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('writes to .sessions/{id}/.active-skill when sessionId provided', () => {
+  test('writes to .sessions/{id}/.active-skill when sessionId provided', async () => {
     const result = writeActiveSkill(planningDir, 'build', 'sess-skill');
     expect(result.success).toBe(true);
 
@@ -294,7 +294,7 @@ describe('writeActiveSkill with sessionId', () => {
     expect(fs.readFileSync(filePath, 'utf8')).toBe('build');
   });
 
-  test('writes to .planning/.active-skill when sessionId is null', () => {
+  test('writes to .planning/.active-skill when sessionId is null', async () => {
     const result = writeActiveSkill(planningDir, 'review', null);
     expect(result.success).toBe(true);
 
@@ -322,7 +322,7 @@ describe('cross-contamination prevention', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('two session IDs writing .session.json do not overwrite each other', () => {
+  test('two session IDs writing .session.json do not overwrite each other', async () => {
     sessionSave(planningDir, { activeSkill: 'plan' }, 'session-A');
     sessionSave(planningDir, { activeSkill: 'build' }, 'session-B');
 
@@ -333,7 +333,7 @@ describe('cross-contamination prevention', () => {
     expect(dataB.activeSkill).toBe('build');
   });
 
-  test('two session IDs writing .active-skill do not overwrite each other', () => {
+  test('two session IDs writing .active-skill do not overwrite each other', async () => {
     writeActiveSkill(planningDir, 'plan', 'session-A');
     writeActiveSkill(planningDir, 'build', 'session-B');
 
@@ -348,7 +348,7 @@ describe('cross-contamination prevention', () => {
     expect(skillB).toBe('build');
   });
 
-  test('removing session A does not affect session B files', () => {
+  test('removing session A does not affect session B files', async () => {
     sessionSave(planningDir, { activeSkill: 'plan' }, 'session-A');
     sessionSave(planningDir, { activeSkill: 'build' }, 'session-B');
     writeActiveSkill(planningDir, 'plan', 'session-A');
@@ -383,18 +383,18 @@ describe('detectOtherSessions', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns empty when no .sessions/ directory exists', () => {
+  test('returns empty when no .sessions/ directory exists', async () => {
     const result = detectOtherSessions(planningDir, 'my-session');
     expect(result).toEqual([]);
   });
 
-  test('returns empty when only own session exists', () => {
+  test('returns empty when only own session exists', async () => {
     ensureSessionDir(planningDir, 'my-session');
     const result = detectOtherSessions(planningDir, 'my-session');
     expect(result).toEqual([]);
   });
 
-  test('returns other sessions info when they exist', () => {
+  test('returns other sessions info when they exist', async () => {
     ensureSessionDir(planningDir, 'my-session');
     ensureSessionDir(planningDir, 'other-session');
 
@@ -404,7 +404,7 @@ describe('detectOtherSessions', () => {
     expect(typeof result[0].age).toBe('number');
   });
 
-  test('excludes own session from results', () => {
+  test('excludes own session from results', async () => {
     ensureSessionDir(planningDir, 'self');
     ensureSessionDir(planningDir, 'peer-1');
     ensureSessionDir(planningDir, 'peer-2');
@@ -416,7 +416,7 @@ describe('detectOtherSessions', () => {
     expect(sessionIds).toContain('peer-2');
   });
 
-  test('includes skill name from .active-skill file in other session dir', () => {
+  test('includes skill name from .active-skill file in other session dir', async () => {
     ensureSessionDir(planningDir, 'my-session');
     ensureSessionDir(planningDir, 'other-session');
 
@@ -431,7 +431,7 @@ describe('detectOtherSessions', () => {
     expect(result[0].skill).toBe('build');
   });
 
-  test('returns null skill when no .active-skill file exists', () => {
+  test('returns null skill when no .active-skill file exists', async () => {
     ensureSessionDir(planningDir, 'my-session');
     ensureSessionDir(planningDir, 'idle-session');
 
@@ -440,7 +440,7 @@ describe('detectOtherSessions', () => {
     expect(result[0].skill).toBeNull();
   });
 
-  test('includes pid from meta.json', () => {
+  test('includes pid from meta.json', async () => {
     ensureSessionDir(planningDir, 'my-session');
     ensureSessionDir(planningDir, 'other-session');
 

@@ -33,12 +33,12 @@ describe('trust-tracker', () => {
   });
 
   describe('loadScores', () => {
-    test('returns empty object when agent-scores.json does not exist', () => {
+    test('returns empty object when agent-scores.json does not exist', async () => {
       const scores = loadScores(tmpDir);
       expect(scores).toEqual({});
     });
 
-    test('returns parsed data when file exists', () => {
+    test('returns parsed data when file exists', async () => {
       const trustPath = path.join(tmpDir, TRUST_DIR);
       fs.mkdirSync(trustPath, { recursive: true });
       const data = { executor: { build: { pass: 5, fail: 1, rate: 0.8333 } } };
@@ -49,27 +49,27 @@ describe('trust-tracker', () => {
   });
 
   describe('recordOutcome', () => {
-    test('creates trust dir and file if missing', () => {
+    test('creates trust dir and file if missing', async () => {
       recordOutcome(tmpDir, 'executor', 'build', true);
       const filePath = path.join(tmpDir, TRUST_DIR, TRUST_FILE);
       expect(fs.existsSync(filePath)).toBe(true);
     });
 
-    test('increments pass count when passed=true', () => {
+    test('increments pass count when passed=true', async () => {
       recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', true);
       const scores = loadScores(tmpDir);
       expect(scores.executor.build.pass).toBe(2);
     });
 
-    test('increments fail count when passed=false', () => {
+    test('increments fail count when passed=false', async () => {
       recordOutcome(tmpDir, 'executor', 'build', false);
       recordOutcome(tmpDir, 'executor', 'build', false);
       const scores = loadScores(tmpDir);
       expect(scores.executor.build.fail).toBe(2);
     });
 
-    test('recalculates rate as pass/(pass+fail)', () => {
+    test('recalculates rate as pass/(pass+fail)', async () => {
       recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', false);
@@ -80,12 +80,12 @@ describe('trust-tracker', () => {
   });
 
   describe('getConfidence', () => {
-    test('returns null when no data exists for agent+category', () => {
+    test('returns null when no data exists for agent+category', async () => {
       const result = getConfidence(tmpDir, 'verifier', 'lint');
       expect(result).toBeNull();
     });
 
-    test('returns high label when rate >= 0.9', () => {
+    test('returns high label when rate >= 0.9', async () => {
       // 9 pass, 1 fail => 0.9
       for (let i = 0; i < 9; i++) recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', false);
@@ -95,7 +95,7 @@ describe('trust-tracker', () => {
       expect(result.label).toBe('high');
     });
 
-    test('returns medium label when rate >= 0.7 and < 0.9', () => {
+    test('returns medium label when rate >= 0.7 and < 0.9', async () => {
       // 7 pass, 3 fail => 0.7
       for (let i = 0; i < 7; i++) recordOutcome(tmpDir, 'executor', 'test', true);
       for (let i = 0; i < 3; i++) recordOutcome(tmpDir, 'executor', 'test', false);
@@ -105,7 +105,7 @@ describe('trust-tracker', () => {
       expect(result.label).toBe('medium');
     });
 
-    test('returns low label when rate < 0.7', () => {
+    test('returns low label when rate < 0.7', async () => {
       // 1 pass, 3 fail => 0.25
       recordOutcome(tmpDir, 'planner', 'design', true);
       for (let i = 0; i < 3; i++) recordOutcome(tmpDir, 'planner', 'design', false);
@@ -125,7 +125,7 @@ describe('trust-tracker', () => {
   });
 
   describe('resetScores', () => {
-    test('removes agent-scores.json', () => {
+    test('removes agent-scores.json', async () => {
       recordOutcome(tmpDir, 'executor', 'build', true);
       const filePath = path.join(tmpDir, TRUST_DIR, TRUST_FILE);
       expect(fs.existsSync(filePath)).toBe(true);
@@ -133,13 +133,13 @@ describe('trust-tracker', () => {
       expect(fs.existsSync(filePath)).toBe(false);
     });
 
-    test('does not throw when file does not exist', () => {
+    test('does not throw when file does not exist', async () => {
       expect(() => resetScores(tmpDir)).not.toThrow();
     });
   });
 
   describe('logTrustEvent', () => {
-    test('creates logs dir and appends JSONL entry to trust-events.jsonl', () => {
+    test('creates logs dir and appends JSONL entry to trust-events.jsonl', async () => {
       logTrustEvent(tmpDir, 'executor', 'build', true, 0.9);
       const logPath = path.join(tmpDir, 'logs', 'trust-events.jsonl');
       expect(fs.existsSync(logPath)).toBe(true);
@@ -155,7 +155,7 @@ describe('trust-tracker', () => {
       expect(new Date(entry.ts).toISOString()).toBe(entry.ts);
     });
 
-    test('appends multiple entries', () => {
+    test('appends multiple entries', async () => {
       logTrustEvent(tmpDir, 'executor', 'build', true, 0.9);
       logTrustEvent(tmpDir, 'verifier', 'lint', false, 0.5);
       const logPath = path.join(tmpDir, 'logs', 'trust-events.jsonl');
@@ -163,14 +163,14 @@ describe('trust-tracker', () => {
       expect(lines).toHaveLength(2);
     });
 
-    test('does not throw on write failure', () => {
+    test('does not throw on write failure', async () => {
       // Pass an invalid path that cannot be created
       expect(() => logTrustEvent('/dev/null/impossible', 'executor', 'build', true, 0.9)).not.toThrow();
     });
   });
 
   describe('recordOutcome audit logging', () => {
-    test('recordOutcome appends a JSONL entry to trust-events.jsonl', () => {
+    test('recordOutcome appends a JSONL entry to trust-events.jsonl', async () => {
       recordOutcome(tmpDir, 'executor', 'build', true);
       const logPath = path.join(tmpDir, 'logs', 'trust-events.jsonl');
       expect(fs.existsSync(logPath)).toBe(true);
@@ -185,12 +185,12 @@ describe('trust-tracker', () => {
   });
 
   describe('getConfidenceSummary', () => {
-    test('returns null when no data exists for agent', () => {
+    test('returns null when no data exists for agent', async () => {
       const result = getConfidenceSummary(tmpDir, 'unknown-agent');
       expect(result).toBeNull();
     });
 
-    test('returns summary with all categories for an agent', () => {
+    test('returns summary with all categories for an agent', async () => {
       recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', false);
@@ -209,7 +209,7 @@ describe('trust-tracker', () => {
       expect(result.categories.test.label).toBe('high');
     });
 
-    test('returns correct overall_rate and overall_total', () => {
+    test('returns correct overall_rate and overall_total', async () => {
       // 3 pass, 1 fail across categories
       recordOutcome(tmpDir, 'executor', 'build', true);
       recordOutcome(tmpDir, 'executor', 'build', true);
@@ -220,7 +220,7 @@ describe('trust-tracker', () => {
       expect(result.overall_rate).toBeCloseTo(3 / 4, 4);
     });
 
-    test('returns null when scores file is empty', () => {
+    test('returns null when scores file is empty', async () => {
       // No data for the agent at all
       recordOutcome(tmpDir, 'verifier', 'lint', true);
       const result = getConfidenceSummary(tmpDir, 'executor');

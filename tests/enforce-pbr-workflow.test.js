@@ -59,24 +59,24 @@ describe('loadEnforcementConfig', () => {
     cleanup(tmpDir);
   });
 
-  test('returns { level: "advisory" } when no config exists (default)', () => {
+  test('returns { level: "advisory" } when no config exists (default)', async () => {
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'advisory' });
   });
 
-  test('returns { level: "block" } when config has workflow.enforce_pbr_skills: "block"', () => {
+  test('returns { level: "block" } when config has workflow.enforce_pbr_skills: "block"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'block' });
   });
 
-  test('returns { level: "off" } when config has workflow.enforce_pbr_skills: "off"', () => {
+  test('returns { level: "off" } when config has workflow.enforce_pbr_skills: "off"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'off' } });
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'off' });
   });
 
-  test('returns { level: "advisory" } when config has workflow.enforce_pbr_skills: "advisory"', () => {
+  test('returns { level: "advisory" } when config has workflow.enforce_pbr_skills: "advisory"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'advisory' } });
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'advisory' });
@@ -89,19 +89,19 @@ describe('loadEnforcementConfig', () => {
     expect(result).toEqual({ level: 'off' });
   });
 
-  test('returns { level: "off" } when .native-mode exists and no config', () => {
+  test('returns { level: "off" } when .native-mode exists and no config', async () => {
     writeNativeMode(planningDir);
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'off' });
   });
 
-  test('returns { level: "advisory" } when config exists but has no workflow key', () => {
+  test('returns { level: "advisory" } when config exists but has no workflow key', async () => {
     writeConfig(planningDir, { someOtherKey: true });
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'advisory' });
   });
 
-  test('returns { level: "advisory" } when config has workflow but no enforce_pbr_skills', () => {
+  test('returns { level: "advisory" } when config has workflow but no enforce_pbr_skills', async () => {
     writeConfig(planningDir, { workflow: {} });
     const result = loadEnforcementConfig(planningDir);
     expect(result).toEqual({ level: 'advisory' });
@@ -134,7 +134,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result.output.additionalContext).toMatch(/pbr/i);
   });
 
-  test('advisory message mentions /pbr:quick', () => {
+  test('advisory message mentions /pbr:quick', async () => {
     const filePath = path.join(tmpDir, 'app.ts');
     const data = { tool_input: { file_path: filePath } };
     const result = checkUnmanagedSourceWrite(data);
@@ -142,7 +142,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result.output.additionalContext).toContain('/pbr:quick');
   });
 
-  test('advisory message mentions /pbr:execute-phase', () => {
+  test('advisory message mentions /pbr:execute-phase', async () => {
     const filePath = path.join(tmpDir, 'lib', 'util.ts');
     const data = { tool_input: { file_path: filePath } };
     const result = checkUnmanagedSourceWrite(data);
@@ -150,7 +150,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result.output.additionalContext).toContain('/pbr:execute-phase');
   });
 
-  test('returns block result when config level is "block"', () => {
+  test('returns block result when config level is "block"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const filePath = path.join(tmpDir, 'src', 'main.py');
     const data = { tool_input: { file_path: filePath } };
@@ -162,7 +162,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result.output.reason).toMatch(/pbr/i);
   });
 
-  test('returns null when .active-skill file exists (PBR skill is active)', () => {
+  test('returns null when .active-skill file exists (PBR skill is active)', async () => {
     writeActiveSkill(planningDir, 'quick');
     const filePath = path.join(tmpDir, 'src', 'index.js');
     const data = { tool_input: { file_path: filePath } };
@@ -170,7 +170,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when .active-skill exists with build skill', () => {
+  test('returns null when .active-skill exists with build skill', async () => {
     writeActiveSkill(planningDir, 'build');
     const filePath = path.join(tmpDir, 'src', 'feature.ts');
     const data = { tool_input: { file_path: filePath } };
@@ -178,21 +178,21 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when target file is inside .planning/ directory', () => {
+  test('returns null when target file is inside .planning/ directory', async () => {
     const filePath = path.join(planningDir, 'STATE.md');
     const data = { tool_input: { file_path: filePath } };
     const result = checkUnmanagedSourceWrite(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when target file is deeply inside .planning/', () => {
+  test('returns null when target file is deeply inside .planning/', async () => {
     const filePath = path.join(planningDir, 'phases', '01-init', 'PLAN.md');
     const data = { tool_input: { file_path: filePath } };
     const result = checkUnmanagedSourceWrite(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when no .planning/ dir exists (not a PBR project)', () => {
+  test('returns null when no .planning/ dir exists (not a PBR project)', async () => {
     // Use a completely fresh temp dir with no .planning/
     const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-bare-'));
     cwdSpy.mockReturnValue(bareDir);
@@ -206,7 +206,7 @@ describe('checkUnmanagedSourceWrite', () => {
     }
   });
 
-  test('returns null when .native-mode bypass file exists', () => {
+  test('returns null when .native-mode bypass file exists', async () => {
     writeNativeMode(planningDir);
     const filePath = path.join(tmpDir, 'src', 'index.js');
     const data = { tool_input: { file_path: filePath } };
@@ -214,7 +214,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when config level is "off"', () => {
+  test('returns null when config level is "off"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'off' } });
     const filePath = path.join(tmpDir, 'src', 'index.js');
     const data = { tool_input: { file_path: filePath } };
@@ -222,7 +222,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result).toBeNull();
   });
 
-  test('advisory result has additionalContext (not decision/reason)', () => {
+  test('advisory result has additionalContext (not decision/reason)', async () => {
     const filePath = path.join(tmpDir, 'app.js');
     const data = { tool_input: { file_path: filePath } };
     const result = checkUnmanagedSourceWrite(data);
@@ -231,7 +231,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result.output).toHaveProperty('additionalContext');
   });
 
-  test('block result has decision:"block" and reason (not additionalContext)', () => {
+  test('block result has decision:"block" and reason (not additionalContext)', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const filePath = path.join(tmpDir, 'app.js');
     const data = { tool_input: { file_path: filePath } };
@@ -242,7 +242,7 @@ describe('checkUnmanagedSourceWrite', () => {
     expect(result.output).toHaveProperty('reason');
   });
 
-  test('handles Edit tool data with file_path', () => {
+  test('handles Edit tool data with file_path', async () => {
     const filePath = path.join(tmpDir, 'README.md');
     const data = { tool_input: { file_path: filePath, old_string: 'foo', new_string: 'bar' } };
     // README.md is outside .planning/ — should produce advisory
@@ -268,7 +268,7 @@ describe('checkNonPbrAgent', () => {
     cleanup(tmpDir);
   });
 
-  test('blocks subagent_type "Explore" by default with PBR agent suggestion', () => {
+  test('blocks subagent_type "Explore" by default with PBR agent suggestion', async () => {
     const data = { tool_input: { subagent_type: 'Explore' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
@@ -278,7 +278,7 @@ describe('checkNonPbrAgent', () => {
     expect(result.output.reason).toMatch(/pbr:researcher|pbr:codebase-mapper/i);
   });
 
-  test('blocks "general-purpose" by default suggesting pbr:general', () => {
+  test('blocks "general-purpose" by default suggesting pbr:general', async () => {
     const data = { tool_input: { subagent_type: 'general-purpose' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
@@ -286,7 +286,7 @@ describe('checkNonPbrAgent', () => {
     expect(result.output.reason).toContain('pbr:general');
   });
 
-  test('blocks "Plan" agent type by default', () => {
+  test('blocks "Plan" agent type by default', async () => {
     const data = { tool_input: { subagent_type: 'Plan' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
@@ -294,7 +294,7 @@ describe('checkNonPbrAgent', () => {
     expect(result.output.reason).toContain('pbr:planner');
   });
 
-  test('blocks "Bash" agent type by default', () => {
+  test('blocks "Bash" agent type by default', async () => {
     const data = { tool_input: { subagent_type: 'Bash' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
@@ -302,7 +302,7 @@ describe('checkNonPbrAgent', () => {
     expect(result.output.reason).toContain('pbr:executor');
   });
 
-  test('returns advisory when config level is "advisory"', () => {
+  test('returns advisory when config level is "advisory"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'advisory' } });
     const nonPbrTypes = ['Explore', 'general-purpose', 'Plan', 'Bash'];
     for (const subagent_type of nonPbrTypes) {
@@ -314,19 +314,19 @@ describe('checkNonPbrAgent', () => {
     }
   });
 
-  test('returns null for subagent_type "pbr:researcher" (already PBR)', () => {
+  test('returns null for subagent_type "pbr:researcher" (already PBR)', async () => {
     const data = { tool_input: { subagent_type: 'pbr:researcher' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('returns null for subagent_type "pbr:executor" (already PBR)', () => {
+  test('returns null for subagent_type "pbr:executor" (already PBR)', async () => {
     const data = { tool_input: { subagent_type: 'pbr:executor' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('returns null for any subagent_type starting with "pbr:"', () => {
+  test('returns null for any subagent_type starting with "pbr:"', async () => {
     const pbrTypes = ['pbr:general', 'pbr:planner', 'pbr:verifier', 'pbr:debugger', 'pbr:synthesizer'];
     for (const subagent_type of pbrTypes) {
       const data = { tool_input: { subagent_type } };
@@ -335,25 +335,25 @@ describe('checkNonPbrAgent', () => {
     }
   });
 
-  test('returns null when subagent_type is missing from tool_input', () => {
+  test('returns null when subagent_type is missing from tool_input', async () => {
     const data = { tool_input: {} };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when description contains [native] bypass marker', () => {
+  test('returns null when description contains [native] bypass marker', async () => {
     const data = { tool_input: { subagent_type: 'general-purpose', description: 'Research READMEs [native]' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('[native] bypass is case-insensitive', () => {
+  test('[native] bypass is case-insensitive', async () => {
     const data = { tool_input: { subagent_type: 'Explore', description: 'Explore repos [NATIVE]' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when no .planning/ dir exists (not a PBR project)', () => {
+  test('returns null when no .planning/ dir exists (not a PBR project)', async () => {
     const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-bare-'));
     cwdSpy.mockReturnValue(bareDir);
     try {
@@ -365,21 +365,21 @@ describe('checkNonPbrAgent', () => {
     }
   });
 
-  test('returns null when .native-mode bypass file exists', () => {
+  test('returns null when .native-mode bypass file exists', async () => {
     writeNativeMode(planningDir);
     const data = { tool_input: { subagent_type: 'Explore' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when config level is "off"', () => {
+  test('returns null when config level is "off"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'off' } });
     const data = { tool_input: { subagent_type: 'Explore' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
 
-  test('returns exitCode 2 (block) when config level is "block"', () => {
+  test('returns exitCode 2 (block) when config level is "block"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const nonPbrTypes = ['Explore', 'general-purpose', 'Plan', 'Bash'];
     for (const subagent_type of nonPbrTypes) {
@@ -391,7 +391,7 @@ describe('checkNonPbrAgent', () => {
     }
   });
 
-  test('block result includes PBR agent suggestion and reason', () => {
+  test('block result includes PBR agent suggestion and reason', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const data = { tool_input: { subagent_type: 'Explore' } };
     const result = checkNonPbrAgent(data);
@@ -403,7 +403,7 @@ describe('checkNonPbrAgent', () => {
     expect(result.output).not.toHaveProperty('additionalContext');
   });
 
-  test('uses enforce_pbr_agents when set (takes priority over enforce_pbr_skills)', () => {
+  test('uses enforce_pbr_agents when set (takes priority over enforce_pbr_skills)', async () => {
     // L176 branch: agentExplicit is 'advisory', so agentLevel = agentExplicit
     writeConfig(planningDir, {
       workflow: { enforce_pbr_agents: 'advisory', enforce_pbr_skills: 'block' }
@@ -433,7 +433,7 @@ describe('checkUnmanagedCommit', () => {
     cleanup(tmpDir);
   });
 
-  test('returns advisory for "git commit -m ..." without .active-skill', () => {
+  test('returns advisory for "git commit -m ..." without .active-skill', async () => {
     const data = { tool_input: { command: 'git commit -m "feat(01-01): add feature"' } };
     const result = checkUnmanagedCommit(data);
     expect(result).not.toBeNull();
@@ -442,52 +442,52 @@ describe('checkUnmanagedCommit', () => {
     expect(result.output.additionalContext).toContain('/pbr:quick');
   });
 
-  test('advisory message mentions PBR tracking', () => {
+  test('advisory message mentions PBR tracking', async () => {
     const data = { tool_input: { command: 'git commit -m "fix: something"' } };
     const result = checkUnmanagedCommit(data);
     expect(result).not.toBeNull();
     expect(result.output.additionalContext).toMatch(/pbr|track/i);
   });
 
-  test('returns null when .active-skill exists', () => {
+  test('returns null when .active-skill exists', async () => {
     writeActiveSkill(planningDir, 'build');
     const data = { tool_input: { command: 'git commit -m "feat(01-01): add feature"' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when .active-skill is "quick"', () => {
+  test('returns null when .active-skill is "quick"', async () => {
     writeActiveSkill(planningDir, 'quick');
     const data = { tool_input: { command: 'git commit -m "feat(quick-001): fix"' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null for non-commit bash commands (git status)', () => {
+  test('returns null for non-commit bash commands (git status)', async () => {
     const data = { tool_input: { command: 'git status' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null for non-commit bash commands (git push)', () => {
+  test('returns null for non-commit bash commands (git push)', async () => {
     const data = { tool_input: { command: 'git push origin main' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null for non-commit bash commands (npm test)', () => {
+  test('returns null for non-commit bash commands (npm test)', async () => {
     const data = { tool_input: { command: 'npm test' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null for non-commit bash commands (git log)', () => {
+  test('returns null for non-commit bash commands (git log)', async () => {
     const data = { tool_input: { command: 'git log --oneline -5' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when no .planning/ dir exists', () => {
+  test('returns null when no .planning/ dir exists', async () => {
     const bareDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-bare-'));
     cwdSpy.mockReturnValue(bareDir);
     try {
@@ -499,21 +499,21 @@ describe('checkUnmanagedCommit', () => {
     }
   });
 
-  test('returns null when .native-mode bypass file exists', () => {
+  test('returns null when .native-mode bypass file exists', async () => {
     writeNativeMode(planningDir);
     const data = { tool_input: { command: 'git commit -m "feat: add something"' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('returns null when config level is "off"', () => {
+  test('returns null when config level is "off"', async () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'off' } });
     const data = { tool_input: { command: 'git commit -m "feat: add something"' } };
     const result = checkUnmanagedCommit(data);
     expect(result).toBeNull();
   });
 
-  test('detects git commit in chained command (git add && git commit)', () => {
+  test('detects git commit in chained command (git add && git commit)', async () => {
     const data = { tool_input: { command: 'git add . && git commit -m "feat(01-01): add"' } };
     const result = checkUnmanagedCommit(data);
     // Chained commit without active-skill should also be caught
@@ -544,19 +544,19 @@ describe('checkUnmanagedCommit', () => {
 // ─── Module exports ──────────────────────────────────────────────────────────
 
 describe('enforce-pbr-workflow module exports', () => {
-  test('exports loadEnforcementConfig', () => {
+  test('exports loadEnforcementConfig', async () => {
     expect(typeof loadEnforcementConfig).toBe('function');
   });
 
-  test('exports checkUnmanagedSourceWrite', () => {
+  test('exports checkUnmanagedSourceWrite', async () => {
     expect(typeof checkUnmanagedSourceWrite).toBe('function');
   });
 
-  test('exports checkNonPbrAgent', () => {
+  test('exports checkNonPbrAgent', async () => {
     expect(typeof checkNonPbrAgent).toBe('function');
   });
 
-  test('exports checkUnmanagedCommit', () => {
+  test('exports checkUnmanagedCommit', async () => {
     expect(typeof checkUnmanagedCommit).toBe('function');
   });
 });

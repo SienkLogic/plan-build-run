@@ -41,7 +41,7 @@ describe('checkDocExistence', () => {
     process.cwd = origCwd;
   });
 
-  test('returns null when PROJECT.md and REQUIREMENTS.md both exist', () => {
+  test('returns null when PROJECT.md and REQUIREMENTS.md both exist', async () => {
     const { tmpDir, planningDir } = makeTempProject([
       'STATE.md', 'ROADMAP.md', 'PROJECT.md', 'REQUIREMENTS.md'
     ]);
@@ -53,7 +53,7 @@ describe('checkDocExistence', () => {
     expect(result).toBeNull();
   });
 
-  test('returns block when PROJECT.md is missing but STATE.md and ROADMAP.md exist', () => {
+  test('returns block when PROJECT.md is missing but STATE.md and ROADMAP.md exist', async () => {
     const { tmpDir, planningDir } = makeTempProject([
       'STATE.md', 'ROADMAP.md', 'REQUIREMENTS.md'
     ]);
@@ -66,7 +66,7 @@ describe('checkDocExistence', () => {
     expect(result.reason).toContain('PROJECT.md');
   });
 
-  test('returns block when REQUIREMENTS.md is missing but STATE.md and ROADMAP.md exist', () => {
+  test('returns block when REQUIREMENTS.md is missing but STATE.md and ROADMAP.md exist', async () => {
     const { tmpDir, planningDir } = makeTempProject([
       'STATE.md', 'ROADMAP.md', 'PROJECT.md'
     ]);
@@ -79,7 +79,7 @@ describe('checkDocExistence', () => {
     expect(result.reason).toContain('REQUIREMENTS.md');
   });
 
-  test('returns null when STATE.md is missing (not a PBR project yet)', () => {
+  test('returns null when STATE.md is missing (not a PBR project yet)', async () => {
     const { tmpDir, planningDir } = makeTempProject([
       'ROADMAP.md'
     ]);
@@ -90,7 +90,7 @@ describe('checkDocExistence', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when active skill is not plan or build', () => {
+  test('returns null when active skill is not plan or build', async () => {
     const { tmpDir, planningDir } = makeTempProject([
       'STATE.md', 'ROADMAP.md'
       // PROJECT.md and REQUIREMENTS.md both missing — but skill is not plan/build

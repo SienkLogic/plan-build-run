@@ -21,7 +21,7 @@ const {
  * @param {string[]} args - Full CLI args (args[0] === 'roadmap')
  * @param {{ planningDir: string, cwd: string, output: function, error: function }} ctx
  */
-function handleRoadmap(args, ctx) {
+async function handleRoadmap(args, ctx) {
   const subcommand = args[1];
 
   if (subcommand === 'update-status') {
@@ -30,7 +30,7 @@ function handleRoadmap(args, ctx) {
     if (!phase || !status) {
       ctx.error('Usage: pbr-tools.js roadmap update-status <phase-number> <status>');
     }
-    ctx.output(_roadmapUpdateStatus(phase, status, ctx.planningDir));
+    ctx.output(await _roadmapUpdateStatus(phase, status, ctx.planningDir));
   } else if (subcommand === 'update-plans') {
     const phase = args[2];
     const complete = args[3];
@@ -38,7 +38,7 @@ function handleRoadmap(args, ctx) {
     if (!phase || complete === undefined || total === undefined) {
       ctx.error('Usage: pbr-tools.js roadmap update-plans <phase-number> <complete> <total>');
     }
-    ctx.output(_roadmapUpdatePlans(phase, complete, total, ctx.planningDir));
+    ctx.output(await _roadmapUpdatePlans(phase, complete, total, ctx.planningDir));
   } else if (subcommand === 'analyze') {
     ctx.output(_roadmapAnalyze(ctx.planningDir));
   } else if (subcommand === 'reconcile') {
@@ -66,7 +66,7 @@ function handleRoadmap(args, ctx) {
     const analysis = _roadmapAnalyze(ctx.planningDir);
     const maxPhase = analysis.phases ? Math.max(...analysis.phases.map(p => p.num || 0), 0) : 0;
     const nextNum = maxPhase + 1;
-    ctx.output(_roadmapAppendPhase(ctx.planningDir, nextNum, name || goal, goal, dependsOn));
+    ctx.output(await _roadmapAppendPhase(ctx.planningDir, nextNum, name || goal, goal, dependsOn));
   } else {
     ctx.error('Usage: roadmap update-status|update-plans|analyze|reconcile|get-phase|append-phase');
   }

@@ -101,23 +101,23 @@ afterAll(() => {
 
 describe('incidents CLI subcommands', () => {
   describe('incidents list', () => {
-    test('returns array of all incidents', () => {
+    test('returns array of all incidents', async () => {
       const result = list({ planningDir, limit: Infinity });
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(5);
     });
 
-    test('respects --limit', () => {
+    test('respects --limit', async () => {
       const result = list({ planningDir, limit: 2 });
       expect(result.length).toBe(2);
     });
 
-    test('entries have timestamp field', () => {
+    test('entries have timestamp field', async () => {
       const result = list({ planningDir, limit: 1 });
       expect(result[0]).toHaveProperty('timestamp');
     });
 
-    test('default order is newest first (across days)', () => {
+    test('default order is newest first (across days)', async () => {
       const result = list({ planningDir, limit: Infinity });
       // Check that the first entry is more recent than the last
       const firstTime = new Date(result[0].timestamp).getTime();
@@ -135,32 +135,32 @@ describe('incidents CLI subcommands', () => {
       expect(result).toHaveProperty('by_severity');
     });
 
-    test('total matches entry count', () => {
+    test('total matches entry count', async () => {
       const result = summary({ planningDir });
       expect(result.total).toBe(5);
     });
 
-    test('by_type counts are correct', () => {
+    test('by_type counts are correct', async () => {
       const result = summary({ planningDir });
       expect(result.by_type.block).toBe(2);
       expect(result.by_type.warn).toBe(3);
     });
 
-    test('by_source counts are correct', () => {
+    test('by_source counts are correct', async () => {
       const result = summary({ planningDir });
       expect(result.by_source.hook).toBe(3);
       expect(result.by_source.agent).toBe(1);
       expect(result.by_source.cli).toBe(1);
     });
 
-    test('by_severity counts are correct', () => {
+    test('by_severity counts are correct', async () => {
       const result = summary({ planningDir });
       expect(result.by_severity.error).toBe(2);
       expect(result.by_severity.warning).toBe(2);
       expect(result.by_severity.info).toBe(1);
     });
 
-    test('includes oldest and newest timestamps', () => {
+    test('includes oldest and newest timestamps', async () => {
       const result = summary({ planningDir });
       expect(result.oldest).toBeTruthy();
       expect(result.newest).toBeTruthy();
@@ -169,25 +169,25 @@ describe('incidents CLI subcommands', () => {
   });
 
   describe('incidents query', () => {
-    test('filters by --type block', () => {
+    test('filters by --type block', async () => {
       const result = query({ type: 'block' }, { planningDir });
       expect(result.length).toBe(2);
       expect(result.every(e => e.type === 'block')).toBe(true);
     });
 
-    test('filters by --severity error', () => {
+    test('filters by --severity error', async () => {
       const result = query({ severity: 'error' }, { planningDir });
       expect(result.length).toBe(2);
       expect(result.every(e => e.severity === 'error')).toBe(true);
     });
 
-    test('filters by --source hook', () => {
+    test('filters by --source hook', async () => {
       const result = query({ source: 'hook' }, { planningDir });
       expect(result.length).toBe(3);
       expect(result.every(e => e.source === 'hook')).toBe(true);
     });
 
-    test('filters by --last 1d (time window)', () => {
+    test('filters by --last 1d (time window)', async () => {
       const result = query({ last: '1d' }, { planningDir });
       // Only entries from last 24 hours (the 2 recent ones)
       expect(result.length).toBe(2);
@@ -195,33 +195,33 @@ describe('incidents CLI subcommands', () => {
       expect(result.every(e => new Date(e.timestamp).getTime() >= cutoff)).toBe(true);
     });
 
-    test('filters by --last 7d', () => {
+    test('filters by --last 7d', async () => {
       const result = query({ last: '7d' }, { planningDir });
       // Entries from last 7 days (first 4, not the 10-day-old one)
       expect(result.length).toBe(4);
     });
 
-    test('combined filters work', () => {
+    test('combined filters work', async () => {
       const result = query({ type: 'block', last: '1d' }, { planningDir });
       expect(result.length).toBe(1);
       expect(result[0].type).toBe('block');
     });
 
-    test('returns empty array when no matches', () => {
+    test('returns empty array when no matches', async () => {
       const result = query({ type: 'nonexistent' }, { planningDir });
       expect(result).toEqual([]);
     });
   });
 
   describe('error handling', () => {
-    test('list returns empty array for missing incidents dir', () => {
+    test('list returns empty array for missing incidents dir', async () => {
       const emptyDir = path.join(tmpDir, 'empty', '.planning');
       fs.mkdirSync(emptyDir, { recursive: true });
       const result = list({ planningDir: emptyDir });
       expect(result).toEqual([]);
     });
 
-    test('summary returns zero total for missing incidents dir', () => {
+    test('summary returns zero total for missing incidents dir', async () => {
       const emptyDir = path.join(tmpDir, 'empty2', '.planning');
       fs.mkdirSync(emptyDir, { recursive: true });
       const result = summary({ planningDir: emptyDir });
@@ -230,19 +230,19 @@ describe('incidents CLI subcommands', () => {
   });
 
   describe('wrapper function planningDir passing', () => {
-    test('wrapper passes planningDir correctly to list', () => {
+    test('wrapper passes planningDir correctly to list', async () => {
       // Verify the wrapper pattern works by calling with planningDir in opts
       const result = list({ planningDir, limit: 1 });
       expect(result.length).toBe(1);
       expect(result[0]).toHaveProperty('issue');
     });
 
-    test('wrapper passes planningDir correctly to query', () => {
+    test('wrapper passes planningDir correctly to query', async () => {
       const result = query({ type: 'warn' }, { planningDir });
       expect(result.length).toBeGreaterThan(0);
     });
 
-    test('wrapper passes planningDir correctly to summary', () => {
+    test('wrapper passes planningDir correctly to summary', async () => {
       const result = summary({ planningDir });
       expect(result.total).toBe(5);
     });

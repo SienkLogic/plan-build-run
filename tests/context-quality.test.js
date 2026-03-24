@@ -25,12 +25,12 @@ afterEach(() => {
 const { scoreContext, getQualityReport, writeQualityReport } = require('../plugins/pbr/scripts/context-quality');
 
 describe('scoreContext', () => {
-  test('returns 100 for empty entries (no noise)', () => {
+  test('returns 100 for empty entries (no noise)', async () => {
     const score = scoreContext([], {});
     expect(score).toBe(100);
   });
 
-  test('scores >= 80 when all entries are fresh and in current phase', () => {
+  test('scores >= 80 when all entries are fresh and in current phase', async () => {
     const now = new Date().toISOString();
     const entries = Array.from({ length: 5 }, (_, i) => ({
       file: `/src/file${i}.js`,
@@ -47,7 +47,7 @@ describe('scoreContext', () => {
     expect(score).toBeGreaterThanOrEqual(80);
   });
 
-  test('scores < 60 when 3 of 5 entries are stale and mixed phases', () => {
+  test('scores < 60 when 3 of 5 entries are stale and mixed phases', async () => {
     const now = Date.now();
     const staleTime = new Date(now - 90 * 60 * 1000).toISOString(); // 90 min ago
     const freshTime = new Date(now).toISOString();
@@ -63,7 +63,7 @@ describe('scoreContext', () => {
     expect(score).toBeLessThan(60);
   });
 
-  test('scores < 50 when 8 of 10 entries are from prior phases and stale', () => {
+  test('scores < 50 when 8 of 10 entries are from prior phases and stale', async () => {
     const now = Date.now();
     const staleTime = new Date(now - 120 * 60 * 1000).toISOString(); // 2 hours ago
     const freshTime = new Date(now).toISOString();
@@ -110,7 +110,7 @@ describe('getQualityReport', () => {
     expect(report.entry_count).toBe(2);
   });
 
-  test('returns null when context_quality_scoring is false', () => {
+  test('returns null when context_quality_scoring is false', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       features: { context_quality_scoring: false }
     }));
@@ -121,7 +121,7 @@ describe('getQualityReport', () => {
 });
 
 describe('writeQualityReport', () => {
-  test('writes .context-quality.json', () => {
+  test('writes .context-quality.json', async () => {
     const report = {
       score: 85,
       breakdown: { freshness: 90, relevance: 80, diversity: 85 },

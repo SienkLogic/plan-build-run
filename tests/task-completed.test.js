@@ -11,7 +11,7 @@ const runScriptInProject = (inputData, projectDir) => _run(inputData, { cwd: pro
 
 describe('task-completed.js', () => {
   describe('always exits 0 (non-blocking)', () => {
-    test('exits 0 with valid agent data', () => {
+    test('exits 0 with valid agent data', async () => {
       const result = runScript({
         agent_type: 'pbr:executor',
         agent_id: 'abc123',
@@ -20,7 +20,7 @@ describe('task-completed.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('exits 0 with subagent_type instead of agent_type', () => {
+    test('exits 0 with subagent_type instead of agent_type', async () => {
       const result = runScript({
         subagent_type: 'pbr:verifier',
         agent_id: 'def456',
@@ -29,12 +29,12 @@ describe('task-completed.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('exits 0 with empty object', () => {
+    test('exits 0 with empty object', async () => {
       const result = runScript({});
       expect(result.exitCode).toBe(0);
     });
 
-    test('exits 0 with empty stdin', () => {
+    test('exits 0 with empty stdin', async () => {
       // Send empty string as stdin
       try {
         const result = execSync(`node "${SCRIPT}"`, {
@@ -51,7 +51,7 @@ describe('task-completed.js', () => {
       }
     });
 
-    test('exits 0 with malformed JSON', () => {
+    test('exits 0 with malformed JSON', async () => {
       try {
         const result = execSync(`node "${SCRIPT}"`, {
           input: 'not valid json',
@@ -66,14 +66,14 @@ describe('task-completed.js', () => {
       }
     });
 
-    test('exits 0 with partial data (missing agent_id)', () => {
+    test('exits 0 with partial data (missing agent_id)', async () => {
       const result = runScript({
         agent_type: 'pbr:planner'
       });
       expect(result.exitCode).toBe(0);
     });
 
-    test('exits 0 with partial data (missing duration_ms)', () => {
+    test('exits 0 with partial data (missing duration_ms)', async () => {
       const result = runScript({
         agent_type: 'pbr:researcher',
         agent_id: 'ghi789'
@@ -88,36 +88,36 @@ describe('task-completed.js', () => {
     let haltTmpDir;
     let planningDir;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       haltTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-htc-'));
       planningDir = path.join(haltTmpDir, '.planning');
       fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       fs.rmSync(haltTmpDir, { recursive: true, force: true });
     });
 
-    test('readCurrentPhase returns null when STATE.md does not exist', () => {
+    test('readCurrentPhase returns null when STATE.md does not exist', async () => {
       expect(readCurrentPhase(planningDir)).toBeNull();
     });
 
-    test('readCurrentPhase extracts current_phase from STATE.md', () => {
+    test('readCurrentPhase extracts current_phase from STATE.md', async () => {
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 7\nstatus: built\n---\n');
       expect(readCurrentPhase(planningDir)).toBe('7');
     });
 
-    test('readCurrentPhase returns null when no current_phase field', () => {
+    test('readCurrentPhase returns null when no current_phase field', async () => {
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 5 of 10\nStatus: built\n');
       expect(readCurrentPhase(planningDir)).toBeNull();
     });
 
-    test('handleHttp returns null for non-executor/non-verifier agent', () => {
+    test('handleHttp returns null for non-executor/non-verifier agent', async () => {
       const result = handleHttp({ data: { agent_type: 'pbr:planner' }, planningDir });
       expect(result).toBeNull();
     });
 
-    test('handleHttp returns null when planningDir does not exist', () => {
+    test('handleHttp returns null when planningDir does not exist', async () => {
       const result = handleHttp({
         data: { agent_type: 'pbr:executor' },
         planningDir: path.join(haltTmpDir, 'nonexistent')
@@ -125,7 +125,7 @@ describe('task-completed.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handleHttp returns null when executor SUMMARY.md exists', () => {
+    test('handleHttp returns null when executor SUMMARY.md exists', async () => {
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\n');
       const phaseDir = path.join(planningDir, 'phases', '03-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -134,7 +134,7 @@ describe('task-completed.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handleHttp returns halt when executor SUMMARY.md is missing', () => {
+    test('handleHttp returns halt when executor SUMMARY.md is missing', async () => {
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\n');
       const phaseDir = path.join(planningDir, 'phases', '03-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -145,7 +145,7 @@ describe('task-completed.js', () => {
       expect(result.stopReason).toContain('SUMMARY.md');
     });
 
-    test('handleHttp returns null when planningDir is falsy', () => {
+    test('handleHttp returns null when planningDir is falsy', async () => {
       const result = handleHttp({ data: { agent_type: 'pbr:verifier' }, planningDir: null });
       expect(result).toBeNull();
     });
@@ -156,27 +156,27 @@ describe('task-completed.js', () => {
 
     let haltTmpDir;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       haltTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-halt-'));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       fs.rmSync(haltTmpDir, { recursive: true, force: true });
     });
 
-    test('returns null when agent_type is missing', () => {
+    test('returns null when agent_type is missing', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
       expect(checkHaltConditions({}, planningDir)).toBeNull();
     });
 
-    test('returns null for non-verifier/non-executor agents', () => {
+    test('returns null for non-verifier/non-executor agents', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
       expect(checkHaltConditions({ agent_type: 'pbr:planner' }, planningDir)).toBeNull();
     });
 
-    test('returns continue:false for verifier when VERIFICATION.md has gaps_found', () => {
+    test('returns continue:false for verifier when VERIFICATION.md has gaps_found', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -193,7 +193,7 @@ describe('task-completed.js', () => {
       expect(result.stopReason).toContain('gaps');
     });
 
-    test('returns continue:false for verifier when VERIFICATION.md has failed', () => {
+    test('returns continue:false for verifier when VERIFICATION.md has failed', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       const phaseDir = path.join(planningDir, 'phases', '05-auth');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -210,7 +210,7 @@ describe('task-completed.js', () => {
       expect(result.stopReason).toContain('failed');
     });
 
-    test('returns null for verifier when VERIFICATION.md has passed', () => {
+    test('returns null for verifier when VERIFICATION.md has passed', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -225,7 +225,7 @@ describe('task-completed.js', () => {
       expect(checkHaltConditions({ agent_type: 'pbr:verifier' }, planningDir)).toBeNull();
     });
 
-    test('returns continue:false for executor when SUMMARY.md is missing', () => {
+    test('returns continue:false for executor when SUMMARY.md is missing', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -239,7 +239,7 @@ describe('task-completed.js', () => {
       expect(result.stopReason).toContain('SUMMARY.md');
     });
 
-    test('returns null for executor when SUMMARY.md exists', () => {
+    test('returns null for executor when SUMMARY.md exists', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -251,7 +251,7 @@ describe('task-completed.js', () => {
       expect(checkHaltConditions({ agent_type: 'pbr:executor' }, planningDir)).toBeNull();
     });
 
-    test('uses subagent_type fallback when agent_type is absent', () => {
+    test('uses subagent_type fallback when agent_type is absent', async () => {
       const planningDir = path.join(haltTmpDir, '.planning');
       const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -272,18 +272,18 @@ describe('task-completed.js', () => {
   describe('logging behavior in a .planning project', () => {
     let tmpDir;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-task-completed-'));
       const planningDir = path.join(tmpDir, '.planning');
       const logsDir = path.join(planningDir, 'logs');
       fs.mkdirSync(logsDir, { recursive: true });
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('writes to daily hooks log when .planning exists', () => {
+    test('writes to daily hooks log when .planning exists', async () => {
       runScriptInProject({
         agent_type: 'pbr:executor',
         agent_id: 'test-001',
@@ -297,7 +297,7 @@ describe('task-completed.js', () => {
       expect(content).toContain('TaskCompleted');
     });
 
-    test('writes to daily events log when .planning exists', () => {
+    test('writes to daily events log when .planning exists', async () => {
       runScriptInProject({
         agent_type: 'pbr:verifier',
         agent_id: 'test-002',
@@ -311,7 +311,7 @@ describe('task-completed.js', () => {
       expect(content).toContain('agent');
     });
 
-    test('log entries contain agent_type from input', () => {
+    test('log entries contain agent_type from input', async () => {
       runScriptInProject({
         agent_type: 'pbr:planner',
         agent_id: 'test-003',
@@ -327,7 +327,7 @@ describe('task-completed.js', () => {
       expect(entry.agent_duration_ms).toBe(1000);
     });
 
-    test('log entries use subagent_type when agent_type is missing', () => {
+    test('log entries use subagent_type when agent_type is missing', async () => {
       runScriptInProject({
         subagent_type: 'pbr:debugger',
         agent_id: 'test-004'
@@ -340,7 +340,7 @@ describe('task-completed.js', () => {
       expect(entry.agent_type).toBe('pbr:debugger');
     });
 
-    test('log entries have null fields when data is missing', () => {
+    test('log entries have null fields when data is missing', async () => {
       runScriptInProject({}, tmpDir);
 
       const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));

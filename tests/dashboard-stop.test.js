@@ -34,11 +34,11 @@ function startTestServer() {
 }
 
 describe('stopDashboard', () => {
-  test('module exports stopDashboard function', () => {
+  test('module exports stopDashboard function', async () => {
     expect(typeof stopDashboard).toBe('function');
   });
 
-  test('returns false when no server is running', () => {
+  test('returns false when no server is running', async () => {
     const result = stopDashboard(19999);
     expect(result).toBe(false);
   });

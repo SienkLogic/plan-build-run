@@ -54,7 +54,7 @@ const { updateGraph, findPlanningDir, isSourceFile, runGuard, checkCjsLib } = re
 
 describe('graph-update.js', () => {
   describe('findPlanningDir', () => {
-    test('returns planningDir when .planning exists as ancestor', () => {
+    test('returns planningDir when .planning exists as ancestor', async () => {
       const { tmp, planningDir } = makeTempProject();
       try {
         const srcFile = path.join(tmp, 'src', 'app.js');
@@ -67,14 +67,14 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('returns null when no .planning ancestor exists', () => {
+    test('returns null when no .planning ancestor exists', async () => {
       const result = findPlanningDir('/nonexistent/path/to/file.js');
       expect(result).toBeNull();
     });
   });
 
   describe('isSourceFile', () => {
-    test('returns true for JS/CJS/MJS/TS/TSX/JSX extensions', () => {
+    test('returns true for JS/CJS/MJS/TS/TSX/JSX extensions', async () => {
       expect(isSourceFile('src/app.js')).toBe(true);
       expect(isSourceFile('lib/util.cjs')).toBe(true);
       expect(isSourceFile('lib/util.mjs')).toBe(true);
@@ -92,7 +92,7 @@ describe('graph-update.js', () => {
   });
 
   describe('updateGraph', () => {
-    test('updates graph when a source file is written', () => {
+    test('updates graph when a source file is written', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         const srcFile = path.join(tmp, 'src', 'newfile.js');
@@ -109,7 +109,7 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('skips update when features.architecture_graph is disabled', () => {
+    test('skips update when features.architecture_graph is disabled', async () => {
       const { tmp, planningDir } = makeTempProject({ graphEnabled: false, writeGraph: true });
       try {
         const initialGraph = fs.readFileSync(path.join(planningDir, 'codebase', 'graph.json'), 'utf8');
@@ -123,7 +123,7 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('skips update for non-source files', () => {
+    test('skips update for non-source files', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         const graphBefore = fs.readFileSync(path.join(planningDir, 'codebase', 'graph.json'), 'utf8');
@@ -136,7 +136,7 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('logs update to hooks.jsonl with graph_update event type', () => {
+    test('logs update to hooks.jsonl with graph_update event type', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         const srcFile = path.join(tmp, 'plugins', 'pbr', 'scripts', 'my-hook.js');
@@ -156,7 +156,7 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('handles missing graph.json gracefully (triggers full build)', () => {
+    test('handles missing graph.json gracefully (triggers full build)', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: false });
       try {
         const srcFile = path.join(tmp, 'src', 'newfile.js');
@@ -173,7 +173,7 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('returns null (no block) for PostToolUse', () => {
+    test('returns null (no block) for PostToolUse', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         const result = updateGraph(planningDir, tmp, 'src/app.js');
@@ -185,12 +185,12 @@ describe('graph-update.js', () => {
   });
 
   describe('merged architecture guard', () => {
-    test('exports guard functions from graph-update module', () => {
+    test('exports guard functions from graph-update module', async () => {
       expect(typeof runGuard).toBe('function');
       expect(typeof checkCjsLib).toBe('function');
     });
 
-    test('updateGraph returns guard warning when architecture violation found', () => {
+    test('updateGraph returns guard warning when architecture violation found', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         // Write a CJS lib file missing 'use strict' and module.exports — violates guard
@@ -208,7 +208,7 @@ describe('graph-update.js', () => {
       }
     });
 
-    test('updateGraph returns null when no architecture violation', () => {
+    test('updateGraph returns null when no architecture violation', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         const goodFile = path.join(tmp, 'src', 'app.js');
@@ -224,7 +224,7 @@ describe('graph-update.js', () => {
   });
 
   describe('stdin-based hook invocation', () => {
-    test('skips files inside .planning directory', () => {
+    test('skips files inside .planning directory', async () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
         const graphBefore = fs.readFileSync(path.join(planningDir, 'codebase', 'graph.json'), 'utf8');

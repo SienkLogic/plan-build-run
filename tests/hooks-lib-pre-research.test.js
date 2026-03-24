@@ -33,7 +33,7 @@ function writeRoadmap(phases) {
   writePlanningFile(planningDir, 'ROADMAP.md', lines.join('\n') + '\n');
 }
 
-test('triggers when progress >= 70% and next phase exists', () => {
+test('triggers when progress >= 70% and next phase exists', async () => {
   writeState(1, 80);
   writeRoadmap([{ num: 1, name: 'First' }, { num: 2, name: 'Second Phase' }]);
 
@@ -44,7 +44,7 @@ test('triggers when progress >= 70% and next phase exists', () => {
   expect(result.command).toBe('/pbr:explore 2');
 });
 
-test('does not trigger when progress < 70%', () => {
+test('does not trigger when progress < 70%', async () => {
   writeState(1, 50);
   writeRoadmap([{ num: 1, name: 'First' }, { num: 2, name: 'Second' }]);
 
@@ -52,7 +52,7 @@ test('does not trigger when progress < 70%', () => {
   expect(result).toBeNull();
 });
 
-test('does not trigger when feature disabled', () => {
+test('does not trigger when feature disabled', async () => {
   writeState(1, 90);
   writeRoadmap([{ num: 1, name: 'First' }, { num: 2, name: 'Second' }]);
 
@@ -60,7 +60,7 @@ test('does not trigger when feature disabled', () => {
   expect(result).toBeNull();
 });
 
-test('does not trigger when status is verified', () => {
+test('does not trigger when status is verified', async () => {
   writeState(1, 90, 'verified');
   writeRoadmap([{ num: 1, name: 'First' }, { num: 2, name: 'Second' }]);
 
@@ -68,7 +68,7 @@ test('does not trigger when status is verified', () => {
   expect(result).toBeNull();
 });
 
-test('does not trigger when status is complete', () => {
+test('does not trigger when status is complete', async () => {
   writeState(1, 90, 'complete');
   writeRoadmap([{ num: 1, name: 'First' }, { num: 2, name: 'Second' }]);
 
@@ -76,18 +76,18 @@ test('does not trigger when status is complete', () => {
   expect(result).toBeNull();
 });
 
-test('returns null when STATE.md is missing', () => {
+test('returns null when STATE.md is missing', async () => {
   const result = checkPreResearch(planningDir, {});
   expect(result).toBeNull();
 });
 
-test('returns null when ROADMAP.md is missing', () => {
+test('returns null when ROADMAP.md is missing', async () => {
   writeState(1, 80);
   const result = checkPreResearch(planningDir, {});
   expect(result).toBeNull();
 });
 
-test('returns null when next phase does not exist in roadmap', () => {
+test('returns null when next phase does not exist in roadmap', async () => {
   writeState(5, 80);
   writeRoadmap([{ num: 1, name: 'First' }]);
 
@@ -95,7 +95,7 @@ test('returns null when next phase does not exist in roadmap', () => {
   expect(result).toBeNull();
 });
 
-test('idempotency: second call returns null due to signal file', () => {
+test('idempotency: second call returns null due to signal file', async () => {
   writeState(1, 80);
   writeRoadmap([{ num: 1, name: 'First' }, { num: 2, name: 'Second' }]);
 

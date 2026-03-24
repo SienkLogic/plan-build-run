@@ -8,19 +8,19 @@ const { checkTestTriage, detectTestRunner } = require('../plugins/pbr/scripts/po
 
 describe('post-bash-triage', () => {
   describe('detectTestRunner', () => {
-    test('detects jest', () => {
+    test('detects jest', async () => {
       expect(detectTestRunner('npx jest tests/')).toBe('jest');
     });
 
-    test('detects vitest', () => {
+    test('detects vitest', async () => {
       expect(detectTestRunner('npx vitest run')).toBe('vitest');
     });
 
-    test('detects pytest', () => {
+    test('detects pytest', async () => {
       expect(detectTestRunner('pytest tests/')).toBe('pytest');
     });
 
-    test('returns null for unknown commands', () => {
+    test('returns null for unknown commands', async () => {
       expect(detectTestRunner('ls -la')).toBeNull();
     });
   });

@@ -24,70 +24,70 @@ afterEach(() => {
 });
 
 describe('checkDangerous (direct calls)', () => {
-  test('returns null for safe commands', () => {
+  test('returns null for safe commands', async () => {
     expect(checkDangerous({ tool_input: { command: 'npm test' } })).toBeNull();
   });
 
-  test('returns null for empty command', () => {
+  test('returns null for empty command', async () => {
     expect(checkDangerous({ tool_input: { command: '' } })).toBeNull();
   });
 
-  test('returns null for whitespace command', () => {
+  test('returns null for whitespace command', async () => {
     expect(checkDangerous({ tool_input: { command: '   ' } })).toBeNull();
   });
 
-  test('blocks rm -rf .planning', () => {
+  test('blocks rm -rf .planning', async () => {
     const result = checkDangerous({ tool_input: { command: 'rm -rf .planning' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
     expect(result.output.decision).toBe('block');
   });
 
-  test('blocks git reset --hard', () => {
+  test('blocks git reset --hard', async () => {
     const result = checkDangerous({ tool_input: { command: 'git reset --hard' } });
     expect(result.exitCode).toBe(2);
     expect(result.output.decision).toBe('block');
   });
 
-  test('blocks git push --force main', () => {
+  test('blocks git push --force main', async () => {
     const result = checkDangerous({ tool_input: { command: 'git push --force origin main' } });
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks git push main --force (reversed order)', () => {
+  test('blocks git push main --force (reversed order)', async () => {
     const result = checkDangerous({ tool_input: { command: 'git push origin main --force' } });
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks git clean -fd', () => {
+  test('blocks git clean -fd', async () => {
     const result = checkDangerous({ tool_input: { command: 'git clean -fd' } });
     expect(result.exitCode).toBe(2);
   });
 
-  test('warns on git checkout -- .', () => {
+  test('warns on git checkout -- .', async () => {
     const result = checkDangerous({ tool_input: { command: 'git checkout -- .' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
     expect(result.output.additionalContext).toContain('Warning');
   });
 
-  test('warns on git push --force (non-main)', () => {
+  test('warns on git push --force (non-main)', async () => {
     const result = checkDangerous({ tool_input: { command: 'git push --force origin feature-branch' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
     expect(result.output.additionalContext).toContain('Warning');
   });
 
-  test('blocks rm -rf .planning/phases/', () => {
+  test('blocks rm -rf .planning/phases/', async () => {
     const result = checkDangerous({ tool_input: { command: 'rm -rf .planning/phases/' } });
     expect(result.exitCode).toBe(2);
   });
 
-  test('returns null for missing tool_input', () => {
+  test('returns null for missing tool_input', async () => {
     expect(checkDangerous({ tool_input: {} })).toBeNull();
   });
 
-  test('warns on git stash', () => {
+  test('warns on git stash', async () => {
     const result = checkDangerous({ tool_input: { command: 'git stash' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
@@ -95,45 +95,45 @@ describe('checkDangerous (direct calls)', () => {
     expect(result.output.additionalContext).toContain('.planning/');
   });
 
-  test('warns on git stash pop', () => {
+  test('warns on git stash pop', async () => {
     const result = checkDangerous({ tool_input: { command: 'git stash pop' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
     expect(result.output.additionalContext).toContain('reconcile');
   });
 
-  test('does NOT warn on git stash list', () => {
+  test('does NOT warn on git stash list', async () => {
     const result = checkDangerous({ tool_input: { command: 'git stash list' } });
     expect(result).toBeNull();
   });
 
-  test('does NOT warn on git stash show', () => {
+  test('does NOT warn on git stash show', async () => {
     const result = checkDangerous({ tool_input: { command: 'git stash show' } });
     expect(result).toBeNull();
   });
 
-  test('warns on git checkout main', () => {
+  test('warns on git checkout main', async () => {
     const result = checkDangerous({ tool_input: { command: 'git checkout main' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
     expect(result.output.additionalContext).toContain('.planning/');
   });
 
-  test('warns on git checkout abc123', () => {
+  test('warns on git checkout abc123', async () => {
     const result = checkDangerous({ tool_input: { command: 'git checkout abc123' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
     expect(result.output.additionalContext).toContain('reconcile');
   });
 
-  test('does NOT warn on git checkout -b new-branch', () => {
+  test('does NOT warn on git checkout -b new-branch', async () => {
     const result = checkDangerous({ tool_input: { command: 'git checkout -b new-branch' } });
     expect(result).toBeNull();
   });
 });
 
 describe('skill-specific bash checks', () => {
-  test('blocks sed on .json when statusline skill active', () => {
+  test('blocks sed on .json when statusline skill active', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'statusline');
     const result = checkDangerous({ tool_input: { command: 'sed -i "s/old/new/" config.json' } });
     expect(result).not.toBeNull();
@@ -142,33 +142,33 @@ describe('skill-specific bash checks', () => {
     expect(result.output.reason).toContain('JSON');
   });
 
-  test('blocks awk on .json when statusline skill active', () => {
+  test('blocks awk on .json when statusline skill active', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'statusline');
     const result = checkDangerous({ tool_input: { command: 'awk "{print}" settings.json' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks echo redirect to .json when statusline skill active', () => {
+  test('blocks echo redirect to .json when statusline skill active', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'statusline');
     const result = checkDangerous({ tool_input: { command: 'echo "test" > settings.json' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('allows sed on .json when non-statusline skill active', () => {
+  test('allows sed on .json when non-statusline skill active', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     const result = checkDangerous({ tool_input: { command: 'sed -i "s/old/new/" config.json' } });
     expect(result).toBeNull();
   });
 
-  test('allows normal commands when statusline skill active', () => {
+  test('allows normal commands when statusline skill active', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'statusline');
     const result = checkDangerous({ tool_input: { command: 'npm test' } });
     expect(result).toBeNull();
   });
 
-  test('allows when no .active-skill file', () => {
+  test('allows when no .active-skill file', async () => {
     const result = checkDangerous({ tool_input: { command: 'sed -i "s/old/new/" config.json' } });
     expect(result).toBeNull();
   });

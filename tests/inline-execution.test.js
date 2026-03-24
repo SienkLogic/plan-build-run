@@ -50,7 +50,7 @@ describe('shouldInlineExecution', () => {
     expect(result.complexity).toBe('simple');
   });
 
-  test('returns inline:true for 2 simple tasks at max_tasks=2', () => {
+  test('returns inline:true for 2 simple tasks at max_tasks=2', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Task one' },
       { id: '01-01-T2', complexity: 'simple', name: 'Task two' }
@@ -60,7 +60,7 @@ describe('shouldInlineExecution', () => {
     expect(result.taskCount).toBe(2);
   });
 
-  test('returns inline:false for 3 tasks when max_tasks=2', () => {
+  test('returns inline:false for 3 tasks when max_tasks=2', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Task one' },
       { id: '01-01-T2', complexity: 'simple', name: 'Task two' },
@@ -71,7 +71,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toMatch(/task count.*exceeds/);
   });
 
-  test('returns inline:false for 1 medium complexity task', () => {
+  test('returns inline:false for 1 medium complexity task', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'medium', name: 'Medium task' }
     ]);
@@ -80,7 +80,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toMatch(/non-simple complexity/);
   });
 
-  test('returns inline:false for mixed simple+medium tasks', () => {
+  test('returns inline:false for mixed simple+medium tasks', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Simple' },
       { id: '01-01-T2', complexity: 'medium', name: 'Medium' }
@@ -90,7 +90,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toMatch(/non-simple complexity/);
   });
 
-  test('returns inline:false when context at 45% and cap is 40%', () => {
+  test('returns inline:false when context at 45% and cap is 40%', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Simple task' }
     ]);
@@ -99,7 +99,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toBe('context budget exceeded cap');
   });
 
-  test('returns inline:false when context at 40% exactly (cap is exclusive)', () => {
+  test('returns inline:false when context at 40% exactly (cap is exclusive)', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Simple task' }
     ]);
@@ -108,7 +108,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toBe('context budget exceeded cap');
   });
 
-  test('returns inline:false when inline_execution is false in config', () => {
+  test('returns inline:false when inline_execution is false in config', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Simple task' }
     ]);
@@ -117,7 +117,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toBe('inline_execution disabled');
   });
 
-  test('HARD CAP: returns inline:false when context >= cap even if task count and complexity pass', () => {
+  test('HARD CAP: returns inline:false when context >= cap even if task count and complexity pass', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Simple task' }
     ]);
@@ -127,13 +127,13 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toBe('context budget exceeded cap');
   });
 
-  test('returns inline:false when plan file does not exist', () => {
+  test('returns inline:false when plan file does not exist', async () => {
     const result = shouldInlineExecution('/nonexistent/plan.md', makeConfig(), 20);
     expect(result.inline).toBe(false);
     expect(result.reason).toBe('cannot read plan file');
   });
 
-  test('uses default max_tasks=2 when not specified in config', () => {
+  test('uses default max_tasks=2 when not specified in config', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Task one' },
       { id: '01-01-T2', complexity: 'simple', name: 'Task two' },
@@ -145,7 +145,7 @@ describe('shouldInlineExecution', () => {
     expect(result.reason).toMatch(/task count 3 exceeds max 2/);
   });
 
-  test('uses default context cap=40 when not specified in config', () => {
+  test('uses default context cap=40 when not specified in config', async () => {
     const planPath = createTempPlan([
       { id: '01-01-T1', complexity: 'simple', name: 'Simple task' }
     ]);
@@ -176,13 +176,13 @@ phase: "01"
     expect(tasks[1]).toEqual({ id: '01-01-T2', complexity: 'medium', name: 'Update config' });
   });
 
-  test('handles plans with 0 tasks (empty plan)', () => {
+  test('handles plans with 0 tasks (empty plan)', async () => {
     const content = '---\nphase: "01"\n---\n\nNo tasks here.';
     const tasks = parsePlanTasks(content);
     expect(tasks).toHaveLength(0);
   });
 
-  test('handles plans with multiple tasks', () => {
+  test('handles plans with multiple tasks', async () => {
     const content = `<task id="T1" type="auto" complexity="simple">
 <name>First</name>
 </task>
@@ -205,7 +205,7 @@ phase: "01"
 describe('build-executor inline bypass', () => {
   const { checkBuildExecutorGate } = require('../plugins/pbr/scripts/lib/gates/build-executor');
 
-  test('returns null (allow) when .inline-active signal file exists', () => {
+  test('returns null (allow) when .inline-active signal file exists', async () => {
     // This test verifies the bypass exists in the gate function code
     // We can't easily mock fs.existsSync in this context, so we verify
     // the function signature is correct and it handles the data format
@@ -223,7 +223,7 @@ describe('build-executor inline bypass', () => {
     expect(result === null || (result && typeof result.block === 'boolean')).toBe(true);
   });
 
-  test('returns null when .inline-active exists in planning dir', () => {
+  test('returns null when .inline-active exists in planning dir', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-build-gate-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });

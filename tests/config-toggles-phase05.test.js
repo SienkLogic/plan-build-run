@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe('Phase 05 feature toggles — schema validation', () => {
-  test('features.decision_journal: true is valid', () => {
+  test('features.decision_journal: true is valid', async () => {
     const config = { features: { decision_journal: true } };
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
     const result = configValidate(planningDir);
@@ -35,7 +35,7 @@ describe('Phase 05 feature toggles — schema validation', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('features.decision_journal: "yes" is rejected (wrong type)', () => {
+  test('features.decision_journal: "yes" is rejected (wrong type)', async () => {
     const config = { features: { decision_journal: 'yes' } };
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
     const result = configValidate(planningDir);
@@ -43,7 +43,7 @@ describe('Phase 05 feature toggles — schema validation', () => {
     expect(result.errors.some(e => e.includes('decision_journal'))).toBe(true);
   });
 
-  test('features.negative_knowledge: false is valid', () => {
+  test('features.negative_knowledge: false is valid', async () => {
     const config = { features: { negative_knowledge: false } };
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
     const result = configValidate(planningDir);
@@ -51,7 +51,7 @@ describe('Phase 05 feature toggles — schema validation', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('features.living_requirements: true is valid', () => {
+  test('features.living_requirements: true is valid', async () => {
     const config = { features: { living_requirements: true } };
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
     const result = configValidate(planningDir);
@@ -61,39 +61,39 @@ describe('Phase 05 feature toggles — schema validation', () => {
 });
 
 describe('Phase 05 feature toggles — depth profile presets', () => {
-  test('quick (budget) profile has decision_journal: false', () => {
+  test('quick (budget) profile has decision_journal: false', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.quick['features.decision_journal']).toBe(false);
   });
 
-  test('quick (budget) profile has negative_knowledge: false', () => {
+  test('quick (budget) profile has negative_knowledge: false', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.quick['features.negative_knowledge']).toBe(false);
   });
 
-  test('quick (budget) profile has living_requirements: false', () => {
+  test('quick (budget) profile has living_requirements: false', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.quick['features.living_requirements']).toBe(false);
   });
 
-  test('standard profile has decision_journal: true', () => {
+  test('standard profile has decision_journal: true', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.standard['features.decision_journal']).toBe(true);
   });
 
-  test('standard profile has negative_knowledge: true', () => {
+  test('standard profile has negative_knowledge: true', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.standard['features.negative_knowledge']).toBe(true);
   });
 
-  test('standard profile has living_requirements: true', () => {
+  test('standard profile has living_requirements: true', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.standard['features.living_requirements']).toBe(true);
   });
 
-  test('comprehensive (quality) profile has decision_journal: true', () => {
+  test('comprehensive (quality) profile has decision_journal: true', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.comprehensive['features.decision_journal']).toBe(true);
   });
 
-  test('comprehensive (quality) profile has negative_knowledge: true', () => {
+  test('comprehensive (quality) profile has negative_knowledge: true', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.comprehensive['features.negative_knowledge']).toBe(true);
   });
 
-  test('comprehensive (quality) profile has living_requirements: true', () => {
+  test('comprehensive (quality) profile has living_requirements: true', async () => {
     expect(DEPTH_PROFILE_DEFAULTS.comprehensive['features.living_requirements']).toBe(true);
   });
 });

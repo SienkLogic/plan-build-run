@@ -19,7 +19,7 @@ describe('history-digest command', () => {
     cleanup(tmpDir);
   });
 
-  test('empty phases directory returns valid schema', () => {
+  test('empty phases directory returns valid schema', async () => {
     const result = runPbrTools('history-digest', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -30,7 +30,7 @@ describe('history-digest command', () => {
     assert.deepStrictEqual(digest.tech_stack, [], 'tech_stack should be empty array');
   });
 
-  test('nested frontmatter fields extracted correctly', () => {
+  test('nested frontmatter fields extracted correctly', async () => {
     // Create phase directory with SUMMARY containing nested frontmatter
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -103,7 +103,7 @@ key-decisions:
     );
   });
 
-  test('multiple phases merged into single digest', () => {
+  test('multiple phases merged into single digest', async () => {
     // Create phase 01
     const phase01Dir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.mkdirSync(phase01Dir, { recursive: true });
@@ -159,7 +159,7 @@ tech-stack:
     assert.deepStrictEqual(digest.tech_stack, ['zod'], 'tech_stack should have zod');
   });
 
-  test('malformed SUMMARY.md skipped gracefully', () => {
+  test('malformed SUMMARY.md skipped gracefully', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -202,7 +202,7 @@ broken: [unclosed
     );
   });
 
-  test('flat provides field still works (backward compatibility)', () => {
+  test('flat provides field still works (backward compatibility)', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -227,7 +227,7 @@ provides:
     );
   });
 
-  test('inline array syntax supported', () => {
+  test('inline array syntax supported', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -274,7 +274,7 @@ describe('summary-extract command', () => {
     cleanup(tmpDir);
   });
 
-  test('missing file returns error', () => {
+  test('missing file returns error', async () => {
     const result = runPbrTools('summary-extract .planning/phases/01-test/01-01-SUMMARY.md', tmpDir);
     assert.ok(result.success, `Command should succeed: ${result.error}`);
 
@@ -282,7 +282,7 @@ describe('summary-extract command', () => {
     assert.strictEqual(output.error, 'File not found', 'should report missing file');
   });
 
-  test('extracts all fields from SUMMARY.md', () => {
+  test('extracts all fields from SUMMARY.md', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -327,7 +327,7 @@ Full summary content here.
     assert.deepStrictEqual(output.requirements_completed, ['AUTH-01', 'AUTH-02'], 'requirements completed extracted');
   });
 
-  test('selective extraction with --fields', () => {
+  test('selective extraction with --fields', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -362,7 +362,7 @@ requirements-completed:
     assert.strictEqual(output.decisions, undefined, 'decisions excluded');
   });
 
-  test('handles missing frontmatter fields gracefully', () => {
+  test('handles missing frontmatter fields gracefully', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -388,7 +388,7 @@ one-liner: Minimal summary
     assert.deepStrictEqual(output.requirements_completed, [], 'requirements_completed defaults to empty');
   });
 
-  test('parses key-decisions with rationale', () => {
+  test('parses key-decisions with rationale', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -429,7 +429,7 @@ describe('progress command', () => {
     cleanup(tmpDir);
   });
 
-  test('renders JSON progress', () => {
+  test('renders JSON progress', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0 MVP\n`
@@ -451,7 +451,7 @@ describe('progress command', () => {
     assert.strictEqual(output.phases[0].status, 'In Progress', 'phase in progress');
   });
 
-  test('renders bar format', () => {
+  test('renders bar format', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0\n`
@@ -467,7 +467,7 @@ describe('progress command', () => {
     assert.ok(result.output.includes('100%'), 'should include 100%');
   });
 
-  test('renders table format', () => {
+  test('renders table format', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0 MVP\n`
@@ -482,7 +482,7 @@ describe('progress command', () => {
     assert.ok(result.output.includes('foundation'), 'should include phase name');
   });
 
-  test('does not crash when summaries exceed plans (orphaned SUMMARY.md)', () => {
+  test('does not crash when summaries exceed plans (orphaned SUMMARY.md)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0 MVP\n`
@@ -527,7 +527,7 @@ describe('todo complete command', () => {
     cleanup(tmpDir);
   });
 
-  test('moves todo from pending to completed', () => {
+  test('moves todo from pending to completed', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
     fs.writeFileSync(
@@ -559,7 +559,7 @@ describe('todo complete command', () => {
     assert.ok(content.startsWith('completed:'), 'should have completed timestamp');
   });
 
-  test('fails for nonexistent todo', () => {
+  test('fails for nonexistent todo', async () => {
     const result = runPbrTools('todo complete nonexistent.md', tmpDir);
     assert.ok(!result.success, 'should fail');
     assert.ok(result.error.includes('not found'), 'error mentions not found');
@@ -582,7 +582,7 @@ describe('scaffold command', () => {
     cleanup(tmpDir);
   });
 
-  test('scaffolds context file', () => {
+  test('scaffolds context file', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
 
     const result = runPbrTools('scaffold context --phase 3', tmpDir);
@@ -601,7 +601,7 @@ describe('scaffold command', () => {
     assert.ok(content.includes('Discretion Areas'), 'should have discretion section');
   });
 
-  test('scaffolds UAT file', () => {
+  test('scaffolds UAT file', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
 
     const result = runPbrTools('scaffold uat --phase 3', tmpDir);
@@ -618,7 +618,7 @@ describe('scaffold command', () => {
     assert.ok(content.includes('Test Results'), 'should have test results section');
   });
 
-  test('scaffolds verification file', () => {
+  test('scaffolds verification file', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
 
     const result = runPbrTools('scaffold verification --phase 3', tmpDir);
@@ -634,7 +634,7 @@ describe('scaffold command', () => {
     assert.ok(content.includes('Goal-Backward Verification'), 'should have verification heading');
   });
 
-  test('scaffolds phase directory', () => {
+  test('scaffolds phase directory', async () => {
     const result = runPbrTools('scaffold phase-dir --phase 5 --name User Dashboard', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -646,7 +646,7 @@ describe('scaffold command', () => {
     );
   });
 
-  test('does not overwrite existing files', () => {
+  test('does not overwrite existing files', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-CONTEXT.md'), '# Existing content');
@@ -675,7 +675,7 @@ describe('generate-slug command', () => {
     cleanup(tmpDir);
   });
 
-  test('converts normal text to slug', () => {
+  test('converts normal text to slug', async () => {
     const result = runPbrTools('generate-slug "Hello World"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -683,7 +683,7 @@ describe('generate-slug command', () => {
     assert.strictEqual(output.slug, 'hello-world');
   });
 
-  test('strips special characters', () => {
+  test('strips special characters', async () => {
     const result = runPbrTools('generate-slug "Test@#$%^Special!!!"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -691,7 +691,7 @@ describe('generate-slug command', () => {
     assert.strictEqual(output.slug, 'test-special');
   });
 
-  test('preserves numbers', () => {
+  test('preserves numbers', async () => {
     const result = runPbrTools('generate-slug "Phase 3 Plan"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -699,7 +699,7 @@ describe('generate-slug command', () => {
     assert.strictEqual(output.slug, 'phase-3-plan');
   });
 
-  test('strips leading and trailing hyphens', () => {
+  test('strips leading and trailing hyphens', async () => {
     const result = runPbrTools('generate-slug "---leading-trailing---"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -707,7 +707,7 @@ describe('generate-slug command', () => {
     assert.strictEqual(output.slug, 'leading-trailing');
   });
 
-  test('fails when no text provided', () => {
+  test('fails when no text provided', async () => {
     const result = runPbrTools('generate-slug', tmpDir);
     assert.ok(!result.success, 'should fail without text');
     assert.ok(result.error.includes('text required'), 'error should mention text required');
@@ -729,7 +729,7 @@ describe('current-timestamp command', () => {
     cleanup(tmpDir);
   });
 
-  test('date format returns YYYY-MM-DD', () => {
+  test('date format returns YYYY-MM-DD', async () => {
     const result = runPbrTools('current-timestamp date', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -737,7 +737,7 @@ describe('current-timestamp command', () => {
     assert.match(output.timestamp, /^\d{4}-\d{2}-\d{2}$/, 'should be YYYY-MM-DD format');
   });
 
-  test('filename format returns ISO without colons or fractional seconds', () => {
+  test('filename format returns ISO without colons or fractional seconds', async () => {
     const result = runPbrTools('current-timestamp filename', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -745,7 +745,7 @@ describe('current-timestamp command', () => {
     assert.match(output.timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/, 'should replace colons with hyphens and strip fractional seconds');
   });
 
-  test('full format returns full ISO string', () => {
+  test('full format returns full ISO string', async () => {
     const result = runPbrTools('current-timestamp full', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -753,7 +753,7 @@ describe('current-timestamp command', () => {
     assert.match(output.timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, 'should be full ISO format');
   });
 
-  test('default (no format) returns full ISO string', () => {
+  test('default (no format) returns full ISO string', async () => {
     const result = runPbrTools('current-timestamp', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -777,7 +777,7 @@ describe('list-todos command', () => {
     cleanup(tmpDir);
   });
 
-  test('empty directory returns zero count', () => {
+  test('empty directory returns zero count', async () => {
     const result = runPbrTools('list-todos', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -786,7 +786,7 @@ describe('list-todos command', () => {
     assert.deepStrictEqual(output.todos, [], 'todos should be empty');
   });
 
-  test('returns multiple todos with correct fields', () => {
+  test('returns multiple todos with correct fields', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -807,7 +807,7 @@ describe('list-todos command', () => {
     assert.strictEqual(testTodo.created, '2026-01-15');
   });
 
-  test('area filter returns only matching todos', () => {
+  test('area filter returns only matching todos', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -822,7 +822,7 @@ describe('list-todos command', () => {
     assert.strictEqual(output.todos[0].area, 'ui', 'should only return ui area');
   });
 
-  test('area filter miss returns zero count', () => {
+  test('area filter miss returns zero count', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -835,7 +835,7 @@ describe('list-todos command', () => {
     assert.strictEqual(output.count, 0, 'should have 0 matching todos');
   });
 
-  test('malformed files use defaults', () => {
+  test('malformed files use defaults', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -868,7 +868,7 @@ describe('verify-path-exists command', () => {
     cleanup(tmpDir);
   });
 
-  test('existing file returns exists=true with type=file', () => {
+  test('existing file returns exists=true with type=file', async () => {
     fs.writeFileSync(path.join(tmpDir, 'test-file.txt'), 'hello');
 
     const result = runPbrTools('verify-path-exists test-file.txt', tmpDir);
@@ -879,7 +879,7 @@ describe('verify-path-exists command', () => {
     assert.strictEqual(output.type, 'file');
   });
 
-  test('existing directory returns exists=true with type=directory', () => {
+  test('existing directory returns exists=true with type=directory', async () => {
     fs.mkdirSync(path.join(tmpDir, 'test-dir'), { recursive: true });
 
     const result = runPbrTools('verify-path-exists test-dir', tmpDir);
@@ -890,7 +890,7 @@ describe('verify-path-exists command', () => {
     assert.strictEqual(output.type, 'directory');
   });
 
-  test('missing path returns exists=false', () => {
+  test('missing path returns exists=false', async () => {
     const result = runPbrTools('verify-path-exists nonexistent/path', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -899,7 +899,7 @@ describe('verify-path-exists command', () => {
     assert.strictEqual(output.type, null);
   });
 
-  test('absolute path resolves correctly', () => {
+  test('absolute path resolves correctly', async () => {
     const absFile = path.join(tmpDir, 'abs-test.txt');
     fs.writeFileSync(absFile, 'content');
 
@@ -911,7 +911,7 @@ describe('verify-path-exists command', () => {
     assert.strictEqual(output.type, 'file');
   });
 
-  test('fails when no path provided', () => {
+  test('fails when no path provided', async () => {
     const result = runPbrTools('verify-path-exists', tmpDir);
     assert.ok(!result.success, 'should fail without path');
     assert.ok(result.error.includes('path required'), 'error should mention path required');
@@ -933,7 +933,7 @@ describe('resolve-model command', () => {
     cleanup(tmpDir);
   });
 
-  test('known agent returns model and profile without unknown_agent', () => {
+  test('known agent returns model and profile without unknown_agent', async () => {
     const result = runPbrTools('resolve-model pbr-planner', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -943,7 +943,7 @@ describe('resolve-model command', () => {
     assert.strictEqual(output.unknown_agent, undefined, 'should not have unknown_agent for known agent');
   });
 
-  test('unknown agent returns unknown_agent=true', () => {
+  test('unknown agent returns unknown_agent=true', async () => {
     const result = runPbrTools('resolve-model fake-nonexistent-agent', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -951,7 +951,7 @@ describe('resolve-model command', () => {
     assert.strictEqual(output.unknown_agent, true, 'should flag unknown agent');
   });
 
-  test('default profile fallback when no config exists', () => {
+  test('default profile fallback when no config exists', async () => {
     // tmpDir has no config.json, so defaults to balanced profile
     const result = runPbrTools('resolve-model pbr-executor', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -961,7 +961,7 @@ describe('resolve-model command', () => {
     assert.ok(output.model, 'should resolve a model');
   });
 
-  test('fails when no agent-type provided', () => {
+  test('fails when no agent-type provided', async () => {
     const result = runPbrTools('resolve-model', tmpDir);
     assert.ok(!result.success, 'should fail without agent-type');
     assert.ok(result.error.includes('agent-type required'), 'error should mention agent-type required');
@@ -985,7 +985,7 @@ describe('commit command', () => {
     cleanup(tmpDir);
   });
 
-  test('skips when commit_docs is false', () => {
+  test('skips when commit_docs is false', async () => {
     // Write config with commit_docs: false
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'config.json'),
@@ -1000,7 +1000,7 @@ describe('commit command', () => {
     assert.strictEqual(output.reason, 'skipped_commit_docs_false');
   });
 
-  test('skips when .planning is gitignored', () => {
+  test('skips when .planning is gitignored', async () => {
     // Add .planning/ to .gitignore and commit it so git recognizes the ignore
     fs.writeFileSync(path.join(tmpDir, '.gitignore'), '.planning/\n');
     execSync('git add .gitignore', { cwd: tmpDir, stdio: 'pipe' });
@@ -1014,7 +1014,7 @@ describe('commit command', () => {
     assert.strictEqual(output.reason, 'skipped_gitignored');
   });
 
-  test('handles nothing to commit', () => {
+  test('handles nothing to commit', async () => {
     // Don't modify any files after initial commit
     const result = runPbrTools('commit "test message"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -1024,7 +1024,7 @@ describe('commit command', () => {
     assert.strictEqual(output.reason, 'nothing_to_commit');
   });
 
-  test('creates real commit with correct hash', () => {
+  test('creates real commit with correct hash', async () => {
     // Create a new file in .planning/
     fs.writeFileSync(path.join(tmpDir, '.planning', 'test-file.md'), '# Test\n');
 
@@ -1042,7 +1042,7 @@ describe('commit command', () => {
     assert.ok(gitLog.includes(output.hash), 'git log should contain the returned hash');
   });
 
-  test('amend mode works without crashing', () => {
+  test('amend mode works without crashing', async () => {
     // Create a file and commit it first
     fs.writeFileSync(path.join(tmpDir, '.planning', 'amend-file.md'), '# Initial\n');
     execSync('git add .planning/amend-file.md', { cwd: tmpDir, stdio: 'pipe' });

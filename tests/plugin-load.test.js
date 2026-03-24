@@ -23,12 +23,12 @@ describe('hooks.json validity', () => {
     hooks = JSON.parse(raw);
   });
 
-  test('hooks.json is valid JSON with hooks object', () => {
+  test('hooks.json is valid JSON with hooks object', async () => {
     expect(hooks).toHaveProperty('hooks');
     expect(typeof hooks.hooks).toBe('object');
   });
 
-  test('all referenced hook scripts exist on disk', () => {
+  test('all referenced hook scripts exist on disk', async () => {
     const missing = [];
     const SCRIPTS_DIR = path.join(ROOT, 'plugins', 'pbr', 'scripts');
     for (const [, groups] of Object.entries(hooks.hooks)) {
@@ -54,7 +54,7 @@ describe('command files', () => {
   const commandFiles = fs.readdirSync(COMMANDS_DIR)
     .filter(f => f.endsWith('.md'));
 
-  test('commands/pbr/ contains at least one command file', () => {
+  test('commands/pbr/ contains at least one command file', async () => {
     expect(commandFiles.length).toBeGreaterThan(0);
   });
 
@@ -90,16 +90,16 @@ describe('package.json', () => {
     pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   });
 
-  test('has name field', () => {
+  test('has name field', async () => {
     expect(pkg.name).toBeDefined();
     expect(typeof pkg.name).toBe('string');
   });
 
-  test('has version field', () => {
+  test('has version field', async () => {
     expect(pkg.version).toBeDefined();
   });
 
-  test('has scripts section', () => {
+  test('has scripts section', async () => {
     expect(pkg.scripts).toBeDefined();
     expect(typeof pkg.scripts).toBe('object');
   });

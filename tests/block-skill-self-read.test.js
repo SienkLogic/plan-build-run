@@ -39,7 +39,7 @@ describe('block-skill-self-read.js', () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), name);
   }
 
-  test('blocks when active-skill matches Read file_path', () => {
+  test('blocks when active-skill matches Read file_path', async () => {
     writeActiveSkill('build');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -52,7 +52,7 @@ describe('block-skill-self-read.js', () => {
     expect(parsed.reason).toContain('self-read blocked');
   });
 
-  test('allows when active-skill does not match Read file_path', () => {
+  test('allows when active-skill does not match Read file_path', async () => {
     writeActiveSkill('build');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -62,7 +62,7 @@ describe('block-skill-self-read.js', () => {
     expect(output).toBe('');
   });
 
-  test('allows when .active-skill file is missing', () => {
+  test('allows when .active-skill file is missing', async () => {
     const input = JSON.stringify({
       cwd: tmpDir,
       tool_input: { file_path: '/some/path/plugins/pbr/skills/build/SKILL.md' }
@@ -71,7 +71,7 @@ describe('block-skill-self-read.js', () => {
     expect(output).toBe('');
   });
 
-  test('allows when reading a different skill SKILL.md', () => {
+  test('allows when reading a different skill SKILL.md', async () => {
     writeActiveSkill('build');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -81,7 +81,7 @@ describe('block-skill-self-read.js', () => {
     expect(output).toBe('');
   });
 
-  test('allows when .active-skill is empty', () => {
+  test('allows when .active-skill is empty', async () => {
     writeActiveSkill('');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -91,7 +91,7 @@ describe('block-skill-self-read.js', () => {
     expect(output).toBe('');
   });
 
-  test('handles Windows-style backslash paths', () => {
+  test('handles Windows-style backslash paths', async () => {
     writeActiveSkill('review');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -102,7 +102,7 @@ describe('block-skill-self-read.js', () => {
     expect(parsed.decision).toBe('block');
   });
 
-  test('blocks when autonomous skill reads its own SKILL.md', () => {
+  test('blocks when autonomous skill reads its own SKILL.md', async () => {
     writeActiveSkill('autonomous');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -114,7 +114,7 @@ describe('block-skill-self-read.js', () => {
     expect(parsed.reason).toContain('autonomous');
   });
 
-  test('blocks when audit skill reads its own SKILL.md', () => {
+  test('blocks when audit skill reads its own SKILL.md', async () => {
     writeActiveSkill('audit');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -125,7 +125,7 @@ describe('block-skill-self-read.js', () => {
     expect(parsed.decision).toBe('block');
   });
 
-  test('allows when build skill reads autonomous SKILL.md (different skill)', () => {
+  test('allows when build skill reads autonomous SKILL.md (different skill)', async () => {
     writeActiveSkill('build');
     const input = JSON.stringify({
       cwd: tmpDir,
@@ -135,7 +135,7 @@ describe('block-skill-self-read.js', () => {
     expect(output).toBe('');
   });
 
-  test('case-insensitive matching on SKILL.md', () => {
+  test('case-insensitive matching on SKILL.md', async () => {
     writeActiveSkill('Build');
     const input = JSON.stringify({
       cwd: tmpDir,

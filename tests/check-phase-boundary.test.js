@@ -9,20 +9,20 @@ const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 
 describe('check-phase-boundary.js', () => {
   describe('getEnforceSetting', () => {
-    test('returns false when no config', () => {
+    test('returns false when no config', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       expect(getEnforceSetting(planningDir)).toBe(false);
       cleanupTmp(tmpDir);
     });
 
-    test('returns false when safety not configured', () => {
+    test('returns false when safety not configured', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), '{"depth": "standard"}');
       expect(getEnforceSetting(planningDir)).toBe(false);
       cleanupTmp(tmpDir);
     });
 
-    test('returns true when enforce_phase_boundaries is true', () => {
+    test('returns true when enforce_phase_boundaries is true', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ safety: { enforce_phase_boundaries: true } }));
@@ -30,7 +30,7 @@ describe('check-phase-boundary.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns false when enforce_phase_boundaries is false', () => {
+    test('returns false when enforce_phase_boundaries is false', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ safety: { enforce_phase_boundaries: false } }));
@@ -40,7 +40,7 @@ describe('check-phase-boundary.js', () => {
   });
 
   describe('hook execution', () => {
-    test('exits 0 for non-phase files', () => {
+    test('exits 0 for non-phase files', async () => {
       const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'index.ts') });
       expect(result.exitCode).toBe(0);
@@ -48,7 +48,7 @@ describe('check-phase-boundary.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 for same-phase writes', () => {
+    test('exits 0 for same-phase writes', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
       const phasesDir = path.join(planningDir, 'phases');
@@ -59,7 +59,7 @@ describe('check-phase-boundary.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('warns on cross-phase write (default config)', () => {
+    test('warns on cross-phase write (default config)', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
       const phasesDir = path.join(planningDir, 'phases');
@@ -75,7 +75,7 @@ describe('check-phase-boundary.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('blocks cross-phase write when enforcement is on', () => {
+    test('blocks cross-phase write when enforcement is on', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
       fs.writeFileSync(path.join(planningDir, 'config.json'),
@@ -91,7 +91,7 @@ describe('check-phase-boundary.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 when no STATE.md', () => {
+    test('exits 0 when no STATE.md', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       const phasesDir = path.join(planningDir, 'phases');
       fs.mkdirSync(phasesDir, { recursive: true });

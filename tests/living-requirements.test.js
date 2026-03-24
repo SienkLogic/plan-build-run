@@ -51,7 +51,7 @@ describe('updateRequirementStatus', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('marks unchecked requirements as done', () => {
+  test('marks unchecked requirements as done', async () => {
     const result = updateRequirementStatus(tmpDir, ['REQ-F05-001'], 'done');
     const content = readReqFile(tmpDir);
     expect(content).toContain('- [x] **REQ-F05-001**');
@@ -60,7 +60,7 @@ describe('updateRequirementStatus', () => {
     expect(result.notFound).toEqual([]);
   });
 
-  test('skips already-checked requirements', () => {
+  test('skips already-checked requirements', async () => {
     const result = updateRequirementStatus(tmpDir, ['REQ-F05-003'], 'done');
     const content = readReqFile(tmpDir);
     expect(content).toContain('- [x] **REQ-F05-003**');
@@ -69,7 +69,7 @@ describe('updateRequirementStatus', () => {
     expect(result.notFound).toEqual([]);
   });
 
-  test('does not modify requirements not in the provided list', () => {
+  test('does not modify requirements not in the provided list', async () => {
     updateRequirementStatus(tmpDir, ['REQ-F05-001'], 'done');
     const content = readReqFile(tmpDir);
     expect(content).toContain('- [ ] **REQ-F05-002**');
@@ -77,13 +77,13 @@ describe('updateRequirementStatus', () => {
     expect(content).toContain('- [ ] **REQ-NF-001**');
   });
 
-  test('reports notFound for IDs not in the file', () => {
+  test('reports notFound for IDs not in the file', async () => {
     const result = updateRequirementStatus(tmpDir, ['REQ-DOES-NOT-EXIST'], 'done');
     expect(result.notFound).toEqual(['REQ-DOES-NOT-EXIST']);
     expect(result.updated).toBe(0);
   });
 
-  test('handles multiple IDs in a single call', () => {
+  test('handles multiple IDs in a single call', async () => {
     const result = updateRequirementStatus(tmpDir, ['REQ-F05-001', 'REQ-F05-005', 'REQ-F05-006'], 'done');
     const content = readReqFile(tmpDir);
     expect(content).toContain('- [x] **REQ-F05-001**');
@@ -92,14 +92,14 @@ describe('updateRequirementStatus', () => {
     expect(result.updated).toBe(3);
   });
 
-  test('reset status unchecks a checked requirement', () => {
+  test('reset status unchecks a checked requirement', async () => {
     const result = updateRequirementStatus(tmpDir, ['REQ-F05-003'], 'reset');
     const content = readReqFile(tmpDir);
     expect(content).toContain('- [ ] **REQ-F05-003**');
     expect(result.updated).toBe(1);
   });
 
-  test('is idempotent - calling twice with same IDs produces same result', () => {
+  test('is idempotent - calling twice with same IDs produces same result', async () => {
     updateRequirementStatus(tmpDir, ['REQ-F05-001'], 'done');
     const first = readReqFile(tmpDir);
     const result2 = updateRequirementStatus(tmpDir, ['REQ-F05-001'], 'done');
@@ -109,7 +109,7 @@ describe('updateRequirementStatus', () => {
     expect(result2.skipped).toBe(1);
   });
 
-  test('handles bold format with trailing colon and text', () => {
+  test('handles bold format with trailing colon and text', async () => {
     writeReqFile(tmpDir, '- [ ] **REQ-T01**: Some description here\n');
     const result = updateRequirementStatus(tmpDir, ['REQ-T01'], 'done');
     const content = readReqFile(tmpDir);
@@ -137,12 +137,12 @@ describe('getRequirementStatus', () => {
     expect(status.get('REQ-F05-003')).toEqual({ checked: true, text: 'Already completed requirement' });
   });
 
-  test('includes all requirements from file', () => {
+  test('includes all requirements from file', async () => {
     const status = getRequirementStatus(tmpDir);
     expect(status.size).toBe(7);
   });
 
-  test('returns empty map if file missing', () => {
+  test('returns empty map if file missing', async () => {
     const emptyDir = makeTmpDir();
     const status = getRequirementStatus(emptyDir);
     expect(status.size).toBe(0);
@@ -165,7 +165,7 @@ describe('markPhaseRequirements', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('marks requirements from passed verification', () => {
+  test('marks requirements from passed verification', async () => {
     // Write a PLAN with implements field
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
       '---',
@@ -193,7 +193,7 @@ describe('markPhaseRequirements', () => {
     expect(result.updated).toBe(2);
   });
 
-  test('skips when verification not passed', () => {
+  test('skips when verification not passed', async () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
       '---',
       'implements:',
@@ -213,7 +213,7 @@ describe('markPhaseRequirements', () => {
     expect(result.skipped_reason).toBe('verification not passed');
   });
 
-  test('collects implements from multiple PLAN files', () => {
+  test('collects implements from multiple PLAN files', async () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
       '---',
       'implements:',
@@ -241,7 +241,7 @@ describe('markPhaseRequirements', () => {
     expect(content).toContain('- [x] **REQ-F05-005**');
   });
 
-  test('returns empty result if no VERIFICATION.md', () => {
+  test('returns empty result if no VERIFICATION.md', async () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
       '---',
       'implements:',

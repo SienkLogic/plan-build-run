@@ -12,12 +12,12 @@ const { statePatch, stateAdvancePlan } = require('../plugins/pbr/scripts/lib/sta
 describe('state contention handling', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-contention-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -62,7 +62,7 @@ describe('state contention handling', () => {
   }
 
   describe('statePatch atomicity', () => {
-    test('applies all fields atomically in a single lock acquisition', () => {
+    test('applies all fields atomically in a single lock acquisition', async () => {
       writeStateMd();
 
       const patchJson = JSON.stringify({
@@ -71,7 +71,7 @@ describe('state contention handling', () => {
         progress_percent: '100'
       });
 
-      const result = statePatch(patchJson, planningDir());
+      const result = await statePatch(patchJson, planningDir());
       expect(result.success).toBe(true);
 
       const content = fs.readFileSync(
@@ -84,10 +84,10 @@ describe('state contention handling', () => {
   });
 
   describe('stateAdvancePlan', () => {
-    test('increments plan number inside lock', () => {
+    test('increments plan number inside lock', async () => {
       writeStateMd({ plans_complete: 1, plans_total: 5 });
 
-      const result = stateAdvancePlan(planningDir());
+      const result = await stateAdvancePlan(planningDir());
       expect(result.success).toBe(true);
 
       const content = fs.readFileSync(
@@ -99,11 +99,11 @@ describe('state contention handling', () => {
   });
 
   describe('lockedFileUpdate stale lock recovery', () => {
-    test('accepts retries and retryDelayMs options', () => {
+    test('accepts retries and retryDelayMs options', async () => {
       const filePath = path.join(tmpDir, 'test-file.txt');
       fs.writeFileSync(filePath, 'original');
 
-      const result = lockedFileUpdate(filePath, (content) => {
+      const result = await lockedFileUpdate(filePath, (content) => {
         return content + ' updated';
       }, { retries: 3, retryDelayMs: 10 });
 
@@ -111,7 +111,7 @@ describe('state contention handling', () => {
       expect(fs.readFileSync(filePath, 'utf8')).toBe('original updated');
     });
 
-    test('recovers from stale lock file older than TTL', () => {
+    test('recovers from stale lock file older than TTL', async () => {
       const filePath = path.join(tmpDir, 'stale-lock-test.txt');
       fs.writeFileSync(filePath, 'data');
 
@@ -122,7 +122,7 @@ describe('state contention handling', () => {
       const past = new Date(Date.now() - 20000);
       fs.utimesSync(lockPath, past, past);
 
-      const result = lockedFileUpdate(filePath, (content) => {
+      const result = await lockedFileUpdate(filePath, (content) => {
         return content + ' recovered';
       }, { timeoutMs: 10000 });
 

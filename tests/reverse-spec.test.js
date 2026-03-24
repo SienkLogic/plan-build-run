@@ -26,7 +26,7 @@ describe('reverse-spec', () => {
   });
 
   describe('extractModuleSignature()', () => {
-    test('extracts exports from a CJS file with module.exports = {...}', () => {
+    test('extracts exports from a CJS file with module.exports = {...}', async () => {
       const content = [
         '\'use strict\';',
         'function foo() { return 1; }',
@@ -40,7 +40,7 @@ describe('reverse-spec', () => {
       expect(sig.exports.length).toBeGreaterThan(0);
     });
 
-    test('extracts exports from a CJS file with exports.fn = ...', () => {
+    test('extracts exports from a CJS file with exports.fn = ...', async () => {
       const content = [
         '\'use strict\';',
         'exports.hello = function() { return "hello"; };',
@@ -52,7 +52,7 @@ describe('reverse-spec', () => {
       expect(sig.type).toBe('cjs');
     });
 
-    test('extracts exports from an ES module file', () => {
+    test('extracts exports from an ES module file', async () => {
       const content = [
         'export function hello() { return "hello"; }',
         'export const VERSION = "1.0.0";',
@@ -64,11 +64,11 @@ describe('reverse-spec', () => {
       expect(sig.type).toBe('esm');
     });
 
-    test('detects test files and extracts describe/it blocks', () => {
+    test('detects test files and extracts describe/it blocks', async () => {
       const content = [
         'describe("MyModule", () => {',
         '  it("does something", () => {});',
-        '  test("does another thing", () => {});',
+        '  test("does another thing", async () => {});',
         '});',
       ].join('\n');
       const sig = reverseSpec.extractModuleSignature(content, 'tests/my.test.js');
@@ -96,7 +96,7 @@ describe('reverse-spec', () => {
       return full;
     }
 
-    test('given an array of file paths produces a StructuredPlan object', () => {
+    test('given an array of file paths produces a StructuredPlan object', async () => {
       const fooPath = writeFile('src/foo.cjs', 'module.exports = { foo: function() {} };');
       const plan = reverseSpec.generateReverseSpec([fooPath], {
         phaseSlug: 'test-phase',
@@ -108,7 +108,7 @@ describe('reverse-spec', () => {
       expect(Array.isArray(plan.tasks)).toBe(true);
     });
 
-    test('generated plan has files_modified matching input files', () => {
+    test('generated plan has files_modified matching input files', async () => {
       const fooPath = writeFile('src/foo.cjs', 'module.exports = { foo: function() {} };');
       const plan = reverseSpec.generateReverseSpec([fooPath], {
         readFile: (p) => fs.readFileSync(p, 'utf-8'),
@@ -117,7 +117,7 @@ describe('reverse-spec', () => {
       expect(filesModified).toBeDefined();
     });
 
-    test('generated must_haves.artifacts lists files with export count', () => {
+    test('generated must_haves.artifacts lists files with export count', async () => {
       const fooPath = writeFile('src/bar.cjs', 'module.exports = { a: 1, b: 2 };');
       const plan = reverseSpec.generateReverseSpec([fooPath], {
         readFile: (p) => fs.readFileSync(p, 'utf-8'),
@@ -129,7 +129,7 @@ describe('reverse-spec', () => {
       expect(artifacts !== undefined || plan.frontmatter.must_haves === undefined || true).toBe(true);
     });
 
-    test('generated must_haves.truths derived from test describe blocks', () => {
+    test('generated must_haves.truths derived from test describe blocks', async () => {
       const testPath = writeFile('tests/foo.test.js', [
         'describe("FooModule", () => {',
         '  it("exports foo", () => {});',
@@ -142,7 +142,7 @@ describe('reverse-spec', () => {
       expect(Array.isArray(plan.tasks)).toBe(true);
     });
 
-    test('generated tasks group related files into tasks', () => {
+    test('generated tasks group related files into tasks', async () => {
       const implPath = writeFile('src/widget.cjs', 'module.exports = { render: function() {} };');
       const testPath = writeFile('tests/widget.test.cjs', [
         'describe("Widget", () => {',
@@ -155,7 +155,7 @@ describe('reverse-spec', () => {
       expect(plan.tasks.length).toBeGreaterThan(0);
     });
 
-    test('serializeSpec on generated plan produces valid PLAN.md markdown', () => {
+    test('serializeSpec on generated plan produces valid PLAN.md markdown', async () => {
       const fooPath = writeFile('src/qux.cjs', 'module.exports = { qux: function() {} };');
       const plan = reverseSpec.generateReverseSpec([fooPath], {
         readFile: (p) => fs.readFileSync(p, 'utf-8'),
@@ -167,7 +167,7 @@ describe('reverse-spec', () => {
   });
 
   describe('exports', () => {
-    test('exports generateReverseSpec and extractModuleSignature', () => {
+    test('exports generateReverseSpec and extractModuleSignature', async () => {
       expect(typeof reverseSpec.generateReverseSpec).toBe('function');
       expect(typeof reverseSpec.extractModuleSignature).toBe('function');
     });

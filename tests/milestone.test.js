@@ -26,7 +26,7 @@ afterEach(() => {
 const { cmdRequirementsMarkComplete, cmdMilestoneComplete } = require('../plugins/pbr/scripts/lib/milestone');
 
 describe('cmdRequirementsMarkComplete', () => {
-  test('outputs error when REQUIREMENTS.md is missing', () => {
+  test('outputs error when REQUIREMENTS.md is missing', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     try { cmdRequirementsMarkComplete(tmpDir, ['REQ-01'], true); } catch (_e) { /* exit */ }
@@ -34,7 +34,7 @@ describe('cmdRequirementsMarkComplete', () => {
     expect(output).toContain('no requirements file');
   });
 
-  test('marks checkboxes complete', () => {
+  test('marks checkboxes complete', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
@@ -45,7 +45,7 @@ describe('cmdRequirementsMarkComplete', () => {
     expect(content).toContain('[ ] **REQ-02**');
   });
 
-  test('marks table rows complete', () => {
+  test('marks table rows complete', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
@@ -56,7 +56,7 @@ describe('cmdRequirementsMarkComplete', () => {
     expect(content).toContain('Complete');
   });
 
-  test('handles comma-separated IDs', () => {
+  test('handles comma-separated IDs', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
@@ -67,7 +67,7 @@ describe('cmdRequirementsMarkComplete', () => {
     expect(content).toContain('[x] **REQ-02**');
   });
 
-  test('reports not-found IDs', () => {
+  test('reports not-found IDs', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
@@ -89,14 +89,14 @@ describe('cmdMilestoneComplete', () => {
     return planningDir;
   }
 
-  test('creates milestone archive', () => {
+  test('creates milestone archive', async () => {
     const planningDir = setupMilestone();
     try { cmdMilestoneComplete(tmpDir, 'v1.0', { name: 'Test Milestone' }, true); } catch (_e) { /* exit */ }
     expect(fs.existsSync(path.join(planningDir, 'milestones', 'v1.0-ROADMAP.md'))).toBe(true);
     expect(fs.existsSync(path.join(planningDir, 'milestones', 'v1.0-REQUIREMENTS.md'))).toBe(true);
   });
 
-  test('creates MILESTONES.md when it does not exist', () => {
+  test('creates MILESTONES.md when it does not exist', async () => {
     setupMilestone();
     try { cmdMilestoneComplete(tmpDir, 'v1.0', { name: 'Test' }, true); } catch (_e) { /* exit */ }
     const milestonesPath = path.join(tmpDir, '.planning', 'MILESTONES.md');
@@ -105,7 +105,7 @@ describe('cmdMilestoneComplete', () => {
     expect(content).toContain('v1.0');
   });
 
-  test('appends to existing MILESTONES.md', () => {
+  test('appends to existing MILESTONES.md', async () => {
     const planningDir = setupMilestone();
     fs.writeFileSync(path.join(planningDir, 'MILESTONES.md'), '# Milestones\n\n## v0.9 Previous (Shipped: 2025-01-01)\n\nOld milestone\n');
     try { cmdMilestoneComplete(tmpDir, 'v1.0', { name: 'New' }, true); } catch (_e) { /* exit */ }
@@ -114,7 +114,7 @@ describe('cmdMilestoneComplete', () => {
     expect(content).toContain('v0.9');
   });
 
-  test('handles empty MILESTONES.md', () => {
+  test('handles empty MILESTONES.md', async () => {
     const planningDir = setupMilestone();
     fs.writeFileSync(path.join(planningDir, 'MILESTONES.md'), '');
     try { cmdMilestoneComplete(tmpDir, 'v1.0', { name: 'New' }, true); } catch (_e) { /* exit */ }
@@ -122,7 +122,7 @@ describe('cmdMilestoneComplete', () => {
     expect(content).toContain('v1.0');
   });
 
-  test('archives audit file if exists', () => {
+  test('archives audit file if exists', async () => {
     const planningDir = setupMilestone();
     fs.writeFileSync(path.join(planningDir, 'v1.0-MILESTONE-AUDIT.md'), 'audit data');
     try { cmdMilestoneComplete(tmpDir, 'v1.0', {}, true); } catch (_e) { /* exit */ }

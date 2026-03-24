@@ -22,39 +22,39 @@ const {
 // ─── extractFrontmatter ─────────────────────────────────────────────────────
 
 describe('extractFrontmatter', () => {
-  test('parses simple key-value pairs', () => {
+  test('parses simple key-value pairs', async () => {
     const content = '---\nname: foo\ntype: execute\n---\nbody';
     const result = extractFrontmatter(content);
     assert.strictEqual(result.name, 'foo');
     assert.strictEqual(result.type, 'execute');
   });
 
-  test('strips quotes from values', () => {
+  test('strips quotes from values', async () => {
     const doubleQuoted = '---\nname: "foo"\n---\n';
     const singleQuoted = '---\nname: \'foo\'\n---\n';
     assert.strictEqual(extractFrontmatter(doubleQuoted).name, 'foo');
     assert.strictEqual(extractFrontmatter(singleQuoted).name, 'foo');
   });
 
-  test('parses nested objects', () => {
+  test('parses nested objects', async () => {
     const content = '---\ntechstack:\n  added: prisma\n  patterns: repository\n---\n';
     const result = extractFrontmatter(content);
     assert.deepStrictEqual(result.techstack, { added: 'prisma', patterns: 'repository' });
   });
 
-  test('parses block arrays', () => {
+  test('parses block arrays', async () => {
     const content = '---\nitems:\n  - alpha\n  - beta\n  - gamma\n---\n';
     const result = extractFrontmatter(content);
     assert.deepStrictEqual(result.items, ['alpha', 'beta', 'gamma']);
   });
 
-  test('parses inline arrays', () => {
+  test('parses inline arrays', async () => {
     const content = '---\nkey: [a, b, c]\n---\n';
     const result = extractFrontmatter(content);
     assert.deepStrictEqual(result.key, ['a', 'b', 'c']);
   });
 
-  test('handles quoted commas in inline arrays — REG-04 known limitation', () => {
+  test('handles quoted commas in inline arrays — REG-04 known limitation', async () => {
     // REG-04: The split(',') on line 53 does NOT respect quotes.
     // The parser WILL split on commas inside quotes, producing wrong results.
     // This test documents the CURRENT (buggy) behavior.
@@ -71,32 +71,32 @@ describe('extractFrontmatter', () => {
     assert.ok(result.key.length > 2, 'REG-04: split produces more items than intended due to quoted comma bug');
   });
 
-  test('returns empty object for no frontmatter', () => {
+  test('returns empty object for no frontmatter', async () => {
     const content = 'Just plain content, no frontmatter.';
     const result = extractFrontmatter(content);
     assert.deepStrictEqual(result, {});
   });
 
-  test('returns empty object for empty frontmatter', () => {
+  test('returns empty object for empty frontmatter', async () => {
     const content = '---\n---\nBody text.';
     const result = extractFrontmatter(content);
     assert.deepStrictEqual(result, {});
   });
 
-  test('parses frontmatter-only content', () => {
+  test('parses frontmatter-only content', async () => {
     const content = '---\nkey: val\n---';
     const result = extractFrontmatter(content);
     assert.strictEqual(result.key, 'val');
   });
 
-  test('handles emoji and non-ASCII in values', () => {
+  test('handles emoji and non-ASCII in values', async () => {
     const content = '---\nname: "Hello World"\nlabel: "cafe"\n---\n';
     const result = extractFrontmatter(content);
     assert.strictEqual(result.name, 'Hello World');
     assert.strictEqual(result.label, 'cafe');
   });
 
-  test('converts empty-object placeholders to arrays when dash items follow', () => {
+  test('converts empty-object placeholders to arrays when dash items follow', async () => {
     // When a key has no value, it gets an empty {} placeholder.
     // When "- item" lines follow, the parser converts {} to [].
     const content = '---\nrequirements:\n  - REQ-01\n  - REQ-02\n---\n';
@@ -105,7 +105,7 @@ describe('extractFrontmatter', () => {
     assert.deepStrictEqual(result.requirements, ['REQ-01', 'REQ-02']);
   });
 
-  test('skips empty lines in YAML body', () => {
+  test('skips empty lines in YAML body', async () => {
     const content = '---\nfirst: one\n\nsecond: two\n\nthird: three\n---\n';
     const result = extractFrontmatter(content);
     assert.strictEqual(result.first, 'one');
@@ -117,29 +117,29 @@ describe('extractFrontmatter', () => {
 // ─── reconstructFrontmatter ─────────────────────────────────────────────────
 
 describe('reconstructFrontmatter', () => {
-  test('serializes simple key-value', () => {
+  test('serializes simple key-value', async () => {
     const result = reconstructFrontmatter({ name: 'foo' });
     assert.strictEqual(result, 'name: foo');
   });
 
-  test('serializes empty array as inline []', () => {
+  test('serializes empty array as inline []', async () => {
     const result = reconstructFrontmatter({ items: [] });
     assert.strictEqual(result, 'items: []');
   });
 
-  test('serializes short string arrays inline', () => {
+  test('serializes short string arrays inline', async () => {
     const result = reconstructFrontmatter({ key: ['a', 'b', 'c'] });
     assert.strictEqual(result, 'key: [a, b, c]');
   });
 
-  test('serializes long arrays as block', () => {
+  test('serializes long arrays as block', async () => {
     const result = reconstructFrontmatter({ key: ['one', 'two', 'three', 'four'] });
     assert.ok(result.includes('key:'), 'should have key header');
     assert.ok(result.includes('  - one'), 'should have block array items');
     assert.ok(result.includes('  - four'), 'should have last item');
   });
 
-  test('quotes values containing colons or hashes', () => {
+  test('quotes values containing colons or hashes', async () => {
     const result = reconstructFrontmatter({ url: 'http://example.com' });
     assert.ok(result.includes('"http://example.com"'), 'should quote value with colon');
 
@@ -147,14 +147,14 @@ describe('reconstructFrontmatter', () => {
     assert.ok(hashResult.includes('"value # note"'), 'should quote value with hash');
   });
 
-  test('serializes nested objects with proper indentation', () => {
+  test('serializes nested objects with proper indentation', async () => {
     const result = reconstructFrontmatter({ tech: { added: 'prisma', patterns: 'repo' } });
     assert.ok(result.includes('tech:'), 'should have parent key');
     assert.ok(result.includes('  added: prisma'), 'should have indented child');
     assert.ok(result.includes('  patterns: repo'), 'should have indented child');
   });
 
-  test('serializes nested arrays within objects', () => {
+  test('serializes nested arrays within objects', async () => {
     const result = reconstructFrontmatter({
       tech: { added: ['prisma', 'jose'] },
     });
@@ -162,7 +162,7 @@ describe('reconstructFrontmatter', () => {
     assert.ok(result.includes('  added: [prisma, jose]'), 'should serialize nested short array inline');
   });
 
-  test('skips null and undefined values', () => {
+  test('skips null and undefined values', async () => {
     const result = reconstructFrontmatter({ name: 'foo', skip: null, also: undefined, keep: 'bar' });
     assert.ok(!result.includes('skip'), 'should not include null key');
     assert.ok(!result.includes('also'), 'should not include undefined key');
@@ -170,7 +170,7 @@ describe('reconstructFrontmatter', () => {
     assert.ok(result.includes('keep: bar'), 'should include non-null key');
   });
 
-  test('round-trip: simple frontmatter', () => {
+  test('round-trip: simple frontmatter', async () => {
     const original = '---\nname: test\ntype: execute\nwave: 1\n---\n';
     const extracted1 = extractFrontmatter(original);
     const reconstructed = reconstructFrontmatter(extracted1);
@@ -179,7 +179,7 @@ describe('reconstructFrontmatter', () => {
     assert.deepStrictEqual(extracted2, extracted1, 'round-trip should preserve data identity');
   });
 
-  test('round-trip: nested with arrays', () => {
+  test('round-trip: nested with arrays', async () => {
     const original = '---\nphase: 01\ntech:\n  added:\n    - prisma\n    - jose\n  patterns:\n    - repository\n    - jwt\n---\n';
     const extracted1 = extractFrontmatter(original);
     const reconstructed = reconstructFrontmatter(extracted1);
@@ -188,7 +188,7 @@ describe('reconstructFrontmatter', () => {
     assert.deepStrictEqual(extracted2, extracted1, 'round-trip should preserve nested structures');
   });
 
-  test('round-trip: multiple data types', () => {
+  test('round-trip: multiple data types', async () => {
     const original = '---\nname: testplan\nwave: 2\ntags: [auth, api, db]\ndeps:\n  - dep1\n  - dep2\nconfig:\n  enabled: true\n  count: 5\n---\n';
     const extracted1 = extractFrontmatter(original);
     const reconstructed = reconstructFrontmatter(extracted1);
@@ -201,7 +201,7 @@ describe('reconstructFrontmatter', () => {
 // ─── spliceFrontmatter ──────────────────────────────────────────────────────
 
 describe('spliceFrontmatter', () => {
-  test('replaces existing frontmatter preserving body', () => {
+  test('replaces existing frontmatter preserving body', async () => {
     const content = '---\nphase: 01\ntype: execute\n---\n\n# Body Content\n\nParagraph here.';
     const newObj = { phase: '02', type: 'tdd', wave: '1' };
     const result = spliceFrontmatter(content, newObj);
@@ -217,7 +217,7 @@ describe('spliceFrontmatter', () => {
     assert.ok(result.includes('Paragraph here.'), 'body paragraph should be preserved');
   });
 
-  test('adds frontmatter to content without any', () => {
+  test('adds frontmatter to content without any', async () => {
     const content = 'Plain text with no frontmatter.';
     const newObj = { phase: '01', plan: '01' };
     const result = spliceFrontmatter(content, newObj);
@@ -235,7 +235,7 @@ describe('spliceFrontmatter', () => {
     assert.strictEqual(extracted.plan, '01');
   });
 
-  test('preserves content after frontmatter delimiters exactly', () => {
+  test('preserves content after frontmatter delimiters exactly', async () => {
     const body = '\n\nExact content with special chars: $, %, &, <, >\nLine 2\nLine 3';
     const content = '---\nold: value\n---' + body;
     const newObj = { new: 'value' };
@@ -251,7 +251,7 @@ describe('spliceFrontmatter', () => {
 // ─── parseMustHavesBlock ────────────────────────────────────────────────────
 
 describe('parseMustHavesBlock', () => {
-  test('extracts truths as string array', () => {
+  test('extracts truths as string array', async () => {
     const content = `---
 phase: 01
 must_haves:
@@ -268,7 +268,7 @@ Body content.`;
     assert.strictEqual(result[1], 'Coverage exceeds 80%');
   });
 
-  test('extracts artifacts as object array', () => {
+  test('extracts artifacts as object array', async () => {
     const content = `---
 phase: 01
 must_haves:
@@ -292,7 +292,7 @@ Body.`;
     assert.strictEqual(result[1].min_lines, 50);
   });
 
-  test('extracts key_links with from/to/via/pattern fields', () => {
+  test('extracts key_links with from/to/via/pattern fields', async () => {
     const content = `---
 phase: 01
 must_haves:
@@ -312,7 +312,7 @@ must_haves:
     assert.strictEqual(result[0].pattern, 'import.*auth');
   });
 
-  test('returns empty array when block not found', () => {
+  test('returns empty array when block not found', async () => {
     const content = `---
 phase: 01
 must_haves:
@@ -324,13 +324,13 @@ must_haves:
     assert.deepStrictEqual(result, []);
   });
 
-  test('returns empty array when no frontmatter', () => {
+  test('returns empty array when no frontmatter', async () => {
     const content = 'Plain text without any frontmatter delimiters.';
     const result = parseMustHavesBlock(content, 'truths');
     assert.deepStrictEqual(result, []);
   });
 
-  test('handles nested arrays within artifact objects', () => {
+  test('handles nested arrays within artifact objects', async () => {
     const content = `---
 phase: 01
 must_haves:

@@ -26,12 +26,12 @@ const {
 
 let tmpDir;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-fv-'));
   fs.mkdirSync(path.join(tmpDir, '.planning', 'logs'), { recursive: true });
 });
 
-afterEach(() => {
+afterEach(async () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -39,7 +39,7 @@ afterEach(() => {
 // validatePlan
 // ---------------------------------------------------------------------------
 describe('validatePlan', () => {
-  test('valid plan with all fields returns no errors', () => {
+  test('valid plan with all fields returns no errors', async () => {
     const content = `---
 phase: 01-setup
 plan: 01
@@ -68,30 +68,30 @@ must_haves:
     expect(result.warnings).toEqual([]);
   });
 
-  test('missing frontmatter is an error', () => {
+  test('missing frontmatter is an error', async () => {
     const result = validatePlan('# No frontmatter\n<task><name>t</name></task>', 'PLAN.md');
     expect(result.errors).toContain('Missing YAML frontmatter');
   });
 
-  test('unclosed frontmatter is an error', () => {
+  test('unclosed frontmatter is an error', async () => {
     const result = validatePlan('---\nphase: 01\n', 'PLAN.md');
     expect(result.errors).toContain('Unclosed YAML frontmatter');
   });
 
-  test('too many tasks is an error', () => {
+  test('too many tasks is an error', async () => {
     const tasks = Array(4).fill('<task type="auto"><name>T</name><read_first>f</read_first><files>f</files><action>a</action><acceptance_criteria>c</acceptance_criteria><verify>v</verify><done>d</done></task>').join('\n');
     const content = `---\nphase: 01\nplan: 01\nwave: 1\ntype: feature\ndepends_on: []\nfiles_modified: []\nautonomous: true\nimplements: []\nmust_haves:\n  truths: []\n  artifacts: []\n  key_links: []\n---\n${tasks}`;
     const result = validatePlan(content, 'PLAN.md');
     expect(result.errors.some(e => e.includes('Too many tasks'))).toBe(true);
   });
 
-  test('no tasks is an error', () => {
+  test('no tasks is an error', async () => {
     const content = '---\nphase: 01\nplan: 01\nwave: 1\n---\nNo tasks here';
     const result = validatePlan(content, 'PLAN.md');
     expect(result.errors).toContain('No <task> elements found');
   });
 
-  test('invalid type value produces warning', () => {
+  test('invalid type value produces warning', async () => {
     const content = `---
 phase: 01
 plan: 01
@@ -111,7 +111,7 @@ must_haves:
     expect(result.warnings.some(w => w.includes('banana'))).toBe(true);
   });
 
-  test('path traversal in files produces warning', () => {
+  test('path traversal in files produces warning', async () => {
     const content = `---
 phase: 01
 plan: 01
@@ -136,7 +136,7 @@ must_haves:
 // validateSummary
 // ---------------------------------------------------------------------------
 describe('validateSummary', () => {
-  test('valid summary returns no errors', () => {
+  test('valid summary returns no errors', async () => {
     const content = `---
 phase: 01
 plan: 01
@@ -152,7 +152,7 @@ Body`;
     expect(result.errors).toEqual([]);
   });
 
-  test('missing required fields are errors', () => {
+  test('missing required fields are errors', async () => {
     const result = validateSummary('---\nphase: 01\n---\nBody', 'SUMMARY.md');
     expect(result.errors.some(e => e.includes('plan'))).toBe(true);
     expect(result.errors.some(e => e.includes('status'))).toBe(true);
@@ -160,14 +160,14 @@ Body`;
     expect(result.errors.some(e => e.includes('key_files'))).toBe(true);
   });
 
-  test('missing deferred is a warning not error', () => {
+  test('missing deferred is a warning not error', async () => {
     const content = '---\nphase: 01\nplan: 01\nstatus: complete\nprovides: []\nrequires: []\nkey_files:\n  - f\n---\nBody';
     const result = validateSummary(content, 'SUMMARY.md');
     expect(result.errors.find(e => e.includes('deferred'))).toBeUndefined();
     expect(result.warnings.some(w => w.includes('deferred'))).toBe(true);
   });
 
-  test('unclosed frontmatter is an error', () => {
+  test('unclosed frontmatter is an error', async () => {
     const result = validateSummary('---\nphase: 01\n', 'SUMMARY.md');
     expect(result.errors).toContain('Unclosed YAML frontmatter');
   });
@@ -177,7 +177,7 @@ Body`;
 // validateVerification
 // ---------------------------------------------------------------------------
 describe('validateVerification', () => {
-  test('valid verification returns no errors', () => {
+  test('valid verification returns no errors', async () => {
     const content = `---
 status: passed
 phase: 01
@@ -202,18 +202,18 @@ All good.`;
     expect(result.warnings).toEqual([]);
   });
 
-  test('missing frontmatter is an error', () => {
+  test('missing frontmatter is an error', async () => {
     const result = validateVerification('# No frontmatter', 'VERIFICATION.md');
     expect(result.errors).toContain('Missing YAML frontmatter');
   });
 
-  test('missing status field is an error', () => {
+  test('missing status field is an error', async () => {
     const content = '---\nphase: 01\nchecked_at: 2026\nmust_haves_checked: 1\nmust_haves_passed: 1\nmust_haves_failed: 0\n---\nBody';
     const result = validateVerification(content, 'VERIFICATION.md');
     expect(result.errors.some(e => e.includes('status'))).toBe(true);
   });
 
-  test('missing satisfied/unsatisfied are warnings', () => {
+  test('missing satisfied/unsatisfied are warnings', async () => {
     const content = '---\nstatus: passed\nphase: 01\nchecked_at: 2026\nmust_haves_checked: 1\nmust_haves_passed: 1\nmust_haves_failed: 0\n---\nBody';
     const result = validateVerification(content, 'VERIFICATION.md');
     expect(result.errors).toHaveLength(0);
@@ -226,25 +226,25 @@ All good.`;
 // validateState
 // ---------------------------------------------------------------------------
 describe('validateState', () => {
-  test('valid state returns no warnings', () => {
+  test('valid state returns no warnings', async () => {
     const content = '---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "building"\n---\n# State';
     const result = validateState(content, 'STATE.md');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('missing frontmatter is a warning', () => {
+  test('missing frontmatter is a warning', async () => {
     const result = validateState('# No frontmatter', 'STATE.md');
     expect(result.warnings.some(w => w.includes('frontmatter'))).toBe(true);
   });
 
-  test('unknown status value is a warning', () => {
+  test('unknown status value is a warning', async () => {
     const content = '---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "invalid_status"\n---\nBody';
     const result = validateState(content, 'STATE.md');
     expect(result.warnings.some(w => w.includes('Unknown status'))).toBe(true);
   });
 
-  test('VALID_STATE_STATUSES contains all 13 canonical statuses', () => {
+  test('VALID_STATE_STATUSES contains all 13 canonical statuses', async () => {
     expect(VALID_STATE_STATUSES).toContain('not_started');
     expect(VALID_STATE_STATUSES).toContain('complete');
     expect(VALID_STATE_STATUSES).toContain('skipped');
@@ -256,7 +256,7 @@ describe('validateState', () => {
 // validateRoadmap
 // ---------------------------------------------------------------------------
 describe('validateRoadmap', () => {
-  test('valid roadmap returns no errors', () => {
+  test('valid roadmap returns no errors', async () => {
     const content = `# Roadmap
 ## Milestone: v1.0
 **Phases:** 1
@@ -273,31 +273,31 @@ describe('validateRoadmap', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('missing Roadmap heading is an error', () => {
+  test('missing Roadmap heading is an error', async () => {
     const content = '## Milestone: v1\n**Phases:**\n';
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.errors.some(e => e.includes('heading'))).toBe(true);
   });
 
-  test('no milestone sections is an error', () => {
+  test('no milestone sections is an error', async () => {
     const result = validateRoadmap('# Roadmap\nNo milestones', 'ROADMAP.md');
     expect(result.errors.some(e => e.includes('Milestone'))).toBe(true);
   });
 
-  test('missing Phases line in milestone is a warning', () => {
+  test('missing Phases line in milestone is a warning', async () => {
     const content = '# Roadmap\n## Milestone: v1\nNo phases line\n';
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.warnings.some(w => w.includes('Phases'))).toBe(true);
     expect(result.errors.some(e => e.includes('Phases'))).toBe(false);
   });
 
-  test('COMPLETED milestone skips checklist checks', () => {
+  test('COMPLETED milestone skips checklist checks', async () => {
     const content = '# Roadmap\n## Milestone: v1 -- COMPLETED\n**Phases:** 1\n### Phase 01: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** z\n';
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.warnings.some(w => w.includes('Phase Checklist'))).toBe(false);
   });
 
-  test('COMPLETED milestone with collapsed format produces zero errors and warnings', () => {
+  test('COMPLETED milestone with collapsed format produces zero errors and warnings', async () => {
     const content = `# Roadmap
 ## Milestone: v8.0 (GSD Alignment) -- COMPLETED
 Completed: 2026-03-18 | Archive: .planning/milestones/v8.0/
@@ -322,27 +322,27 @@ Completed: 2026-03-18 | Archive: .planning/milestones/v8.0/
 // validateLearnings
 // ---------------------------------------------------------------------------
 describe('validateLearnings', () => {
-  test('always returns deprecation warning', () => {
+  test('always returns deprecation warning', async () => {
     const content = '---\nphase: test\nkey_insights:\n  - x\npatterns:\n  - y\n---\nBody';
     const result = validateLearnings(content, 'LEARNINGS.md');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
   });
 
-  test('missing frontmatter is a warning', () => {
+  test('missing frontmatter is a warning', async () => {
     const result = validateLearnings('# No frontmatter', 'LEARNINGS.md');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings.some(w => w.includes('frontmatter'))).toBe(true);
   });
 
-  test('missing fields are warnings', () => {
+  test('missing fields are warnings', async () => {
     const content = '---\nkey_insights:\n  - x\n---\nBody';
     const result = validateLearnings(content, 'LEARNINGS.md');
     expect(result.warnings.some(w => w.includes('phase'))).toBe(true);
     expect(result.warnings.some(w => w.includes('patterns'))).toBe(true);
   });
 
-  test('invalid cross_project value warns', () => {
+  test('invalid cross_project value warns', async () => {
     const content = '---\nphase: 1\nkey_insights:\n  - x\npatterns:\n  - y\ncross_project: maybe\n---\nBody';
     const result = validateLearnings(content, 'LEARNINGS.md');
     expect(result.warnings.some(w => w.includes('cross_project'))).toBe(true);
@@ -353,27 +353,27 @@ describe('validateLearnings', () => {
 // validateConfig
 // ---------------------------------------------------------------------------
 describe('validateConfig', () => {
-  test('valid JSON object passes', () => {
+  test('valid JSON object passes', async () => {
     const result = validateConfig('{"depth":"standard"}', 'config.json');
     expect(result.errors).toHaveLength(0);
   });
 
-  test('invalid JSON is an error', () => {
+  test('invalid JSON is an error', async () => {
     const result = validateConfig('not json', 'config.json');
     expect(result.errors.some(e => e.includes('Invalid JSON'))).toBe(true);
   });
 
-  test('non-object is an error', () => {
+  test('non-object is an error', async () => {
     const result = validateConfig('[]', 'config.json');
     expect(result.errors.some(e => e.includes('JSON object'))).toBe(true);
   });
 
-  test('unknown key produces warning', () => {
+  test('unknown key produces warning', async () => {
     const result = validateConfig('{"mystery":true}', 'config.json');
     expect(result.warnings.some(w => w.includes('mystery'))).toBe(true);
   });
 
-  test('invalid depth value warns', () => {
+  test('invalid depth value warns', async () => {
     const result = validateConfig('{"depth":"extreme"}', 'config.json');
     expect(result.warnings.some(w => w.includes('extreme'))).toBe(true);
   });
@@ -383,24 +383,24 @@ describe('validateConfig', () => {
 // validateResearch
 // ---------------------------------------------------------------------------
 describe('validateResearch', () => {
-  test('valid research passes', () => {
+  test('valid research passes', async () => {
     const content = '---\nconfidence: high\nsources_checked: 5\nphase: 1\n---\nBody';
     const result = validateResearch(content, 'RESEARCH.md');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('missing frontmatter is an error', () => {
+  test('missing frontmatter is an error', async () => {
     const result = validateResearch('# No frontmatter', 'RESEARCH.md');
     expect(result.errors.some(e => e.includes('frontmatter'))).toBe(true);
   });
 
-  test('missing confidence is an error', () => {
+  test('missing confidence is an error', async () => {
     const result = validateResearch('---\nsources_checked: 5\n---\nBody', 'RESEARCH.md');
     expect(result.errors.some(e => e.includes('confidence'))).toBe(true);
   });
 
-  test('missing phase is a warning', () => {
+  test('missing phase is a warning', async () => {
     const result = validateResearch('---\nconfidence: high\nsources_checked: 5\n---\nBody', 'RESEARCH.md');
     expect(result.warnings.some(w => w.includes('phase'))).toBe(true);
   });
@@ -410,25 +410,25 @@ describe('validateResearch', () => {
 // validateContext
 // ---------------------------------------------------------------------------
 describe('validateContext', () => {
-  test('valid context with all XML sections passes', () => {
+  test('valid context with all XML sections passes', async () => {
     const content = '<domain>d</domain>\n<decisions>d</decisions>\n<canonical_refs>r</canonical_refs>\n<deferred>d</deferred>\n<specifics>s</specifics>\n<code_context>c</code_context>';
     const result = validateContext(content, 'CONTEXT.md');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('empty content is an error', () => {
+  test('empty content is an error', async () => {
     const result = validateContext('', 'CONTEXT.md');
     expect(result.errors.some(e => e.includes('empty'))).toBe(true);
   });
 
-  test('missing sections produce warnings', () => {
+  test('missing sections produce warnings', async () => {
     const result = validateContext('<domain>d</domain>', 'CONTEXT.md');
     expect(result.warnings.some(w => w.includes('decisions'))).toBe(true);
     expect(result.warnings.some(w => w.includes('canonical_refs'))).toBe(true);
   });
 
-  test('legacy markdown headings accepted', () => {
+  test('legacy markdown headings accepted', async () => {
     const content = '## Domain\nd\n## Decisions\nd\n## Canonical References\nr\n## Deferred\nd\n## Specific References\ns\n## Code Patterns\nc';
     const result = validateContext(content, 'CONTEXT.md');
     expect(result.errors).toHaveLength(0);
@@ -440,19 +440,19 @@ describe('validateContext', () => {
 // validateMustHaves
 // ---------------------------------------------------------------------------
 describe('validateMustHaves', () => {
-  test('all sub-fields present returns no warnings', () => {
+  test('all sub-fields present returns no warnings', async () => {
     const fm = 'must_haves:\n  truths: []\n  artifacts: []\n  key_links: []';
     const result = validateMustHaves(fm);
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('missing truths produces warning', () => {
+  test('missing truths produces warning', async () => {
     const fm = 'must_haves:\n  artifacts: []\n  key_links: []';
     const result = validateMustHaves(fm);
     expect(result.warnings.some(w => w.includes('truths'))).toBe(true);
   });
 
-  test('no must_haves key returns empty', () => {
+  test('no must_haves key returns empty', async () => {
     const result = validateMustHaves('phase: 01\nplan: 01');
     expect(result.warnings).toHaveLength(0);
   });
@@ -462,30 +462,30 @@ describe('validateMustHaves', () => {
 // validateDeviationsField
 // ---------------------------------------------------------------------------
 describe('validateDeviationsField', () => {
-  test('no deviations key returns empty', () => {
+  test('no deviations key returns empty', async () => {
     const result = validateDeviationsField('phase: 01');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('empty array is valid', () => {
+  test('empty array is valid', async () => {
     const result = validateDeviationsField('deviations: []');
     expect(result.errors).toHaveLength(0);
   });
 
-  test('invalid rule number produces error', () => {
+  test('invalid rule number produces error', async () => {
     const fm = 'deviations:\n  - rule: 9\n    action: auto\n    description: "bad"';
     const result = validateDeviationsField(fm);
     expect(result.errors.some(e => e.includes('invalid rule'))).toBe(true);
   });
 
-  test('invalid action produces error', () => {
+  test('invalid action produces error', async () => {
     const fm = 'deviations:\n  - rule: 1\n    action: maybe\n    description: "x"';
     const result = validateDeviationsField(fm);
     expect(result.errors.some(e => e.includes('invalid action'))).toBe(true);
   });
 
-  test('missing description produces warning', () => {
+  test('missing description produces warning', async () => {
     const fm = 'deviations:\n  - rule: 1\n    action: auto';
     const result = validateDeviationsField(fm);
     expect(result.warnings.some(w => w.includes('description'))).toBe(true);
@@ -521,38 +521,38 @@ describe('checkPlanWrite first-write awareness', () => {
 // syncStateBody
 // ---------------------------------------------------------------------------
 describe('syncStateBody', () => {
-  test('returns null when no frontmatter', () => {
-    expect(syncStateBody('# State', '/tmp/STATE.md')).toBeNull();
+  test('returns null when no frontmatter', async () => {
+    expect(await syncStateBody('# State', '/tmp/STATE.md')).toBeNull();
   });
 
-  test('returns null when unclosed frontmatter', () => {
-    expect(syncStateBody('---\ncurrent_phase: 1\n', '/tmp/STATE.md')).toBeNull();
+  test('returns null when unclosed frontmatter', async () => {
+    expect(await syncStateBody('---\ncurrent_phase: 1\n', '/tmp/STATE.md')).toBeNull();
   });
 
-  test('returns null when no current_phase', () => {
-    expect(syncStateBody('---\nversion: 2\n---\n# State', '/tmp/STATE.md')).toBeNull();
+  test('returns null when no current_phase', async () => {
+    expect(await syncStateBody('---\nversion: 2\n---\n# State', '/tmp/STATE.md')).toBeNull();
   });
 
-  test('returns null when body matches frontmatter', () => {
+  test('returns null when body matches frontmatter', async () => {
     const content = '---\ncurrent_phase: 2\nstatus: "building"\n---\nPhase: 2 of 5\nStatus: Building';
-    expect(syncStateBody(content, '/tmp/STATE.md')).toBeNull();
+    expect(await syncStateBody(content, '/tmp/STATE.md')).toBeNull();
   });
 
-  test('detects and fixes phase drift', () => {
+  test('detects and fixes phase drift', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     const content = '---\ncurrent_phase: 3\nphase_name: "auth"\nstatus: "building"\n---\nPhase: 2 of 5\nStatus: Planning';
     fs.writeFileSync(filePath, content);
-    const result = syncStateBody(content, filePath);
+    const result = await syncStateBody(content, filePath);
     expect(result).not.toBeNull();
     expect(result.content).toContain('Phase: 3 of 5');
     expect(result.content).toContain('Status: Building');
   });
 
-  test('fixes plans_complete drift', () => {
+  test('fixes plans_complete drift', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     const content = '---\ncurrent_phase: 2\nstatus: "building"\nplans_complete: 3\n---\nPhase: 2 of 5\nPlan: 1 of 4\nStatus: Building';
     fs.writeFileSync(filePath, content);
-    const result = syncStateBody(content, filePath);
+    const result = await syncStateBody(content, filePath);
     expect(result).not.toBeNull();
     expect(result.content).toMatch(/Plan: 3 of 4/);
   });
@@ -562,20 +562,20 @@ describe('syncStateBody', () => {
 // checkStateWrite
 // ---------------------------------------------------------------------------
 describe('checkStateWrite', () => {
-  test('returns null for non-STATE.md', () => {
-    expect(checkStateWrite({ tool_input: { file_path: path.join(tmpDir, 'PLAN.md') } })).toBeNull();
+  test('returns null for non-STATE.md', async () => {
+    expect(await checkStateWrite({ tool_input: { file_path: path.join(tmpDir, 'PLAN.md') } })).toBeNull();
   });
 
-  test('returns null when file does not exist', () => {
-    expect(checkStateWrite({ tool_input: { file_path: path.join(tmpDir, 'STATE.md') } })).toBeNull();
+  test('returns null when file does not exist', async () => {
+    expect(await checkStateWrite({ tool_input: { file_path: path.join(tmpDir, 'STATE.md') } })).toBeNull();
   });
 
-  test('warns on STATE.md exceeding 100 lines', () => {
+  test('warns on STATE.md exceeding 100 lines', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     const lines = ['---', 'version: 2', 'current_phase: 1', 'phase_slug: "test"', 'status: "building"', '---'];
     while (lines.length < 101) lines.push('line');
     fs.writeFileSync(filePath, lines.join('\n'));
-    const result = checkStateWrite({ tool_input: { file_path: filePath } });
+    const result = await checkStateWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.output.additionalContext).toContain('100-line cap');
   });
@@ -587,21 +587,21 @@ describe('checkStateWrite', () => {
 describe('validateSummary body section checks', () => {
   const validFM = '---\nphase: 01\nplan: 01\nstatus: complete\nprovides: []\nrequires: []\nkey_files: []\ndeferred: []\n---\n';
 
-  test('SUMMARY with no body sections produces warnings about missing What Was Built/Task Results and Self-Check', () => {
+  test('SUMMARY with no body sections produces warnings about missing What Was Built/Task Results and Self-Check', async () => {
     const content = validFM + '# Plan Summary\n\nJust some text.\n';
     const result = validateSummary(content, 'SUMMARY.md');
     expect(result.warnings.some(w => w.includes('What Was Built') && w.includes('Task Results'))).toBe(true);
     expect(result.warnings.some(w => w.includes('Self-Check'))).toBe(true);
   });
 
-  test('SUMMARY with "## What Was Built" and "## Self-Check" produces no body-section warnings', () => {
+  test('SUMMARY with "## What Was Built" and "## Self-Check" produces no body-section warnings', async () => {
     const content = validFM + '## What Was Built\n\nStuff.\n\n## Self-Check\n\n- [x] All good\n';
     const result = validateSummary(content, 'SUMMARY.md');
     const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
     expect(bodySectionWarnings).toHaveLength(0);
   });
 
-  test('SUMMARY with "## Task Results" and "## Self-Check" (minimal template) produces no body-section warnings', () => {
+  test('SUMMARY with "## Task Results" and "## Self-Check" (minimal template) produces no body-section warnings', async () => {
     const content = validFM + '## Task Results\n\n| Task | Status |\n\n## Self-Check\n\n- [x] Done\n';
     const result = validateSummary(content, 'SUMMARY.md');
     const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
@@ -615,28 +615,28 @@ describe('validateSummary body section checks', () => {
 describe('validateVerification body section checks', () => {
   const validFM = '---\nstatus: passed\nphase: 01\nchecked_at: 2026-01-01\nmust_haves_checked: 3\nmust_haves_passed: 3\nmust_haves_failed: 0\nsatisfied: []\nunsatisfied: []\n---\n';
 
-  test('VERIFICATION with no verification tables produces warnings about missing sections and Summary', () => {
+  test('VERIFICATION with no verification tables produces warnings about missing sections and Summary', async () => {
     const content = validFM + '# Phase Verification\n\nJust text.\n';
     const result = validateVerification(content, 'VERIFICATION.md');
     expect(result.warnings.some(w => w.includes('Observable Truths') || w.includes('Must-Have Verification') || w.includes('Artifact Verification'))).toBe(true);
     expect(result.warnings.some(w => w.includes('"## Summary"'))).toBe(true);
   });
 
-  test('VERIFICATION with "## Observable Truths" and "## Summary" produces no body-section warnings', () => {
+  test('VERIFICATION with "## Observable Truths" and "## Summary" produces no body-section warnings', async () => {
     const content = validFM + '## Observable Truths\n\n| # | Truth |\n\n## Summary\n\nAll good.\n';
     const result = validateVerification(content, 'VERIFICATION.md');
     const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
     expect(bodySectionWarnings).toHaveLength(0);
   });
 
-  test('VERIFICATION with "## Artifact Verification" and "## Summary" produces no body-section warnings', () => {
+  test('VERIFICATION with "## Artifact Verification" and "## Summary" produces no body-section warnings', async () => {
     const content = validFM + '## Artifact Verification\n\n| # | Artifact |\n\n## Summary\n\nDone.\n';
     const result = validateVerification(content, 'VERIFICATION.md');
     const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
     expect(bodySectionWarnings).toHaveLength(0);
   });
 
-  test('VERIFICATION with status gaps_found but no Gaps section produces warning', () => {
+  test('VERIFICATION with status gaps_found but no Gaps section produces warning', async () => {
     const gapsFM = '---\nstatus: gaps_found\nphase: 01\nchecked_at: 2026-01-01\nmust_haves_checked: 3\nmust_haves_passed: 2\nmust_haves_failed: 1\nsatisfied: []\nunsatisfied: []\n---\n';
     const content = gapsFM + '## Observable Truths\n\n| # | Truth |\n\n## Summary\n\nGaps exist.\n';
     const result = validateVerification(content, 'VERIFICATION.md');
@@ -648,13 +648,13 @@ describe('validateVerification body section checks', () => {
 // Constants
 // ---------------------------------------------------------------------------
 describe('exported constants', () => {
-  test('PLAN_REQUIRED_FIELDS has 7 fields', () => {
+  test('PLAN_REQUIRED_FIELDS has 7 fields', async () => {
     expect(PLAN_REQUIRED_FIELDS).toHaveLength(7);
     expect(PLAN_REQUIRED_FIELDS).toContain('phase');
     expect(PLAN_REQUIRED_FIELDS).toContain('autonomous');
   });
 
-  test('PLAN_VALID_TYPES has 6 types', () => {
+  test('PLAN_VALID_TYPES has 6 types', async () => {
     expect(PLAN_VALID_TYPES).toHaveLength(6);
     expect(PLAN_VALID_TYPES).toContain('feature');
     expect(PLAN_VALID_TYPES).toContain('refactor');

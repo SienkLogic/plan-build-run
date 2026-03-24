@@ -17,31 +17,31 @@ describe('classifyIntent audit entry', () => {
     expect(typeof result.auditEntry.confidence).toBe('number');
   });
 
-  test('auditEntry.input is truncated to 100 chars max', () => {
+  test('auditEntry.input is truncated to 100 chars max', async () => {
     const longInput = 'a'.repeat(200) + ' fix bug';
     const result = classifyIntent(longInput);
     expect(result.auditEntry).toBeDefined();
     expect(result.auditEntry.input.length).toBeLessThanOrEqual(100);
   });
 
-  test('auditEntry has ISO timestamp', () => {
+  test('auditEntry has ISO timestamp', async () => {
     const result = classifyIntent('add a new feature to the dashboard');
     expect(result.auditEntry).toBeDefined();
     // ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ
     expect(result.auditEntry.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  test('auditEntry.route matches the top-level route', () => {
+  test('auditEntry.route matches the top-level route', async () => {
     const result = classifyIntent('debug the crash in the payment module');
     expect(result.auditEntry.route).toBe(result.route);
   });
 
-  test('auditEntry.confidence matches the top-level confidence', () => {
+  test('auditEntry.confidence matches the top-level confidence', async () => {
     const result = classifyIntent('add a login button to the header');
     expect(result.auditEntry.confidence).toBe(result.confidence);
   });
 
-  test('auditEntry.risk is null by default (populated by caller)', () => {
+  test('auditEntry.risk is null by default (populated by caller)', async () => {
     const result = classifyIntent('test input for audit');
     expect(result.auditEntry).toBeDefined();
     expect(result.auditEntry.risk).toBeNull();

@@ -6,7 +6,7 @@ const { helpList, skillMetadata } = require('../plugins/pbr/scripts/lib/help');
 const pluginRoot = path.resolve(__dirname, '..', 'plugins', 'pbr');
 
 describe('helpList', () => {
-  test('returns array of skills with required fields', () => {
+  test('returns array of skills with required fields', async () => {
     const result = helpList(pluginRoot);
     expect(result.skills).toBeInstanceOf(Array);
     expect(result.skills.length).toBeGreaterThan(25);
@@ -16,14 +16,14 @@ describe('helpList', () => {
     }
   });
 
-  test('skills are sorted alphabetically by name', () => {
+  test('skills are sorted alphabetically by name', async () => {
     const result = helpList(pluginRoot);
     const names = result.skills.map(s => s.name);
     const sorted = [...names].sort((a, b) => a.localeCompare(b));
     expect(names).toEqual(sorted);
   });
 
-  test('includes known skills', () => {
+  test('includes known skills', async () => {
     const result = helpList(pluginRoot);
     const names = result.skills.map(s => s.name);
     expect(names).toContain('quick');
@@ -34,7 +34,7 @@ describe('helpList', () => {
 });
 
 describe('skillMetadata', () => {
-  test('returns metadata for existing skill', () => {
+  test('returns metadata for existing skill', async () => {
     const result = skillMetadata('quick', pluginRoot);
     expect(result.name).toBe('quick');
     expect(typeof result.description).toBe('string');
@@ -43,7 +43,7 @@ describe('skillMetadata', () => {
     expect(result).toHaveProperty('argument_hint');
   });
 
-  test('returns error for nonexistent skill', () => {
+  test('returns error for nonexistent skill', async () => {
     const result = skillMetadata('nonexistent-xyz', pluginRoot);
     expect(result).toHaveProperty('error');
     expect(Array.isArray(result.available)).toBe(true);

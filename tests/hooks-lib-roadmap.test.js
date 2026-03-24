@@ -62,36 +62,36 @@ const NEW_FORMAT_ROADMAP = [
 ].join('\n');
 
 describe('parseRoadmapMd', () => {
-  it('does not parse old format Phase Overview (legacy removed)', () => {
+  it('does not parse old format Phase Overview (legacy removed)', async () => {
     const result = parseRoadmapMd(OLD_FORMAT_ROADMAP);
     expect(result.phases).toHaveLength(0);
   });
 
-  it('returns empty phases for empty content', () => {
+  it('returns empty phases for empty content', async () => {
     const result = parseRoadmapMd('');
     expect(result.phases).toEqual([]);
     expect(result.has_progress_table).toBe(false);
   });
 
-  it('detects Progress section', () => {
+  it('detects Progress section', async () => {
     const result = parseRoadmapMd(NEW_FORMAT_ROADMAP);
     expect(result.has_progress_table).toBe(true);
   });
 
-  it('does not detect Progress section when absent', () => {
+  it('does not detect Progress section when absent', async () => {
     const result = parseRoadmapMd(OLD_FORMAT_ROADMAP.replace('## Progress', ''));
     // OLD_FORMAT_ROADMAP doesn't have ## Progress anyway
     expect(result.has_progress_table).toBe(false);
   });
 
-  it('handles CRLF normalization', () => {
+  it('handles CRLF normalization', async () => {
     const crlfContent = OLD_FORMAT_ROADMAP.replace(/\n/g, '\r\n');
     const resultLF = parseRoadmapMd(OLD_FORMAT_ROADMAP);
     const resultCRLF = parseRoadmapMd(crlfContent);
     expect(resultCRLF.phases).toEqual(resultLF.phases);
   });
 
-  it('does not parse Phase Overview (legacy format removed)', () => {
+  it('does not parse Phase Overview (legacy format removed)', async () => {
     const content = '## Phase Overview';
     const result = parseRoadmapMd(content);
     expect(result.phases).toHaveLength(0);
@@ -101,23 +101,23 @@ describe('parseRoadmapMd', () => {
 describe('findRoadmapRow', () => {
   const lines = OLD_FORMAT_ROADMAP.split('\n');
 
-  it('finds row by phase number', () => {
+  it('finds row by phase number', async () => {
     const idx = findRoadmapRow(lines, '1');
     expect(idx).toBeGreaterThan(0);
     expect(lines[idx]).toContain('Setup');
   });
 
-  it('finds row with already-padded number', () => {
+  it('finds row with already-padded number', async () => {
     const idx = findRoadmapRow(lines, '02');
     expect(idx).toBeGreaterThan(0);
     expect(lines[idx]).toContain('Auth');
   });
 
-  it('returns -1 for non-existent phase', () => {
+  it('returns -1 for non-existent phase', async () => {
     expect(findRoadmapRow(lines, '99')).toBe(-1);
   });
 
-  it('handles single-digit input', () => {
+  it('handles single-digit input', async () => {
     const idx = findRoadmapRow(lines, '3');
     expect(idx).toBeGreaterThan(0);
     expect(lines[idx]).toContain('API');
@@ -127,7 +127,7 @@ describe('findRoadmapRow', () => {
 describe('updateTableRow', () => {
   const row = '| 01 | Setup | Project scaffolding | 1 | 1 | verified |';
 
-  it('updates status column (index 5)', () => {
+  it('updates status column (index 5)', async () => {
     const updated = updateTableRow(row, 5, 'complete');
     expect(updated).toContain(' complete ');
     // Other columns unchanged
@@ -135,12 +135,12 @@ describe('updateTableRow', () => {
     expect(updated).toContain('Setup');
   });
 
-  it('updates phase column (index 0)', () => {
+  it('updates phase column (index 0)', async () => {
     const updated = updateTableRow(row, 0, '10');
     expect(updated).toContain(' 10 ');
   });
 
-  it('updates plans column (index 3)', () => {
+  it('updates plans column (index 3)', async () => {
     const updated = updateTableRow(row, 3, '2/3');
     expect(updated).toContain(' 2/3 ');
   });
@@ -149,15 +149,15 @@ describe('updateTableRow', () => {
 describe('roadmapUpdateStatus', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'ROADMAP.md', OLD_FORMAT_ROADMAP);
   });
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('updates status for existing phase', () => {
-    const result = roadmapUpdateStatus('1', 'building', planningDir);
+  it('updates status for existing phase', async () => {
+    const result = await roadmapUpdateStatus('1', 'building', planningDir);
     expect(result.success).toBe(true);
     expect(result.old_status).toBe('verified');
     expect(result.new_status).toBe('building');
@@ -167,32 +167,32 @@ describe('roadmapUpdateStatus', () => {
     expect(content).toContain('building');
   });
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const empty = createTmpPlanning();
-    const result = roadmapUpdateStatus('1', 'building', empty.planningDir);
+    const result = await roadmapUpdateStatus('1', 'building', empty.planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('ROADMAP.md not found');
     cleanupTmp(empty.tmpDir);
   });
 
-  it('returns error for non-existent phase', () => {
-    const result = roadmapUpdateStatus('99', 'building', planningDir);
+  it('returns error for non-existent phase', async () => {
+    const result = await roadmapUpdateStatus('99', 'building', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Phase 99 not found');
   });
 
-  it('includes transition_warning for invalid transition', () => {
+  it('includes transition_warning for invalid transition', async () => {
     // pending -> complete skips intermediate states
-    const result = roadmapUpdateStatus('3', 'complete', planningDir);
+    const result = await roadmapUpdateStatus('3', 'complete', planningDir);
     expect(result.success).toBe(true);
     // May or may not have transition_warning depending on the transition map
     // The key thing is it still succeeds (advisory, not blocking)
   });
 
-  it('preserves CRLF line endings', () => {
+  it('preserves CRLF line endings', async () => {
     const crlfContent = OLD_FORMAT_ROADMAP.replace(/\n/g, '\r\n');
     writePlanningFile(planningDir, 'ROADMAP.md', crlfContent);
-    roadmapUpdateStatus('1', 'building', planningDir);
+    await roadmapUpdateStatus('1', 'building', planningDir);
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(content).toContain('\r\n');
   });
@@ -201,15 +201,15 @@ describe('roadmapUpdateStatus', () => {
 describe('roadmapUpdatePlans', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'ROADMAP.md', OLD_FORMAT_ROADMAP);
   });
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('updates plans column', () => {
-    const result = roadmapUpdatePlans('2', '1', '2', planningDir);
+  it('updates plans column', async () => {
+    const result = await roadmapUpdatePlans('2', '1', '2', planningDir);
     expect(result.success).toBe(true);
     expect(result.new_plans).toBe('1/2');
 
@@ -217,16 +217,16 @@ describe('roadmapUpdatePlans', () => {
     expect(content).toContain('1/2');
   });
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const empty = createTmpPlanning();
-    const result = roadmapUpdatePlans('1', '1', '1', empty.planningDir);
+    const result = await roadmapUpdatePlans('1', '1', '1', empty.planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('ROADMAP.md not found');
     cleanupTmp(empty.tmpDir);
   });
 
-  it('returns error for non-existent phase', () => {
-    const result = roadmapUpdatePlans('99', '1', '1', planningDir);
+  it('returns error for non-existent phase', async () => {
+    const result = await roadmapUpdatePlans('99', '1', '1', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Phase 99 not found');
   });
@@ -235,13 +235,13 @@ describe('roadmapUpdatePlans', () => {
 describe('roadmapAnalyze', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
   });
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const result = roadmapAnalyze(planningDir);
     expect(result.error).toContain('ROADMAP.md not found');
     expect(result.phases).toEqual([]);
@@ -250,7 +250,7 @@ describe('roadmapAnalyze', () => {
     expect(result.stats.total_phases).toBe(0);
   });
 
-  it('parses new-format milestone sections', () => {
+  it('parses new-format milestone sections', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
     const result = roadmapAnalyze(planningDir);
     expect(result.phases).toHaveLength(3);
@@ -262,7 +262,7 @@ describe('roadmapAnalyze', () => {
     expect(result.phases[2].depends_on).toEqual([1, 2]);
   });
 
-  it('merges progress table data', () => {
+  it('merges progress table data', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
     const result = roadmapAnalyze(planningDir);
     expect(result.phases[0].progress).toBe('1/1');
@@ -270,7 +270,7 @@ describe('roadmapAnalyze', () => {
     expect(result.phases[2].progress).toBe('0/0');
   });
 
-  it('merges phase checklist items', () => {
+  it('merges phase checklist items', async () => {
     const content = NEW_FORMAT_ROADMAP + '\n- [x] Phase 1: Setup\n- [ ] Phase 2: Auth\n';
     writePlanningFile(planningDir, 'ROADMAP.md', content);
     const result = roadmapAnalyze(planningDir);
@@ -278,7 +278,7 @@ describe('roadmapAnalyze', () => {
     expect(result.phases[1].checklist_checked).toBe(false);
   });
 
-  it('cross-references disk for plan/summary counts and verification', () => {
+  it('cross-references disk for plan/summary counts and verification', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
 
     // Phase 1: has PLAN + SUMMARY + VERIFICATION (passed)
@@ -307,7 +307,7 @@ describe('roadmapAnalyze', () => {
     expect(result.phases[2].disk_status).toBe('no_directory');
   });
 
-  it('reads current_phase from STATE.md', () => {
+  it('reads current_phase from STATE.md', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
     writePlanningFile(planningDir, 'STATE.md', '---\ncurrent_phase: 2\n---\n');
 
@@ -315,7 +315,7 @@ describe('roadmapAnalyze', () => {
     expect(result.current_phase).toBe(2);
   });
 
-  it('derives next_phase correctly', () => {
+  it('derives next_phase correctly', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
     writePlanningFile(planningDir, 'STATE.md', '---\ncurrent_phase: 1\n---\n');
 
@@ -327,7 +327,7 @@ describe('roadmapAnalyze', () => {
     expect(result.next_phase).toBe(2);
   });
 
-  it('computes stats correctly', () => {
+  it('computes stats correctly', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
     writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\n---\n');
     writePlanningFile(planningDir, 'phases/01-setup/SUMMARY-01.md', '---\n---\n');
@@ -343,7 +343,7 @@ describe('roadmapAnalyze', () => {
     expect(result.stats.progress_percent).toBe(33);
   });
 
-  it('handles missing STATE.md gracefully', () => {
+  it('handles missing STATE.md gracefully', async () => {
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
     const result = roadmapAnalyze(planningDir);
     expect(result.current_phase).toBeNull();
@@ -354,15 +354,15 @@ describe('roadmapAnalyze', () => {
 describe('roadmapAppendPhase', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
   });
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('appends phase heading to active milestone', () => {
-    const result = roadmapAppendPhase(planningDir, 4, 'Testing', 'End-to-end tests', 3);
+  it('appends phase heading to active milestone', async () => {
+    const result = await roadmapAppendPhase(planningDir, 4, 'Testing', 'End-to-end tests', 3);
     expect(result.success).toBe(true);
 
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -371,22 +371,22 @@ describe('roadmapAppendPhase', () => {
     expect(content).toContain('**Depends on:** Phase 3');
   });
 
-  it('adds progress table row', () => {
-    roadmapAppendPhase(planningDir, 4, 'Testing', 'E2E tests', null);
+  it('adds progress table row', async () => {
+    await roadmapAppendPhase(planningDir, 4, 'Testing', 'E2E tests', null);
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(content).toContain('| 4. Testing | 0/0 | Pending |');
   });
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const empty = createTmpPlanning();
-    const result = roadmapAppendPhase(empty.planningDir, 4, 'Test');
+    const result = await roadmapAppendPhase(empty.planningDir, 4, 'Test');
     expect(result.success).toBe(false);
     expect(result.error).toContain('ROADMAP.md not found');
     cleanupTmp(empty.tmpDir);
   });
 
-  it('handles optional goal and dependsOn', () => {
-    const result = roadmapAppendPhase(planningDir, 4, 'Testing');
+  it('handles optional goal and dependsOn', async () => {
+    const result = await roadmapAppendPhase(planningDir, 4, 'Testing');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(content).toContain('### Phase 4: Testing');
@@ -399,15 +399,15 @@ describe('roadmapAppendPhase', () => {
 describe('roadmapRemovePhase', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
   });
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('removes phase heading block and progress row', () => {
-    const result = roadmapRemovePhase(planningDir, 2);
+  it('removes phase heading block and progress row', async () => {
+    const result = await roadmapRemovePhase(planningDir, 2);
     expect(result.success).toBe(true);
 
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -418,16 +418,16 @@ describe('roadmapRemovePhase', () => {
     expect(content).toContain('### Phase 3: API');
   });
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const empty = createTmpPlanning();
-    const result = roadmapRemovePhase(empty.planningDir, 1);
+    const result = await roadmapRemovePhase(empty.planningDir, 1);
     expect(result.success).toBe(false);
     expect(result.error).toContain('ROADMAP.md not found');
     cleanupTmp(empty.tmpDir);
   });
 
-  it('is a no-op for non-existent phase', () => {
-    const result = roadmapRemovePhase(planningDir, 99);
+  it('is a no-op for non-existent phase', async () => {
+    const result = await roadmapRemovePhase(planningDir, 99);
     expect(result.success).toBe(true);
   });
 });
@@ -435,15 +435,15 @@ describe('roadmapRemovePhase', () => {
 describe('roadmapRenumberPhases', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'ROADMAP.md', NEW_FORMAT_ROADMAP);
   });
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('shifts phases up by delta +1', () => {
-    const result = roadmapRenumberPhases(planningDir, 2, 1);
+  it('shifts phases up by delta +1', async () => {
+    const result = await roadmapRenumberPhases(planningDir, 2, 1);
     expect(result.success).toBe(true);
 
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -457,8 +457,8 @@ describe('roadmapRenumberPhases', () => {
     expect(content).toContain('4. API');
   });
 
-  it('shifts phases down by delta -1', () => {
-    const result = roadmapRenumberPhases(planningDir, 2, -1);
+  it('shifts phases down by delta -1', async () => {
+    const result = await roadmapRenumberPhases(planningDir, 2, -1);
     expect(result.success).toBe(true);
 
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -467,8 +467,8 @@ describe('roadmapRenumberPhases', () => {
     expect(content).toContain('### Phase 2: API');
   });
 
-  it('updates dependency text', () => {
-    const result = roadmapRenumberPhases(planningDir, 2, 1);
+  it('updates dependency text', async () => {
+    const result = await roadmapRenumberPhases(planningDir, 2, 1);
     expect(result.success).toBe(true);
 
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -477,19 +477,19 @@ describe('roadmapRenumberPhases', () => {
     expect(content).toContain('Phase 3');
   });
 
-  it('updates checklist items', () => {
+  it('updates checklist items', async () => {
     const withChecklist = NEW_FORMAT_ROADMAP + '\n- [ ] Phase 2: Auth\n- [x] Phase 3: API\n';
     writePlanningFile(planningDir, 'ROADMAP.md', withChecklist);
 
-    roadmapRenumberPhases(planningDir, 2, 1);
+    await roadmapRenumberPhases(planningDir, 2, 1);
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(content).toContain('Phase 3:');
     expect(content).toContain('Phase 4:');
   });
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const empty = createTmpPlanning();
-    const result = roadmapRenumberPhases(empty.planningDir, 1, 1);
+    const result = await roadmapRenumberPhases(empty.planningDir, 1, 1);
     expect(result.success).toBe(false);
     expect(result.error).toContain('ROADMAP.md not found');
     cleanupTmp(empty.tmpDir);
@@ -499,7 +499,7 @@ describe('roadmapRenumberPhases', () => {
 describe('roadmapInsertPhase', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     // Pre-renumber phases >= 2 by +1 to make room, then insert at position 2
     const roadmapWithGap = [
@@ -528,8 +528,8 @@ describe('roadmapInsertPhase', () => {
 
   afterEach(() => cleanupTmp(tmpDir));
 
-  it('inserts phase heading at correct position', () => {
-    const result = roadmapInsertPhase(planningDir, 2, 'Config', 'Configuration system', 1);
+  it('inserts phase heading at correct position', async () => {
+    const result = await roadmapInsertPhase(planningDir, 2, 'Config', 'Configuration system', 1);
     expect(result.success).toBe(true);
 
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
@@ -543,8 +543,8 @@ describe('roadmapInsertPhase', () => {
     expect(phase2Idx).toBeLessThan(phase3Idx);
   });
 
-  it('inserts progress table row at correct position', () => {
-    roadmapInsertPhase(planningDir, 2, 'Config', 'Config system', null);
+  it('inserts progress table row at correct position', async () => {
+    await roadmapInsertPhase(planningDir, 2, 'Config', 'Config system', null);
     const content = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(content).toContain('| 2. Config | 0/0 | Pending |');
 
@@ -554,9 +554,9 @@ describe('roadmapInsertPhase', () => {
     expect(row2Idx).toBeLessThan(row3Idx);
   });
 
-  it('returns error for missing ROADMAP.md', () => {
+  it('returns error for missing ROADMAP.md', async () => {
     const empty = createTmpPlanning();
-    const result = roadmapInsertPhase(empty.planningDir, 2, 'Test');
+    const result = await roadmapInsertPhase(empty.planningDir, 2, 'Test');
     expect(result.success).toBe(false);
     expect(result.error).toContain('ROADMAP.md not found');
     cleanupTmp(empty.tmpDir);

@@ -19,7 +19,7 @@ function runScript(tmpDir, stdinData = '') {
 
 describe('intercept-plan-mode.js', () => {
   describe('non-PBR project (no .planning directory)', () => {
-    test('exits 0 when .planning dir does not exist', () => {
+    test('exits 0 when .planning dir does not exist', async () => {
       const tmpDir = makeTmpDir();
       try {
         const result = runScript(tmpDir);
@@ -29,7 +29,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('produces no JSON output for non-PBR project', () => {
+    test('produces no JSON output for non-PBR project', async () => {
       const tmpDir = makeTmpDir();
       try {
         const result = runScript(tmpDir);
@@ -39,7 +39,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('handles empty stdin in non-PBR project without crashing', () => {
+    test('handles empty stdin in non-PBR project without crashing', async () => {
       const tmpDir = makeTmpDir();
       try {
         const result = runScript(tmpDir, '');
@@ -51,7 +51,7 @@ describe('intercept-plan-mode.js', () => {
   });
 
   describe('PBR project (has .planning directory)', () => {
-    test('exits 2 when .planning dir exists', () => {
+    test('exits 2 when .planning dir exists', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -62,7 +62,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('outputs decision:block JSON for PBR project', () => {
+    test('outputs decision:block JSON for PBR project', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -74,7 +74,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('block reason mentions /pbr:plan-phase alternative', () => {
+    test('block reason mentions /pbr:plan-phase alternative', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -86,7 +86,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('block reason mentions Plan-Build-Run project context', () => {
+    test('block reason mentions Plan-Build-Run project context', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -98,7 +98,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('handles empty stdin in PBR project without crashing', () => {
+    test('handles empty stdin in PBR project without crashing', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -109,7 +109,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('handles arbitrary stdin data without crashing', () => {
+    test('handles arbitrary stdin data without crashing', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -124,7 +124,7 @@ describe('intercept-plan-mode.js', () => {
   });
 
   describe('output format validation', () => {
-    test('stdout is valid JSON for PBR project', () => {
+    test('stdout is valid JSON for PBR project', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
@@ -135,7 +135,7 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('JSON output has both decision and reason fields', () => {
+    test('JSON output has both decision and reason fields', async () => {
       const tmpDir = makeTmpDir();
       try {
         fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });

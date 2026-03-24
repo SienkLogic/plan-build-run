@@ -20,17 +20,17 @@ function filterPlanningChanges(statusOutput) {
 }
 
 describe('release script .planning/ exclusion', () => {
-  test('filters out .planning/ROADMAP.md from status output', () => {
+  test('filters out .planning/ROADMAP.md from status output', async () => {
     const status = ' M .planning/ROADMAP.md';
     expect(filterNonPlanningChanges(status)).toBe('');
   });
 
-  test('filters out .planning/STATE.md from status output', () => {
+  test('filters out .planning/STATE.md from status output', async () => {
     const status = ' M .planning/STATE.md';
     expect(filterNonPlanningChanges(status)).toBe('');
   });
 
-  test('does NOT filter out src/index.js from status output', () => {
+  test('does NOT filter out src/index.js from status output', async () => {
     const status = ' M src/index.js';
     expect(filterNonPlanningChanges(status)).toBe(' M src/index.js');
   });
@@ -46,11 +46,11 @@ describe('release script .planning/ exclusion', () => {
     expect(result).toBe(' M src/index.js\n?? newfile.txt');
   });
 
-  test('empty status returns empty', () => {
+  test('empty status returns empty', async () => {
     expect(filterNonPlanningChanges('')).toBe('');
   });
 
-  test('only planning changes returns empty (clean for release)', () => {
+  test('only planning changes returns empty (clean for release)', async () => {
     const status = [
       ' M .planning/ROADMAP.md',
       ' M .planning/STATE.md',
@@ -59,7 +59,7 @@ describe('release script .planning/ exclusion', () => {
     expect(filterNonPlanningChanges(status)).toBe('');
   });
 
-  test('filterPlanningChanges returns only .planning/ lines', () => {
+  test('filterPlanningChanges returns only .planning/ lines', async () => {
     const status = [
       ' M .planning/ROADMAP.md',
       ' M src/index.js',
@@ -71,12 +71,12 @@ describe('release script .planning/ exclusion', () => {
     expect(result[1]).toContain('.planning/STATE.md');
   });
 
-  test('handles untracked .planning/ files', () => {
+  test('handles untracked .planning/ files', async () => {
     const status = '?? .planning/config.json';
     expect(filterNonPlanningChanges(status)).toBe('');
   });
 
-  test('does not filter files that merely contain "planning" in name', () => {
+  test('does not filter files that merely contain "planning" in name', async () => {
     const status = ' M src/planning-utils.js';
     expect(filterNonPlanningChanges(status)).toBe(' M src/planning-utils.js');
   });

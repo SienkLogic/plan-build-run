@@ -37,7 +37,7 @@ describe('computeFingerprint', () => {
     expect(/^[0-9a-f]{8}$/.test(fp1)).toBe(true);
   });
 
-  it('returns different hash for different content', () => {
+  it('returns different hash for different content', async () => {
     const file1 = path.join(tmpDir, 'a.md');
     const file2 = path.join(tmpDir, 'b.md');
     fs.writeFileSync(file1, 'content A');

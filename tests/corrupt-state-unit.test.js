@@ -40,7 +40,7 @@ describe('corrupt state handling', () => {
       expect(result.phases).toEqual([]);
     });
 
-    test('null JSON value => statusRender no crash', () => {
+    test('null JSON value => statusRender no crash', async () => {
       writePlanningFile(planningDir, 'config.json', 'null');
       const result = statusRender(planningDir);
       expect(result).toBeDefined();
@@ -49,21 +49,21 @@ describe('corrupt state handling', () => {
   });
 
   describe('truncated STATE.md', () => {
-    test('truncated mid-frontmatter => suggestNext returns valid result', () => {
+    test('truncated mid-frontmatter => suggestNext returns valid result', async () => {
       writePlanningFile(planningDir, 'STATE.md', '---\ncurrent_phase:');
       const result = suggestNext(planningDir);
       expect(result).toBeDefined();
       expect(result.command).toBeDefined();
     });
 
-    test('truncated mid-frontmatter => statusRender returns valid result', () => {
+    test('truncated mid-frontmatter => statusRender returns valid result', async () => {
       writePlanningFile(planningDir, 'STATE.md', '---\ncurrent_phase:');
       const result = statusRender(planningDir);
       expect(result).toBeDefined();
       expect(result.phases).toBeDefined();
     });
 
-    test('only opening delimiter => both functions handle gracefully', () => {
+    test('only opening delimiter => both functions handle gracefully', async () => {
       writePlanningFile(planningDir, 'STATE.md', '---');
       expect(() => suggestNext(planningDir)).not.toThrow();
       expect(() => statusRender(planningDir)).not.toThrow();
@@ -71,7 +71,7 @@ describe('corrupt state handling', () => {
   });
 
   describe('binary content in .planning files', () => {
-    test('binary STATE.md => suggestNext no throw', () => {
+    test('binary STATE.md => suggestNext no throw', async () => {
       const binaryContent = Buffer.from([0x00, 0xFF, 0xFE, 0x89, 0x50, 0x4E, 0x47]);
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), binaryContent);
       expect(() => suggestNext(planningDir)).not.toThrow();
@@ -79,13 +79,13 @@ describe('corrupt state handling', () => {
       expect(result.command).toBeDefined();
     });
 
-    test('binary ROADMAP.md => suggestNext no throw', () => {
+    test('binary ROADMAP.md => suggestNext no throw', async () => {
       const binaryContent = Buffer.from([0x00, 0xFF, 0xFE, 0x89, 0x50, 0x4E, 0x47]);
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), binaryContent);
       expect(() => suggestNext(planningDir)).not.toThrow();
     });
 
-    test('binary VERIFICATION.md in phase => statusRender still returns', () => {
+    test('binary VERIFICATION.md in phase => statusRender still returns', async () => {
       const binaryContent = Buffer.from([0x00, 0xFF, 0xFE, 0x89, 0x50, 0x4E, 0x47]);
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\nplan: "01-01"\n---\n');
       fs.writeFileSync(
@@ -99,7 +99,7 @@ describe('corrupt state handling', () => {
   });
 
   describe('STATE.md with valid frontmatter but missing Phase line', () => {
-    test('checkBuildDependencyGate => null (graceful)', () => {
+    test('checkBuildDependencyGate => null (graceful)', async () => {
       writePlanningFile(planningDir, 'STATE.md', '---\nstatus: built\n---\n# No phase line here');
       writePlanningFile(planningDir, '.active-skill', 'build');
       process.env.PBR_PROJECT_ROOT = tmpDir;
@@ -109,7 +109,7 @@ describe('corrupt state handling', () => {
       expect(result).toBeNull();
     });
 
-    test('checkReviewPlannerGate => null (graceful) when no phase', () => {
+    test('checkReviewPlannerGate => null (graceful) when no phase', async () => {
       writePlanningFile(planningDir, 'STATE.md', '---\nstatus: built\n---\n# No phase line');
       writePlanningFile(planningDir, '.active-skill', 'review');
       process.env.PBR_PROJECT_ROOT = tmpDir;
@@ -121,14 +121,14 @@ describe('corrupt state handling', () => {
   });
 
   describe('empty files', () => {
-    test('empty STATE.md => suggestNext valid result', () => {
+    test('empty STATE.md => suggestNext valid result', async () => {
       writePlanningFile(planningDir, 'STATE.md', '');
       const result = suggestNext(planningDir);
       expect(result).toBeDefined();
       expect(result.command).toBeDefined();
     });
 
-    test('empty config.json => statusRender valid result', () => {
+    test('empty config.json => statusRender valid result', async () => {
       writePlanningFile(planningDir, 'config.json', '');
       const result = statusRender(planningDir);
       expect(result).toBeDefined();
@@ -137,7 +137,7 @@ describe('corrupt state handling', () => {
   });
 
   describe('ROADMAP.md with CRLF line endings', () => {
-    test('\\r\\n line endings => suggestNext parses correctly', () => {
+    test('\\r\\n line endings => suggestNext parses correctly', async () => {
       const roadmap = '---\r\nproject: test\r\n---\r\n\r\n### Phase 1: Setup\r\n\r\nSome content\r\n';
       writePlanningFile(planningDir, 'ROADMAP.md', roadmap);
       // Create a verified phase so "all verified" logic kicks in and scans ROADMAP

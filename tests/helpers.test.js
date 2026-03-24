@@ -23,26 +23,26 @@ describe('createTmpPlanning', () => {
     if (tmpDir) cleanupTmp(tmpDir);
   });
 
-  test('returns tmpDir and planningDir that exist on disk', () => {
+  test('returns tmpDir and planningDir that exist on disk', async () => {
     const result = createTmpPlanning();
     tmpDir = result.tmpDir;
     expect(fs.existsSync(result.tmpDir)).toBe(true);
     expect(fs.existsSync(result.planningDir)).toBe(true);
   });
 
-  test('planningDir is tmpDir/.planning', () => {
+  test('planningDir is tmpDir/.planning', async () => {
     const result = createTmpPlanning();
     tmpDir = result.tmpDir;
     expect(result.planningDir).toBe(path.join(result.tmpDir, '.planning'));
   });
 
-  test('.planning/logs/ directory exists', () => {
+  test('.planning/logs/ directory exists', async () => {
     const result = createTmpPlanning();
     tmpDir = result.tmpDir;
     expect(fs.existsSync(path.join(result.planningDir, 'logs'))).toBe(true);
   });
 
-  test('custom prefix works', () => {
+  test('custom prefix works', async () => {
     const result = createTmpPlanning('custom-prefix-');
     tmpDir = result.tmpDir;
     expect(path.basename(result.tmpDir)).toMatch(/^custom-prefix-/);
@@ -50,14 +50,14 @@ describe('createTmpPlanning', () => {
 });
 
 describe('cleanupTmp', () => {
-  test('removes the directory created by createTmpPlanning', () => {
+  test('removes the directory created by createTmpPlanning', async () => {
     const { tmpDir } = createTmpPlanning();
     expect(fs.existsSync(tmpDir)).toBe(true);
     cleanupTmp(tmpDir);
     expect(fs.existsSync(tmpDir)).toBe(false);
   });
 
-  test('does not throw on already-deleted directory', () => {
+  test('does not throw on already-deleted directory', async () => {
     const { tmpDir } = createTmpPlanning();
     cleanupTmp(tmpDir);
     expect(() => cleanupTmp(tmpDir)).not.toThrow();
@@ -65,7 +65,7 @@ describe('cleanupTmp', () => {
 });
 
 describe('createRunner', () => {
-  test('returns a function', () => {
+  test('returns a function', async () => {
     const run = createRunner('nonexistent.js');
     expect(typeof run).toBe('function');
   });
@@ -100,7 +100,7 @@ describe('createRunner', () => {
     }
   });
 
-  test('object stdinData is auto-stringified to JSON', () => {
+  test('object stdinData is auto-stringified to JSON', async () => {
     const scriptPath = path.join(__dirname, '..', 'node_modules', '.cache', '_test-stdin.js');
     fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
     fs.writeFileSync(scriptPath, `
@@ -119,7 +119,7 @@ describe('createRunner', () => {
     }
   });
 
-  test('opts.cwd sets the working directory', () => {
+  test('opts.cwd sets the working directory', async () => {
     const scriptPath = path.join(__dirname, '..', 'node_modules', '.cache', '_test-cwd.js');
     fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
     fs.writeFileSync(scriptPath, 'process.stdout.write(process.cwd())');
@@ -137,7 +137,7 @@ describe('createRunner', () => {
     }
   });
 
-  test('works with a real hook script (check-dangerous-commands)', () => {
+  test('works with a real hook script (check-dangerous-commands)', async () => {
     const scriptPath = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-dangerous-commands.js');
     const run = createRunner(scriptPath);
     const result = run({ tool_input: { command: 'echo hi' } });
@@ -158,12 +158,12 @@ describe('writePlanningFile', () => {
     cleanupTmp(tmpDir);
   });
 
-  test('writes file at planningDir/filename', () => {
+  test('writes file at planningDir/filename', async () => {
     writePlanningFile(planningDir, 'test.md', '# Test');
     expect(fs.readFileSync(path.join(planningDir, 'test.md'), 'utf8')).toBe('# Test');
   });
 
-  test('writes file with intermediate dirs', () => {
+  test('writes file with intermediate dirs', async () => {
     writePlanningFile(planningDir, path.join('sub', 'dir', 'file.md'), 'nested content');
     expect(
       fs.readFileSync(path.join(planningDir, 'sub', 'dir', 'file.md'), 'utf8')
@@ -184,11 +184,11 @@ describe('readLastLogEntry', () => {
     cleanupTmp(tmpDir);
   });
 
-  test('returns null when no log file exists', () => {
+  test('returns null when no log file exists', async () => {
     expect(readLastLogEntry(planningDir)).toBeNull();
   });
 
-  test('returns parsed JSON of last line when log file exists', () => {
+  test('returns parsed JSON of last line when log file exists', async () => {
     const logPath = path.join(planningDir, 'logs', getHooksFilename());
     const entries = [
       JSON.stringify({ event: 'first', ts: 1 }),
@@ -202,19 +202,19 @@ describe('readLastLogEntry', () => {
 });
 
 describe('getHooksLogPath / getEventsLogPath', () => {
-  test('getHooksLogPath returns path with dated hooks filename', () => {
+  test('getHooksLogPath returns path with dated hooks filename', async () => {
     const p = getHooksLogPath('/fake/.planning');
     expect(p).toContain('logs');
     expect(p).toMatch(/hooks-\d{4}-\d{2}-\d{2}\.jsonl$/);
   });
 
-  test('getEventsLogPath returns path with dated events filename', () => {
+  test('getEventsLogPath returns path with dated events filename', async () => {
     const p = getEventsLogPath('/fake/.planning');
     expect(p).toContain('logs');
     expect(p).toMatch(/events-\d{4}-\d{2}-\d{2}\.jsonl$/);
   });
 
-  test('paths include planningDir/logs/ prefix', () => {
+  test('paths include planningDir/logs/ prefix', async () => {
     const planningDir = path.join('some', 'project', '.planning');
     const hooksPath = getHooksLogPath(planningDir);
     const eventsPath = getEventsLogPath(planningDir);

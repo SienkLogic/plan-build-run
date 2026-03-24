@@ -8,7 +8,7 @@ describe('model-selection', () => {
   describe('config schema structure', () => {
     const complexityMap = schema.properties.models.properties.complexity_map;
 
-    test('complexity_map exists in models schema', () => {
+    test('complexity_map exists in models schema', async () => {
       expect(complexityMap).toBeDefined();
     });
 
@@ -18,13 +18,13 @@ describe('model-selection', () => {
       expect(complexityMap.properties).toHaveProperty('complex');
     });
 
-    test('each complexity level has type string', () => {
+    test('each complexity level has type string', async () => {
       expect(complexityMap.properties.simple.type).toBe('string');
       expect(complexityMap.properties.medium.type).toBe('string');
       expect(complexityMap.properties.complex.type).toBe('string');
     });
 
-    test('complexity_map does not allow additional properties', () => {
+    test('complexity_map does not allow additional properties', async () => {
       expect(complexityMap.additionalProperties).toBe(false);
     });
 
@@ -41,21 +41,21 @@ describe('model-selection', () => {
       'utf8'
     );
 
-    test('planner includes complexity attribute in task XML format', () => {
+    test('planner includes complexity attribute in task XML format', async () => {
       expect(plannerContent).toContain('complexity=');
     });
 
-    test('planner documents all three complexity values', () => {
+    test('planner documents all three complexity values', async () => {
       expect(plannerContent).toContain('`simple`');
       expect(plannerContent).toContain('`medium`');
       expect(plannerContent).toContain('`complex`');
     });
 
-    test('planner includes complexity annotation section', () => {
+    test('planner includes complexity annotation section', async () => {
       expect(plannerContent).toContain('### Complexity Annotation');
     });
 
-    test('planner documents heuristics', () => {
+    test('planner documents heuristics', async () => {
       expect(plannerContent).toContain('**Heuristics**');
     });
   });
@@ -66,15 +66,15 @@ describe('model-selection', () => {
       'utf8'
     );
 
-    test('build skill contains Model Selection (Adaptive) section', () => {
+    test('build skill contains Model Selection (Adaptive) section', async () => {
       expect(buildContent).toContain('Model Selection (Adaptive)');
     });
 
-    test('build skill references complexity_map', () => {
+    test('build skill references complexity_map', async () => {
       expect(buildContent).toContain('complexity_map');
     });
 
-    test('build skill documents override precedence', () => {
+    test('build skill documents override precedence', async () => {
       // Explicit model attribute takes precedence
       expect(buildContent).toContain('explicit `model` attribute');
       // Then complexity_map lookup
@@ -85,12 +85,12 @@ describe('model-selection', () => {
   });
 
   describe('model_profiles config schema', () => {
-    test('config-schema.json has model_profiles property', () => {
+    test('config-schema.json has model_profiles property', async () => {
       expect(schema.properties.model_profiles).toBeDefined();
       expect(schema.properties.model_profiles.type).toBe('object');
     });
 
-    test('model_profiles additionalProperties schema accepts agent keys', () => {
+    test('model_profiles additionalProperties schema accepts agent keys', async () => {
       const profileSchema = schema.properties.model_profiles.additionalProperties;
       expect(profileSchema).toBeDefined();
       expect(profileSchema.properties.researcher).toBeDefined();
@@ -101,9 +101,9 @@ describe('model-selection', () => {
 
   // Skipped: references/model-selection.md not ported (superseded by model-profiles.md and model-profile-resolution.md)
   describe.skip('reference doc consistency', () => {
-    test('reference doc documents all three complexity levels', () => {});
-    test('reference doc documents all three override mechanisms', () => {});
-    test('reference doc explains how it works', () => {});
-    test('reference doc includes default mapping table', () => {});
+    test('reference doc documents all three complexity levels', async () => {});
+    test('reference doc documents all three override mechanisms', async () => {});
+    test('reference doc explains how it works', async () => {});
+    test('reference doc includes default mapping table', async () => {});
   });
 });

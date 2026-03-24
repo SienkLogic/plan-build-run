@@ -68,27 +68,27 @@ describe('dataStatus', () => {
     }
   });
 
-  test('research has correct file count (SUMMARY.md + old + new)', () => {
+  test('research has correct file count (SUMMARY.md + old + new)', async () => {
     const result = dataStatus(planningDir);
     expect(result.research.files).toBe(3);
   });
 
-  test('intel entry reads .last-refresh.json timestamp', () => {
+  test('intel entry reads .last-refresh.json timestamp', async () => {
     const result = dataStatus(planningDir);
     expect(result.intel.last_refresh).toBe('2026-03-17T05:09:39.189Z');
   });
 
-  test('codebase entry has graph_mtime', () => {
+  test('codebase entry has graph_mtime', async () => {
     const result = dataStatus(planningDir);
     expect(result.codebase.graph_mtime).toBeTruthy();
   });
 
-  test('research has summary_mtime', () => {
+  test('research has summary_mtime', async () => {
     const result = dataStatus(planningDir);
     expect(result.research.summary_mtime).toBeTruthy();
   });
 
-  test('handles missing directory gracefully', () => {
+  test('handles missing directory gracefully', async () => {
     const emptyDir = path.join(tmpDir, '.planning-empty');
     fs.mkdirSync(emptyDir);
     const result = dataStatus(emptyDir);
@@ -99,7 +99,7 @@ describe('dataStatus', () => {
 });
 
 describe('dataPrune', () => {
-  test('dryRun returns archived list but files remain', () => {
+  test('dryRun returns archived list but files remain', async () => {
     const result = dataPrune(planningDir, {
       before: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       dryRun: true
@@ -110,7 +110,7 @@ describe('dataPrune', () => {
     expect(fs.existsSync(path.join(planningDir, 'research', 'old-research.md'))).toBe(true);
   });
 
-  test('SUMMARY.md and graph.json are never archived (in skipped list)', () => {
+  test('SUMMARY.md and graph.json are never archived (in skipped list)', async () => {
     const result = dataPrune(planningDir, {
       before: new Date().toISOString(), // everything is "before" now
       dryRun: true
@@ -120,7 +120,7 @@ describe('dataPrune', () => {
     expect(skippedNames).toContain('codebase/graph.json');
   });
 
-  test('with before date: old files moved to archive/ subdirectory', () => {
+  test('with before date: old files moved to archive/ subdirectory', async () => {
     // Ensure old-research.md still exists before pruning
     expect(fs.existsSync(path.join(planningDir, 'research', 'old-research.md'))).toBe(true);
 
@@ -136,7 +136,7 @@ describe('dataPrune', () => {
     expect(fs.existsSync(path.join(planningDir, 'research', 'old-research.md'))).toBe(false);
   });
 
-  test('returns error for missing --before date', () => {
+  test('returns error for missing --before date', async () => {
     const result = dataPrune(planningDir, {});
     expect(result.error).toMatch(/Invalid/);
   });

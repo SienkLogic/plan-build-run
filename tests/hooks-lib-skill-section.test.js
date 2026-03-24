@@ -45,54 +45,54 @@ afterEach(() => {
 });
 
 describe('resolveSkillPath', () => {
-  test('returns path for existing skill', () => {
+  test('returns path for existing skill', async () => {
     const result = resolveSkillPath('test-skill', pluginRoot);
     expect(result).toBe(path.join(pluginRoot, 'skills', 'test-skill', 'SKILL.md'));
   });
 
-  test('returns null for nonexistent skill', () => {
+  test('returns null for nonexistent skill', async () => {
     expect(resolveSkillPath('nonexistent', pluginRoot)).toBeNull();
   });
 });
 
 describe('listAvailableSkills', () => {
-  test('returns array of skill names', () => {
+  test('returns array of skill names', async () => {
     const skills = listAvailableSkills(pluginRoot);
     expect(skills).toContain('test-skill');
     expect(skills).toContain('other-skill');
   });
 
-  test('returns empty array for nonexistent skills dir', () => {
+  test('returns empty array for nonexistent skills dir', async () => {
     const result = listAvailableSkills(path.join(tmpDir, 'nonexistent'));
     expect(result).toEqual([]);
   });
 });
 
 describe('skillSection', () => {
-  test('extracts a section by heading', () => {
+  test('extracts a section by heading', async () => {
     const result = skillSection('test-skill', 'Overview', pluginRoot);
     expect(result.skill).toBe('test-skill');
     expect(result.content).toContain('overview section');
   });
 
-  test('returns error for empty section query', () => {
+  test('returns error for empty section query', async () => {
     const result = skillSection('test-skill', '', pluginRoot);
     expect(result.error).toContain('Section query required');
   });
 
-  test('returns error for nonexistent skill', () => {
+  test('returns error for nonexistent skill', async () => {
     const result = skillSection('nonexistent', 'Overview', pluginRoot);
     expect(result.error).toContain('Skill not found');
     expect(result.available).toBeDefined();
   });
 
-  test('returns error for nonexistent section', () => {
+  test('returns error for nonexistent section', async () => {
     const result = skillSection('test-skill', 'NonexistentSection', pluginRoot);
     expect(result.error).toContain('not found');
     expect(result.available).toBeDefined();
   });
 
-  test('handles hyphenated queries via normalization', () => {
+  test('handles hyphenated queries via normalization', async () => {
     const result = skillSection('test-skill', 'step-1', pluginRoot);
     // Should match "Step 1: Setup" via fuzzy matching
     expect(result.error).toBeUndefined();

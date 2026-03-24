@@ -36,85 +36,85 @@ afterEach(() => {
 });
 
 describe('checkTask', () => {
-  test('no warnings for valid task', () => {
+  test('no warnings for valid task', async () => {
     expect(checkTask({ tool_input: { description: 'Run tests', subagent_type: 'pbr:executor' } })).toEqual([]);
   });
 
-  test('warns on missing description', () => {
+  test('warns on missing description', async () => {
     const w = checkTask({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(w.some(s => s.includes('without a description'))).toBe(true);
   });
 
-  test('warns on empty description', () => {
+  test('warns on empty description', async () => {
     const w = checkTask({ tool_input: { description: '', subagent_type: 'pbr:executor' } });
     expect(w.some(s => s.includes('without a description'))).toBe(true);
   });
 
-  test('warns on whitespace-only description', () => {
+  test('warns on whitespace-only description', async () => {
     const w = checkTask({ tool_input: { description: '   ', subagent_type: 'pbr:executor' } });
     expect(w.some(s => s.includes('without a description'))).toBe(true);
   });
 
-  test('warns on long description', () => {
+  test('warns on long description', async () => {
     const w = checkTask({ tool_input: { description: 'x'.repeat(101), subagent_type: 'pbr:executor' } });
     expect(w.some(s => s.includes('101 chars'))).toBe(true);
   });
 
-  test('no warning at exactly 100 chars', () => {
+  test('no warning at exactly 100 chars', async () => {
     const w = checkTask({ tool_input: { description: 'x'.repeat(100), subagent_type: 'pbr:executor' } });
     expect(w).toEqual([]);
   });
 
-  test('warns when description mentions pbr: but no subagent_type', () => {
+  test('warns when description mentions pbr: but no subagent_type', async () => {
     const w = checkTask({ tool_input: { description: 'Spawn pbr:planner for phase' } });
     expect(w.some(s => s.includes('subagent_type'))).toBe(true);
   });
 
-  test('warns on unknown pbr agent type', () => {
+  test('warns on unknown pbr agent type', async () => {
     const w = checkTask({ tool_input: { description: 'Test', subagent_type: 'pbr:fake' } });
     expect(w.some(s => s.includes('Unknown pbr agent type'))).toBe(true);
   });
 
-  test('no warning for non-pbr agent type', () => {
+  test('no warning for non-pbr agent type', async () => {
     const w = checkTask({ tool_input: { description: 'Test', subagent_type: 'custom:agent' } });
     expect(w).toEqual([]);
   });
 
-  test('all known agents pass validation', () => {
+  test('all known agents pass validation', async () => {
     for (const agent of KNOWN_AGENTS) {
       const w = checkTask({ tool_input: { description: 'Test', subagent_type: `pbr:${agent}` } });
       expect(w).toEqual([]);
     }
   });
 
-  test('handles missing tool_input', () => {
+  test('handles missing tool_input', async () => {
     const w = checkTask({});
     expect(w.some(s => s.includes('without a description'))).toBe(true);
   });
 });
 
 describe('checkQuickExecutorGate', () => {
-  test('returns null for non-executor', () => {
+  test('returns null for non-executor', async () => {
     expect(checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null when no .active-skill', () => {
+  test('returns null when no .active-skill', async () => {
     expect(checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when active skill is not quick', () => {
+  test('returns null when active skill is not quick', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks when quick dir missing', () => {
+  test('blocks when quick dir missing', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     const result = checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.block).toBe(true);
     expect(result.reason).toContain('does not exist');
   });
 
-  test('blocks when quick dir has no PLAN.md', () => {
+  test('blocks when quick dir has no PLAN.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     fs.mkdirSync(path.join(planningDir, 'quick', '001-task'), { recursive: true });
     const result = checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
@@ -122,7 +122,7 @@ describe('checkQuickExecutorGate', () => {
     expect(result.reason).toContain('no PLAN.md');
   });
 
-  test('passes when quick task has PLAN.md', () => {
+  test('passes when quick task has PLAN.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     const taskDir = path.join(planningDir, 'quick', '001-task');
     fs.mkdirSync(taskDir, { recursive: true });
@@ -130,7 +130,7 @@ describe('checkQuickExecutorGate', () => {
     expect(checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks when PLAN.md is empty', () => {
+  test('blocks when PLAN.md is empty', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     const taskDir = path.join(planningDir, 'quick', '001-task');
     fs.mkdirSync(taskDir, { recursive: true });
@@ -141,20 +141,20 @@ describe('checkQuickExecutorGate', () => {
 });
 
 describe('checkBuildExecutorGate', () => {
-  test('returns null for non-executor', () => {
+  test('returns null for non-executor', async () => {
     expect(checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null when active skill is not build', () => {
+  test('returns null when active skill is not build', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     expect(checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when no .active-skill', () => {
+  test('returns null when no .active-skill', async () => {
     expect(checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks when no phases dir', () => {
+  test('blocks when no phases dir', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const result = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
@@ -162,7 +162,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result.reason).toContain('phases');
   });
 
-  test('blocks when no phase dir for current phase', () => {
+  test('blocks when no phase dir for current phase', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     fs.mkdirSync(path.join(planningDir, 'phases', '02-other'), { recursive: true });
@@ -171,7 +171,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result.reason).toContain('phase 01');
   });
 
-  test('allows when phase dir has no PLAN.md (empty dir for speculative planning)', () => {
+  test('allows when phase dir has no PLAN.md (empty dir for speculative planning)', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
@@ -179,7 +179,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('passes when PLAN.md exists', () => {
+  test('passes when PLAN.md exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
@@ -188,7 +188,7 @@ describe('checkBuildExecutorGate', () => {
     expect(checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when STATE.md has no phase match', () => {
+  test('returns null when STATE.md has no phase match', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'No phase info');
     expect(checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
@@ -196,38 +196,38 @@ describe('checkBuildExecutorGate', () => {
 });
 
 describe('checkPlanExecutorGate', () => {
-  test('returns null for non-executor', () => {
+  test('returns null for non-executor', async () => {
     expect(checkPlanExecutorGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null when active skill is not plan', () => {
+  test('returns null when active skill is not plan', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkPlanExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks executor when active skill is plan', () => {
+  test('blocks executor when active skill is plan', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     const result = checkPlanExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.block).toBe(true);
     expect(result.reason).toContain('Plan skill cannot spawn executors');
   });
 
-  test('returns null when no .active-skill file', () => {
+  test('returns null when no .active-skill file', async () => {
     expect(checkPlanExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 });
 
 describe('checkReviewPlannerGate', () => {
-  test('returns null for non-planner', () => {
+  test('returns null for non-planner', async () => {
     expect(checkReviewPlannerGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when active skill is not review', () => {
+  test('returns null when active skill is not review', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkReviewPlannerGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('blocks planner when no VERIFICATION.md in phase dir', () => {
+  test('blocks planner when no VERIFICATION.md in phase dir', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
@@ -236,7 +236,7 @@ describe('checkReviewPlannerGate', () => {
     expect(result.reason).toContain('VERIFICATION.md');
   });
 
-  test('passes when VERIFICATION.md exists', () => {
+  test('passes when VERIFICATION.md exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
@@ -245,13 +245,13 @@ describe('checkReviewPlannerGate', () => {
     expect(checkReviewPlannerGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null when no phases dir', () => {
+  test('returns null when no phases dir', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     expect(checkReviewPlannerGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null when no phase match in STATE.md', () => {
+  test('returns null when no phase match in STATE.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'No phase info');
     expect(checkReviewPlannerGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
@@ -259,16 +259,16 @@ describe('checkReviewPlannerGate', () => {
 });
 
 describe('checkReviewVerifierGate', () => {
-  test('returns null for non-verifier', () => {
+  test('returns null for non-verifier', async () => {
     expect(checkReviewVerifierGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when active skill is not review', () => {
+  test('returns null when active skill is not review', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkReviewVerifierGate({ tool_input: { subagent_type: 'pbr:verifier' } })).toBeNull();
   });
 
-  test('blocks verifier when no SUMMARY in phase dir', () => {
+  test('blocks verifier when no SUMMARY in phase dir', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-test'), { recursive: true });
@@ -277,7 +277,7 @@ describe('checkReviewVerifierGate', () => {
     expect(result.reason).toContain('SUMMARY');
   });
 
-  test('passes when SUMMARY.md exists', () => {
+  test('passes when SUMMARY.md exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const phaseDir = path.join(planningDir, 'phases', '01-test');
@@ -286,7 +286,7 @@ describe('checkReviewVerifierGate', () => {
     expect(checkReviewVerifierGate({ tool_input: { subagent_type: 'pbr:verifier' } })).toBeNull();
   });
 
-  test('passes when SUMMARY-01-01.md exists', () => {
+  test('passes when SUMMARY-01-01.md exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const phaseDir = path.join(planningDir, 'phases', '01-test');
@@ -295,7 +295,7 @@ describe('checkReviewVerifierGate', () => {
     expect(checkReviewVerifierGate({ tool_input: { subagent_type: 'pbr:verifier' } })).toBeNull();
   });
 
-  test('blocks when SUMMARY exists but is empty', () => {
+  test('blocks when SUMMARY exists but is empty', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const phaseDir = path.join(planningDir, 'phases', '01-test');
@@ -305,11 +305,11 @@ describe('checkReviewVerifierGate', () => {
     expect(result.block).toBe(true);
   });
 
-  test('returns null when no .active-skill', () => {
+  test('returns null when no .active-skill', async () => {
     expect(checkReviewVerifierGate({ tool_input: { subagent_type: 'pbr:verifier' } })).toBeNull();
   });
 
-  test('returns null when no phases dir', () => {
+  test('returns null when no phases dir', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     expect(checkReviewVerifierGate({ tool_input: { subagent_type: 'pbr:verifier' } })).toBeNull();
@@ -342,22 +342,22 @@ phase_slug: "second"
 Phase: 2 of 2
 `;
 
-  test('returns null for non-milestone skill', () => {
+  test('returns null for non-milestone skill', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkMilestoneCompleteGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('returns null for non-general/planner agent', () => {
+  test('returns null for non-general/planner agent', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     expect(checkMilestoneCompleteGate({ tool_input: { subagent_type: 'pbr:executor', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('returns null for non-complete operations', () => {
+  test('returns null for non-complete operations', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     expect(checkMilestoneCompleteGate({ tool_input: { subagent_type: 'pbr:general', description: 'Create new milestone' } })).toBeNull();
   });
 
-  test('blocks when phase lacks VERIFICATION.md', () => {
+  test('blocks when phase lacks VERIFICATION.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -369,7 +369,7 @@ Phase: 2 of 2
     expect(result.reason).toContain('VERIFICATION.md');
   });
 
-  test('passes when all phases have VERIFICATION.md', () => {
+  test('passes when all phases have VERIFICATION.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -380,7 +380,7 @@ Phase: 2 of 2
     expect(checkMilestoneCompleteGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('blocks when phase dir is missing', () => {
+  test('blocks when phase dir is missing', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -390,11 +390,11 @@ Phase: 2 of 2
     expect(result.reason).toContain('directory not found');
   });
 
-  test('returns null when no .active-skill', () => {
+  test('returns null when no .active-skill', async () => {
     expect(checkMilestoneCompleteGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('works with pbr:planner agent type', () => {
+  test('works with pbr:planner agent type', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -432,22 +432,22 @@ phase_slug: "second"
 Phase: 2 of 2
 `;
 
-  test('returns null for non-milestone skill', () => {
+  test('returns null for non-milestone skill', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('returns null for non-general/planner agent', () => {
+  test('returns null for non-general/planner agent', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:executor', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('returns null for non-complete operations', () => {
+  test('returns null for non-complete operations', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Create new milestone' } })).toBeNull();
   });
 
-  test('blocks when phase lacks SUMMARY.md', () => {
+  test('blocks when phase lacks SUMMARY.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -460,7 +460,7 @@ Phase: 2 of 2
     expect(result.reason).toContain('02');
   });
 
-  test('passes when all phases have SUMMARY.md', () => {
+  test('passes when all phases have SUMMARY.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -471,7 +471,7 @@ Phase: 2 of 2
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('blocks when SUMMARY.md is empty', () => {
+  test('blocks when SUMMARY.md is empty', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -484,7 +484,7 @@ Phase: 2 of 2
     expect(result.reason).toContain('01');
   });
 
-  test('skips phase dir check if dir missing (caught by milestone-complete gate)', () => {
+  test('skips phase dir check if dir missing (caught by milestone-complete gate)', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -494,7 +494,7 @@ Phase: 2 of 2
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('works with pbr:planner agent type', () => {
+  test('works with pbr:planner agent type', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
@@ -505,7 +505,7 @@ Phase: 2 of 2
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:planner', description: 'Complete milestone' } })).toBeNull();
   });
 
-  test('fallback: parses phases from **Phases:** line when no table', () => {
+  test('fallback: parses phases from **Phases:** line when no table', async () => {
     const ROADMAP_NO_TABLE = `# Roadmap
 
 ## Milestone: Test
@@ -530,7 +530,7 @@ Phase: 2 of 2
     expect(result.reason).toContain('02');
   });
 
-  test('fallback: parses phases from ### Phase headings when no table or Phases line', () => {
+  test('fallback: parses phases from ### Phase headings when no table or Phases line', async () => {
     const ROADMAP_HEADINGS_ONLY = `# Roadmap
 
 ## Milestone: Test
@@ -565,16 +565,16 @@ describe('checkBuildDependencyGate', () => {
 **Depends on:** Phase 1
 `;
 
-  test('returns null for non-executor', () => {
+  test('returns null for non-executor', async () => {
     expect(checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null when active skill is not build', () => {
+  test('returns null when active skill is not build', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     expect(checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks when dependent phase lacks VERIFICATION.md and has non-speculative plans', () => {
+  test('blocks when dependent phase lacks VERIFICATION.md and has non-speculative plans', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 2');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_WITH_DEPS);
@@ -588,7 +588,7 @@ describe('checkBuildDependencyGate', () => {
     expect(result.reason).toContain('Build dependency gate');
   });
 
-  test('passes when dependent phase has VERIFICATION.md', () => {
+  test('passes when dependent phase has VERIFICATION.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 2');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_WITH_DEPS);
@@ -598,7 +598,7 @@ describe('checkBuildDependencyGate', () => {
     expect(checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when no depends-on line', () => {
+  test('returns null when no depends-on line', async () => {
     const roadmap = '# Roadmap\n\n### Phase 1: First\n**Goal:** Test\n';
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 1');
@@ -606,7 +606,7 @@ describe('checkBuildDependencyGate', () => {
     expect(checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when depends-on is "None"', () => {
+  test('returns null when depends-on is "None"', async () => {
     const roadmap = '# Roadmap\n\n### Phase 1: First\n**Goal:** Test\n**Depends on:** None\n';
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 1');
@@ -614,7 +614,7 @@ describe('checkBuildDependencyGate', () => {
     expect(checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks when dep phase dir is missing entirely', () => {
+  test('blocks when dep phase dir is missing entirely', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 2');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_WITH_DEPS);
@@ -625,7 +625,7 @@ describe('checkBuildDependencyGate', () => {
 });
 
 describe('checkCheckpointManifest', () => {
-  test('warns when manifest missing in build executor context', () => {
+  test('warns when manifest missing in build executor context', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3 (Test)\n');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-test'), { recursive: true });
@@ -633,7 +633,7 @@ describe('checkCheckpointManifest', () => {
     expect(result).toContain('checkpoint-manifest');
   });
 
-  test('no warning when manifest exists', () => {
+  test('no warning when manifest exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3 (Test)\n');
     const phaseDir = path.join(planningDir, 'phases', '01-test');
@@ -642,32 +642,32 @@ describe('checkCheckpointManifest', () => {
     expect(checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null for non-executor', () => {
+  test('returns null for non-executor', async () => {
     expect(checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('returns null for non-build skill', () => {
+  test('returns null for non-build skill', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     expect(checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when no .active-skill', () => {
+  test('returns null when no .active-skill', async () => {
     expect(checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when STATE.md has no phase match', () => {
+  test('returns null when STATE.md has no phase match', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'No phase info');
     expect(checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when phases dir missing', () => {
+  test('returns null when phases dir missing', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3 (Test)\n');
     expect(checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null when no dir for current phase', () => {
+  test('returns null when no dir for current phase', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3 (Test)\n');
     fs.mkdirSync(path.join(planningDir, 'phases', '02-other'), { recursive: true });
@@ -676,81 +676,81 @@ describe('checkCheckpointManifest', () => {
 });
 
 describe('checkActiveSkillIntegrity', () => {
-  test('warns when pbr agent spawns without .active-skill', () => {
+  test('warns when pbr agent spawns without .active-skill', async () => {
     const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result).toContain('active-skill');
   });
 
-  test('no warning when .active-skill exists', () => {
+  test('no warning when .active-skill exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('returns null for non-pbr agents', () => {
+  test('returns null for non-pbr agents', async () => {
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'custom:agent' } })).toBeNull();
   });
 
-  test('returns null for empty subagent_type', () => {
+  test('returns null for empty subagent_type', async () => {
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: '' } })).toBeNull();
   });
 
-  test('returns null for non-string subagent_type', () => {
+  test('returns null for non-string subagent_type', async () => {
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 123 } })).toBeNull();
   });
 
-  test('returns null when no .planning dir', () => {
+  test('returns null when no .planning dir', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 });
 
 describe('checkDebuggerAdvisory', () => {
-  test('returns null when subagent_type is not pbr:debugger', () => {
+  test('returns null when subagent_type is not pbr:debugger', async () => {
     const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result).toBeNull();
   });
 
-  test('returns null when .active-skill is not debug', () => {
+  test('returns null when .active-skill is not debug', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
     expect(result).toBeNull();
   });
 
-  test('returns null when .active-skill is debug and .planning/debug/ exists', () => {
+  test('returns null when .active-skill is debug and .planning/debug/ exists', async () => {
     fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'debug');
     const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
     expect(result).toBeNull();
   });
 
-  test('returns advisory when .active-skill is debug and .planning/debug/ missing', () => {
+  test('returns advisory when .active-skill is debug and .planning/debug/ missing', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'debug');
     const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
     expect(result).toContain('Debugger advisory');
     expect(result).toContain('.planning/debug/');
   });
 
-  test('returns null when .active-skill file does not exist', () => {
+  test('returns null when .active-skill file does not exist', async () => {
     const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
     expect(result).toBeNull();
   });
 });
 
 describe('main() error paths', () => {
-  test('handles empty stdin data gracefully (empty tool_input)', () => {
+  test('handles empty stdin data gracefully (empty tool_input)', async () => {
     const w = checkTask({ tool_input: {} });
     // Should warn about missing description, not crash
     expect(w.some(s => s.includes('without a description'))).toBe(true);
   });
 
-  test('handles tool_name not matching any gate (unknown tool)', () => {
+  test('handles tool_name not matching any gate (unknown tool)', async () => {
     // Simulate data with a non-matching subagent_type that is not pbr:
     const w = checkTask({ tool_input: { description: 'Test', subagent_type: 'other:unknown' } });
     // Should not crash and should return no warnings (non-pbr agents are not validated for agent name)
     expect(w).toEqual([]);
   });
 
-  test('checkBuildExecutorGate handles STATE.md with no frontmatter (plain text)', () => {
+  test('checkBuildExecutorGate handles STATE.md with no frontmatter (plain text)', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Just some plain text, no Phase line');
     const result = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
@@ -758,7 +758,7 @@ describe('main() error paths', () => {
     expect(result).toBeNull();
   });
 
-  test('checkBuildExecutorGate handles empty STATE.md', () => {
+  test('checkBuildExecutorGate handles empty STATE.md', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '');
     const result = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
@@ -774,7 +774,7 @@ describe('main() error paths', () => {
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:general' } })).toBeNull();
   });
 
-  test('checkActiveSkillIntegrity warns on stale .active-skill (>2 hours old)', () => {
+  test('checkActiveSkillIntegrity warns on stale .active-skill (>2 hours old)', async () => {
     const skillPath = path.join(planningDir, '.active-skill');
     fs.writeFileSync(skillPath, 'build');
     // Backdate the file to 3 hours ago
@@ -786,7 +786,7 @@ describe('main() error paths', () => {
     expect(result).toContain('3h old');
   });
 
-  test('checkQuickExecutorGate blocks when quick dir exists but no task subdirs', () => {
+  test('checkQuickExecutorGate blocks when quick dir exists but no task subdirs', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     fs.mkdirSync(path.join(planningDir, 'quick'), { recursive: true });
     const result = checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
@@ -794,7 +794,7 @@ describe('main() error paths', () => {
     expect(result.block).toBe(true);
   });
 
-  test('checkDocExistence blocks when active skill is plan and docs missing', () => {
+  test('checkDocExistence blocks when active skill is plan and docs missing', async () => {
     const { checkDocExistence: checkDocs } = require('../plugins/pbr/scripts/validate-task');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'state');
@@ -806,27 +806,27 @@ describe('main() error paths', () => {
     expect(result.reason).toContain('PROJECT.md');
   });
 
-  test('checkDocExistence returns null when active skill is not plan/build', () => {
+  test('checkDocExistence returns null when active skill is not plan/build', async () => {
     const { checkDocExistence: checkDocs } = require('../plugins/pbr/scripts/validate-task');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     const result = checkDocs({ tool_input: { subagent_type: 'pbr:verifier' } });
     expect(result).toBeNull();
   });
 
-  test('checkTask handles non-string description gracefully', () => {
+  test('checkTask handles non-string description gracefully', async () => {
     const w = checkTask({ tool_input: { description: 42 } });
     // Non-string, non-empty description — should not crash
     expect(Array.isArray(w)).toBe(true);
   });
 
-  test('checkTask handles null tool_input', () => {
+  test('checkTask handles null tool_input', async () => {
     const w = checkTask({ tool_input: null });
     expect(w.some(s => s.includes('without a description'))).toBe(true);
   });
 });
 
 describe('module loading', () => {
-  test('validate-task module loads without throwing', () => {
+  test('validate-task module loads without throwing', async () => {
     expect(() => require('../plugins/pbr/scripts/validate-task')).not.toThrow();
   });
 });

@@ -14,17 +14,17 @@ describe('hooks.json validation', () => {
     hooksData = JSON.parse(raw);
   });
 
-  test('hooks.json is valid JSON', () => {
+  test('hooks.json is valid JSON', async () => {
     expect(hooksData).toBeDefined();
     expect(typeof hooksData).toBe('object');
   });
 
-  test('hooks.json has a hooks object', () => {
+  test('hooks.json has a hooks object', async () => {
     expect(hooksData.hooks).toBeDefined();
     expect(typeof hooksData.hooks).toBe('object');
   });
 
-  test('every command-type entry has a command field', () => {
+  test('every command-type entry has a command field', async () => {
     const hooks = hooksData.hooks;
     for (const [event, entries] of Object.entries(hooks)) {
       for (const entry of entries) {
@@ -39,7 +39,7 @@ describe('hooks.json validation', () => {
     }
   });
 
-  test('every http-type entry has a url field', () => {
+  test('every http-type entry has a url field', async () => {
     const hooks = hooksData.hooks;
     for (const [_event, entries] of Object.entries(hooks)) {
       for (const entry of entries) {
@@ -54,7 +54,7 @@ describe('hooks.json validation', () => {
     }
   });
 
-  test('http-type entries exist for PostToolUse hooks', () => {
+  test('http-type entries exist for PostToolUse hooks', async () => {
     const postToolUse = hooksData.hooks.PostToolUse || [];
     const httpEntries = [];
     for (const entry of postToolUse) {
@@ -70,7 +70,7 @@ describe('hooks.json validation', () => {
     expect(urls.some(u => u.includes('/PostToolUse/'))).toBe(true);
   });
 
-  test('PreToolUse hooks use http type (hook server migration)', () => {
+  test('PreToolUse hooks use http type (hook server migration)', async () => {
     const preToolUse = hooksData.hooks.PreToolUse || [];
     for (const entry of preToolUse) {
       for (const hook of entry.hooks) {
@@ -79,7 +79,7 @@ describe('hooks.json validation', () => {
     }
   });
 
-  test('every hook entry has a valid type field', () => {
+  test('every hook entry has a valid type field', async () => {
     const validTypes = ['command', 'http'];
     const hooks = hooksData.hooks;
     for (const [_event, entries] of Object.entries(hooks)) {
@@ -91,7 +91,7 @@ describe('hooks.json validation', () => {
     }
   });
 
-  test('hooks-schema.json supports type http with url property', () => {
+  test('hooks-schema.json supports type http with url property', async () => {
     const schema = JSON.parse(fs.readFileSync(SCHEMA_PATH, 'utf8'));
     const hookCommand = schema.definitions.hookCommand;
     expect(hookCommand.properties.type.enum).toContain('http');

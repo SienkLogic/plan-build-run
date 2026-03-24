@@ -23,7 +23,7 @@ function writeHooks(logsDir, entries) {
 }
 
 describe('checkToolFailureRate (EF-01)', () => {
-  test('returns pass when no tool events exist', () => {
+  test('returns pass when no tool events exist', async () => {
     const { planningDir, logsDir } = createTempPlanning();
     writeEvents(logsDir, []);
     writeHooks(logsDir, []);
@@ -32,7 +32,7 @@ describe('checkToolFailureRate (EF-01)', () => {
     expect(r.status).toBe('pass');
   });
 
-  test('returns warn (not fail) when only failure events are logged', () => {
+  test('returns warn (not fail) when only failure events are logged', async () => {
     const { planningDir, logsDir } = createTempPlanning();
     const failures = [];
     for (let i = 0; i < 5; i++) {
@@ -52,7 +52,7 @@ describe('checkToolFailureRate (EF-01)', () => {
     expect(successNote).toBe(true);
   });
 
-  test('calculates actual rate when success and failure events exist', () => {
+  test('calculates actual rate when success and failure events exist', async () => {
     const { planningDir, logsDir } = createTempPlanning();
     const events = [];
     // 2 failures out of 10 total = 20%

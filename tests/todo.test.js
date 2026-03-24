@@ -42,22 +42,22 @@ function requireFreshPbrTools() {
 // Unit tests: helpers (no cwd dependency)
 // ---------------------------------------------------------------------------
 describe('parseTodoFilename', () => {
-  test('parses standard filename', () => {
+  test('parses standard filename', async () => {
     const result = parseTodoFilename('042-fix-login-bug.md');
     expect(result).toEqual({ number: 42, slug: 'fix-login-bug' });
   });
 
-  test('parses 3-digit padded number', () => {
+  test('parses 3-digit padded number', async () => {
     const result = parseTodoFilename('001-first-task.md');
     expect(result).toEqual({ number: 1, slug: 'first-task' });
   });
 
-  test('parses high numbers', () => {
+  test('parses high numbers', async () => {
     const result = parseTodoFilename('999-last-task.md');
     expect(result).toEqual({ number: 999, slug: 'last-task' });
   });
 
-  test('returns null for non-matching filename', () => {
+  test('returns null for non-matching filename', async () => {
     expect(parseTodoFilename('README.md')).toBeNull();
     expect(parseTodoFilename('no-number.md')).toBeNull();
     expect(parseTodoFilename('.hidden.md')).toBeNull();
@@ -65,35 +65,35 @@ describe('parseTodoFilename', () => {
 });
 
 describe('generateSlug', () => {
-  test('generates slug from description', () => {
+  test('generates slug from description', async () => {
     expect(generateSlug('Fix login bug')).toBe('fix-login-bug');
   });
 
-  test('filters stop words', () => {
+  test('filters stop words', async () => {
     expect(generateSlug('Add a rate limiting to the login')).toBe('add-rate-limiting-login');
   });
 
-  test('limits to 4 words', () => {
+  test('limits to 4 words', async () => {
     expect(generateSlug('implement user auth token refresh mechanism')).toBe('implement-user-auth-token');
   });
 
-  test('handles empty input', () => {
+  test('handles empty input', async () => {
     expect(generateSlug('')).toBe('untitled');
   });
 
-  test('strips special characters', () => {
+  test('strips special characters', async () => {
     expect(generateSlug('Fix bug #123!')).toBe('fix-bug-123');
   });
 });
 
 describe('findHighestNumber', () => {
-  test('finds highest across pending and done in fixture', () => {
+  test('finds highest across pending and done in fixture', async () => {
     const result = findHighestNumber(path.join(FIXTURE_DIR, '.planning'));
     // Fixture has 001 (pending), 002 (done), 003 (pending)
     expect(result).toBe(3);
   });
 
-  test('returns 0 for non-existent directory', () => {
+  test('returns 0 for non-existent directory', async () => {
     const result = findHighestNumber('/nonexistent/.planning');
     expect(result).toBe(0);
   });
@@ -116,7 +116,7 @@ describe('todoList (fixture)', () => {
     process.chdir(originalCwd);
   });
 
-  test('lists pending todos by default', () => {
+  test('lists pending todos by default', async () => {
     const result = todoList();
     expect(result.count).toBe(2);
     expect(result.todos[0].number).toBe(1);
@@ -124,25 +124,25 @@ describe('todoList (fixture)', () => {
     expect(result.todos[1].number).toBe(3);
   });
 
-  test('filters by theme', () => {
+  test('filters by theme', async () => {
     const result = todoList({ theme: 'security' });
     expect(result.count).toBe(1);
     expect(result.todos[0].theme).toBe('security');
   });
 
-  test('returns empty for non-matching theme', () => {
+  test('returns empty for non-matching theme', async () => {
     const result = todoList({ theme: 'nonexistent' });
     expect(result.count).toBe(0);
   });
 
-  test('lists done todos', () => {
+  test('lists done todos', async () => {
     const result = todoList({ status: 'done' });
     expect(result.count).toBe(1);
     expect(result.todos[0].title).toBe('Set up CI pipeline');
     expect(result.todos[0].completed).toBe('2026-02-22');
   });
 
-  test('lists all todos', () => {
+  test('lists all todos', async () => {
     const result = todoList({ status: 'all' });
     expect(result.count).toBe(3);
   });
@@ -165,7 +165,7 @@ describe('todoGet (fixture)', () => {
     process.chdir(originalCwd);
   });
 
-  test('gets pending todo by number', () => {
+  test('gets pending todo by number', async () => {
     const result = todoGet(1);
     expect(result.title).toBe('Fix auth timeout on slow connections');
     expect(result.priority).toBe('P1');
@@ -173,18 +173,18 @@ describe('todoGet (fixture)', () => {
     expect(result.body).toContain('Auth works on 3G connections');
   });
 
-  test('gets done todo by number', () => {
+  test('gets done todo by number', async () => {
     const result = todoGet(2);
     expect(result.title).toBe('Set up CI pipeline');
     expect(result.location).toBe('done');
   });
 
-  test('accepts string number', () => {
+  test('accepts string number', async () => {
     const result = todoGet('003');
     expect(result.title).toBe('Add dark mode support');
   });
 
-  test('returns error for missing todo', () => {
+  test('returns error for missing todo', async () => {
     const result = todoGet(999);
     expect(result.error).toMatch(/not found/);
   });
@@ -212,7 +212,7 @@ describe('todoAdd (mutation)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('creates todo file with correct naming', () => {
+  test('creates todo file with correct naming', async () => {
     const result = todoAdd('Fix login bug');
     expect(result.success).toBe(true);
     expect(result.number).toBe(1);
@@ -221,7 +221,7 @@ describe('todoAdd (mutation)', () => {
     expect(fs.existsSync(result.path)).toBe(true);
   });
 
-  test('creates correct frontmatter', () => {
+  test('creates correct frontmatter', async () => {
     todoAdd('Test the auth flow', { priority: 'P1', theme: 'security' });
     const content = fs.readFileSync(
       path.join(tmpDir, '.planning', 'todos', 'pending', '001-test-auth-flow.md'), 'utf8'
@@ -233,7 +233,7 @@ describe('todoAdd (mutation)', () => {
     expect(content).toContain('source: cli');
   });
 
-  test('increments number past existing todos', () => {
+  test('increments number past existing todos', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'todos', 'pending', '005-existing.md'),
       '---\ntitle: "Existing"\n---\n'
@@ -243,7 +243,7 @@ describe('todoAdd (mutation)', () => {
     expect(result.number_padded).toBe('006');
   });
 
-  test('counts done/ todos for numbering', () => {
+  test('counts done/ todos for numbering', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'todos', 'done', '010-old-done.md'),
       '---\ntitle: "Old"\n---\n'
@@ -252,12 +252,12 @@ describe('todoAdd (mutation)', () => {
     expect(result.number).toBe(11);
   });
 
-  test('returns error for empty title', () => {
+  test('returns error for empty title', async () => {
     const result = todoAdd('');
     expect(result.error).toMatch(/Title is required/);
   });
 
-  test('creates directories if missing', () => {
+  test('creates directories if missing', async () => {
     const freshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-todo-fresh-'));
     fs.mkdirSync(path.join(freshDir, '.planning'), { recursive: true });
     process.chdir(freshDir);
@@ -271,7 +271,7 @@ describe('todoAdd (mutation)', () => {
     fs.rmSync(freshDir, { recursive: true, force: true });
   });
 
-  test('escapes quotes in title', () => {
+  test('escapes quotes in title', async () => {
     const result = todoAdd('Fix "double quote" issue');
     expect(result.success).toBe(true);
     const content = fs.readFileSync(result.path, 'utf8');
@@ -320,7 +320,7 @@ describe('todoDone (mutation)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('moves todo from pending to done', () => {
+  test('moves todo from pending to done', async () => {
     const result = todoDone(7);
     expect(result.success).toBe(true);
     expect(result.title).toBe('Test task for completion');
@@ -330,7 +330,7 @@ describe('todoDone (mutation)', () => {
     expect(fs.existsSync(path.join(tmpDir, '.planning', 'todos', 'done', '007-test-task.md'))).toBe(true);
   });
 
-  test('updates frontmatter status and adds completed date', () => {
+  test('updates frontmatter status and adds completed date', async () => {
     todoDone(7);
     const content = fs.readFileSync(
       path.join(tmpDir, '.planning', 'todos', 'done', '007-test-task.md'), 'utf8'
@@ -339,7 +339,7 @@ describe('todoDone (mutation)', () => {
     expect(content).toMatch(/completed: \d{4}-\d{2}-\d{2}/);
   });
 
-  test('preserves body content', () => {
+  test('preserves body content', async () => {
     todoDone(7);
     const content = fs.readFileSync(
       path.join(tmpDir, '.planning', 'todos', 'done', '007-test-task.md'), 'utf8'
@@ -348,25 +348,25 @@ describe('todoDone (mutation)', () => {
     expect(content).toContain('A test task.');
   });
 
-  test('returns error for non-existent todo', () => {
+  test('returns error for non-existent todo', async () => {
     const result = todoDone(999);
     expect(result.error).toMatch(/not found/);
   });
 
-  test('returns error when no pending directory', () => {
+  test('returns error when no pending directory', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'todos', 'pending'), { recursive: true, force: true });
     const result = todoDone(7);
     expect(result.error).toMatch(/not found/);
   });
 
-  test('creates done/ directory if missing', () => {
+  test('creates done/ directory if missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'todos', 'done'), { recursive: true, force: true });
     const result = todoDone(7);
     expect(result.success).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, '.planning', 'todos', 'done', '007-test-task.md'))).toBe(true);
   });
 
-  test('accepts string number input', () => {
+  test('accepts string number input', async () => {
     const result = todoDone('007');
     expect(result.success).toBe(true);
   });
@@ -376,7 +376,7 @@ describe('todoDone (mutation)', () => {
 // CLI invocation tests (use execSync — fresh process, no module caching)
 // ---------------------------------------------------------------------------
 describe('CLI invocation', () => {
-  test('todo list returns JSON', () => {
+  test('todo list returns JSON', async () => {
     const result = execSync(`node "${TOOL_PATH}" todo list`, {
       cwd: FIXTURE_DIR,
       encoding: 'utf8'
@@ -386,7 +386,7 @@ describe('CLI invocation', () => {
     expect(parsed.count).toBeGreaterThanOrEqual(2);
   });
 
-  test('todo get returns todo data', () => {
+  test('todo get returns todo data', async () => {
     const result = execSync(`node "${TOOL_PATH}" todo get 1`, {
       cwd: FIXTURE_DIR,
       encoding: 'utf8'
@@ -395,7 +395,7 @@ describe('CLI invocation', () => {
     expect(parsed.title).toBe('Fix auth timeout on slow connections');
   });
 
-  test('todo get returns error object for missing todo', () => {
+  test('todo get returns error object for missing todo', async () => {
     // todoGet returns { error: "..." } through output() which exits 0
     const result = execSync(`node "${TOOL_PATH}" todo get 999`, {
       cwd: FIXTURE_DIR,
@@ -405,7 +405,7 @@ describe('CLI invocation', () => {
     expect(parsed.error).toMatch(/not found/);
   });
 
-  test('todo add creates and todo done completes in temp dir', () => {
+  test('todo add creates and todo done completes in temp dir', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cli-todo-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
 

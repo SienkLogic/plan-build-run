@@ -39,7 +39,7 @@ describe('session-cleanup snapshot integration', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('writes snapshot at session end when enabled', () => {
+  test('writes snapshot at session end when enabled', async () => {
     configLoad.mockReturnValue({ features: { mental_model_snapshots: true } });
 
     // Write a STATE.md for context gathering
@@ -68,7 +68,7 @@ describe('session-cleanup snapshot integration', () => {
     expect(content).toContain('src/index.js');
   });
 
-  test('skips snapshot when features.mental_model_snapshots is false', () => {
+  test('skips snapshot when features.mental_model_snapshots is false', async () => {
     configLoad.mockReturnValue({ features: { mental_model_snapshots: false } });
 
     const config = configLoad(tmpDir);
@@ -81,7 +81,7 @@ describe('session-cleanup snapshot integration', () => {
     expect(fs.existsSync(snapDir)).toBe(false);
   });
 
-  test('does not crash when STATE.md is missing', () => {
+  test('does not crash when STATE.md is missing', async () => {
     configLoad.mockReturnValue({ features: { mental_model_snapshots: true } });
 
     // No STATE.md exists — gatherSessionContext should handle gracefully
@@ -101,7 +101,7 @@ describe('session-cleanup snapshot integration', () => {
     expect(fs.existsSync(snapDir)).toBe(true);
   });
 
-  test('snapshot contains recent git commit messages when available', () => {
+  test('snapshot contains recent git commit messages when available', async () => {
     configLoad.mockReturnValue({ features: { mental_model_snapshots: true } });
 
     const commits = [
@@ -128,7 +128,7 @@ describe('session-cleanup snapshot integration', () => {
     expect(content).toContain('def5678 feat(06-02): convention detector');
   });
 
-  test('gatherSessionContext extracts data from STATE.md', () => {
+  test('gatherSessionContext extracts data from STATE.md', async () => {
     // Load the actual gatherSessionContext function
     const { gatherSessionContext } = require('../plugins/pbr/scripts/session-cleanup');
 

@@ -65,17 +65,17 @@ describe('check-read-first', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = makeTempDir();
     planningDir = setupPlanningDir(tmpDir);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   describe('trackRead', () => {
-    test('records file paths in tracker', () => {
+    test('records file paths in tracker', async () => {
       const data = { tool_input: { file_path: path.join(tmpDir, 'src', 'config.ts') } };
       trackRead(data, planningDir);
 
@@ -87,7 +87,7 @@ describe('check-read-first', () => {
       expect(tracker.reads[0]).toContain('src/config.ts');
     });
 
-    test('does not duplicate reads', () => {
+    test('does not duplicate reads', async () => {
       const filePath = path.join(tmpDir, 'src', 'config.ts');
       const data = { tool_input: { file_path: filePath } };
       trackRead(data, planningDir);
@@ -98,14 +98,14 @@ describe('check-read-first', () => {
       expect(tracker.reads).toHaveLength(1);
     });
 
-    test('returns null', () => {
+    test('returns null', async () => {
       const data = { tool_input: { file_path: path.join(tmpDir, 'src', 'config.ts') } };
       expect(trackRead(data, planningDir)).toBeNull();
     });
   });
 
   describe('checkReadFirst', () => {
-    test('returns null when all read_first files were read', () => {
+    test('returns null when all read_first files were read', async () => {
       // Read both required files
       trackRead({ tool_input: { file_path: path.join(tmpDir, 'src', 'config.ts') } }, planningDir);
       trackRead({ tool_input: { file_path: path.join(tmpDir, 'src', 'types.ts') } }, planningDir);
@@ -118,7 +118,7 @@ describe('check-read-first', () => {
       expect(result).toBeNull();
     });
 
-    test('warns when read_first files not read', () => {
+    test('warns when read_first files not read', async () => {
       // Write to src/main.ts WITHOUT reading read_first files
       const result = checkReadFirst(
         { tool_input: { file_path: path.join(tmpDir, 'src', 'main.ts') } },
@@ -129,7 +129,7 @@ describe('check-read-first', () => {
       expect(result.additionalContext).toContain('not read');
     });
 
-    test('warns with specific unread files', () => {
+    test('warns with specific unread files', async () => {
       // Read only one of two required files
       trackRead({ tool_input: { file_path: path.join(tmpDir, 'src', 'config.ts') } }, planningDir);
 
@@ -142,7 +142,7 @@ describe('check-read-first', () => {
       expect(result.additionalContext).not.toContain('config.ts');
     });
 
-    test('returns null for non-plan files', () => {
+    test('returns null for non-plan files', async () => {
       const result = checkReadFirst(
         { tool_input: { file_path: path.join(tmpDir, 'src', 'unrelated.ts') } },
         planningDir
@@ -150,7 +150,7 @@ describe('check-read-first', () => {
       expect(result).toBeNull();
     });
 
-    test('returns null when no STATE.md', () => {
+    test('returns null when no STATE.md', async () => {
       // Remove STATE.md
       fs.unlinkSync(path.join(planningDir, 'STATE.md'));
 
@@ -161,7 +161,7 @@ describe('check-read-first', () => {
       expect(result).toBeNull();
     });
 
-    test('returns null when no data', () => {
+    test('returns null when no data', async () => {
       expect(checkReadFirst(null, planningDir)).toBeNull();
       expect(checkReadFirst({}, planningDir)).toBeNull();
       expect(checkReadFirst({ tool_input: {} }, planningDir)).toBeNull();
@@ -169,7 +169,7 @@ describe('check-read-first', () => {
   });
 
   describe('tracker resets on skill change', () => {
-    test('clears old reads when skill changes', () => {
+    test('clears old reads when skill changes', async () => {
       // Track some reads under 'build' skill
       trackRead({ tool_input: { file_path: path.join(tmpDir, 'src', 'config.ts') } }, planningDir);
 
@@ -188,7 +188,7 @@ describe('check-read-first', () => {
   });
 
   describe('handleHttp', () => {
-    test('routes Read to trackRead', () => {
+    test('routes Read to trackRead', async () => {
       const reqBody = {
         data: {
           tool: 'Read',
@@ -205,7 +205,7 @@ describe('check-read-first', () => {
       expect(tracker.reads).toHaveLength(1);
     });
 
-    test('routes Write to checkReadFirst', () => {
+    test('routes Write to checkReadFirst', async () => {
       const reqBody = {
         data: {
           tool: 'Write',
@@ -219,7 +219,7 @@ describe('check-read-first', () => {
       expect(result.additionalContext).toContain('read_first');
     });
 
-    test('routes Edit to checkReadFirst', () => {
+    test('routes Edit to checkReadFirst', async () => {
       const reqBody = {
         data: {
           tool: 'Edit',
@@ -232,7 +232,7 @@ describe('check-read-first', () => {
       expect(result.additionalContext).toContain('read_first');
     });
 
-    test('returns null for unknown tools', () => {
+    test('returns null for unknown tools', async () => {
       const reqBody = {
         data: {
           tool: 'Bash',
@@ -245,13 +245,13 @@ describe('check-read-first', () => {
   });
 
   describe('normalizePath', () => {
-    test('resolves relative paths against project root', () => {
+    test('resolves relative paths against project root', async () => {
       const result = normalizePath('src/config.ts', tmpDir);
       expect(result).toContain('src/config.ts');
       expect(path.isAbsolute(result.replace(/\//g, path.sep))).toBe(true);
     });
 
-    test('returns empty string for empty input', () => {
+    test('returns empty string for empty input', async () => {
       expect(normalizePath('')).toBe('');
       expect(normalizePath(null)).toBe('');
       expect(normalizePath(undefined)).toBe('');

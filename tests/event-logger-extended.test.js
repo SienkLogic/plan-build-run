@@ -25,12 +25,12 @@ function getDatedLogPath() {
 }
 
 describe('logEvent extended', () => {
-  test('creates .planning/logs/ directory if missing', () => {
+  test('creates .planning/logs/ directory if missing', async () => {
     logEvent('test', 'event-1', { key: 'value' });
     expect(fs.existsSync(getDatedLogPath())).toBe(true);
   });
 
-  test('writes valid JSONL entry', () => {
+  test('writes valid JSONL entry', async () => {
     logEvent('workflow', 'phase-start', { phase: 3 });
     const content = fs.readFileSync(getDatedLogPath(), 'utf8').trim();
     const entry = JSON.parse(content);
@@ -40,7 +40,7 @@ describe('logEvent extended', () => {
     expect(entry.ts).toBeDefined();
   });
 
-  test('appends multiple entries', () => {
+  test('appends multiple entries', async () => {
     logEvent('a', 'first');
     logEvent('b', 'second');
     const lines = fs.readFileSync(getDatedLogPath(), 'utf8').trim().split('\n');
@@ -49,7 +49,7 @@ describe('logEvent extended', () => {
     expect(JSON.parse(lines[1]).event).toBe('second');
   });
 
-  test('no rotation — daily files accumulate all entries', () => {
+  test('no rotation — daily files accumulate all entries', async () => {
     // With dated daily files there is no per-file entry cap.
     for (let i = 0; i < 1001; i++) {
       logEvent('test', `entry-${i}`);
@@ -61,7 +61,7 @@ describe('logEvent extended', () => {
     expect(JSON.parse(lines[lines.length - 1]).event).toBe('entry-1000');
   });
 
-  test('handles empty existing dated log file', () => {
+  test('handles empty existing dated log file', async () => {
     const logsDir = path.join(tmpDir, '.planning', 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(getDatedLogPath(), '');
@@ -71,13 +71,13 @@ describe('logEvent extended', () => {
     expect(entry.event).toBe('after-empty');
   });
 
-  test('does not throw on write errors', () => {
+  test('does not throw on write errors', async () => {
     expect(() => {
       logEvent('error', 'test');
     }).not.toThrow();
   });
 
-  test('default details is empty object', () => {
+  test('default details is empty object', async () => {
     logEvent('cat', 'evt');
     const entry = JSON.parse(fs.readFileSync(getDatedLogPath(), 'utf8').trim());
     expect(entry.cat).toBe('cat');

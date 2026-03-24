@@ -40,19 +40,19 @@ function getOutput() {
 }
 
 describe('cmdGenerateSlug', () => {
-  test('generates a slug from text', () => {
+  test('generates a slug from text', async () => {
     try { cmdGenerateSlug('Hello World Test', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toContain('hello-world-test');
   });
 
-  test('strips special characters', () => {
+  test('strips special characters', async () => {
     try { cmdGenerateSlug('My Feature! (v2.0)', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toContain('my-feature-v2-0');
   });
 
-  test('strips leading and trailing dashes', () => {
+  test('strips leading and trailing dashes', async () => {
     try { cmdGenerateSlug('---hello---', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toContain('hello');
@@ -60,25 +60,25 @@ describe('cmdGenerateSlug', () => {
 });
 
 describe('cmdCurrentTimestamp', () => {
-  test('returns full ISO timestamp by default', () => {
+  test('returns full ISO timestamp by default', async () => {
     try { cmdCurrentTimestamp('full', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toMatch(/\d{4}-\d{2}-\d{2}T/);
   });
 
-  test('returns date-only format', () => {
+  test('returns date-only format', async () => {
     try { cmdCurrentTimestamp('date', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('returns filename-safe format', () => {
+  test('returns filename-safe format', async () => {
     try { cmdCurrentTimestamp('filename', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).not.toContain(':');
   });
 
-  test('defaults to full format', () => {
+  test('defaults to full format', async () => {
     try { cmdCurrentTimestamp(undefined, true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -86,7 +86,7 @@ describe('cmdCurrentTimestamp', () => {
 });
 
 describe('cmdVerifyPathExists', () => {
-  test('returns true for existing file', () => {
+  test('returns true for existing file', async () => {
     const filePath = path.join(tmpDir, 'test.txt');
     fs.writeFileSync(filePath, 'data');
     try { cmdVerifyPathExists(tmpDir, 'test.txt', true); } catch (_e) { /* exit mock */ }
@@ -94,20 +94,20 @@ describe('cmdVerifyPathExists', () => {
     expect(output).toContain('true');
   });
 
-  test('returns false for non-existent path', () => {
+  test('returns false for non-existent path', async () => {
     try { cmdVerifyPathExists(tmpDir, 'nonexistent.txt', true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toContain('false');
   });
 
-  test('identifies directories', () => {
+  test('identifies directories', async () => {
     fs.mkdirSync(path.join(tmpDir, 'subdir'));
     try { cmdVerifyPathExists(tmpDir, 'subdir', false); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toContain('directory');
   });
 
-  test('handles absolute paths', () => {
+  test('handles absolute paths', async () => {
     const filePath = path.join(tmpDir, 'abs-test.txt');
     fs.writeFileSync(filePath, 'data');
     try { cmdVerifyPathExists(tmpDir, filePath, true); } catch (_e) { /* exit mock */ }
@@ -117,13 +117,13 @@ describe('cmdVerifyPathExists', () => {
 });
 
 describe('cmdHistoryDigest', () => {
-  test('returns empty digest when no phases', () => {
+  test('returns empty digest when no phases', async () => {
     try { cmdHistoryDigest(tmpDir, false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
   });
 
-  test('processes phase summaries', () => {
+  test('processes phase summaries', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -137,7 +137,7 @@ describe('cmdHistoryDigest', () => {
 });
 
 describe('cmdResolveModel', () => {
-  test('resolves model for agent type', () => {
+  test('resolves model for agent type', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
     try { cmdResolveModel(tmpDir, 'executor', true); } catch (_e) { /* exit */ }
@@ -145,7 +145,7 @@ describe('cmdResolveModel', () => {
     expect(out.length).toBeGreaterThan(0);
   });
 
-  test('errors on missing agent type', () => {
+  test('errors on missing agent type', async () => {
     try { cmdResolveModel(tmpDir, undefined, true); } catch (_e) { /* exit via error() */ }
     // error() writes to stderr
     expect(mockStderr).toHaveBeenCalled();
@@ -153,7 +153,7 @@ describe('cmdResolveModel', () => {
 });
 
 describe('cmdSummaryExtract', () => {
-  test('extracts fields from summary', () => {
+  test('extracts fields from summary', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -165,7 +165,7 @@ describe('cmdSummaryExtract', () => {
     expect(mockStdout).toHaveBeenCalled();
   });
 
-  test('handles missing file', () => {
+  test('handles missing file', async () => {
     try { cmdSummaryExtract(tmpDir, 'nonexistent.md', ['status'], false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -173,7 +173,7 @@ describe('cmdSummaryExtract', () => {
 });
 
 describe('cmdProgressRender', () => {
-  test('renders progress in text format', () => {
+  test('renders progress in text format', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -186,7 +186,7 @@ describe('cmdProgressRender', () => {
     expect(out.length).toBeGreaterThan(0);
   });
 
-  test('renders progress in bar format', () => {
+  test('renders progress in bar format', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });

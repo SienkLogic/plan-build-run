@@ -12,14 +12,14 @@ const os = require('os');
 let tmpDir;
 let planningDir;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-brcov-'));
   planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
 });
 
-afterEach(() => {
+afterEach(async () => {
   process.cwd.mockRestore();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -29,22 +29,22 @@ afterEach(() => {
 describe('validate-task additional branch coverage', () => {
   const { checkTask, checkDocExistence } = require('../plugins/pbr/scripts/validate-task');
 
-  test('no warning when description is not a string (number)', () => {
+  test('no warning when description is not a string (number)', async () => {
     const w = checkTask({ tool_input: { description: 42 } });
     // Non-string description should not trigger string-specific checks
     expect(w.length).toBe(0);
   });
 
-  test('checkDocExistence returns null for non-plan/build skills', () => {
+  test('checkDocExistence returns null for non-plan/build skills', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     expect(checkDocExistence({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('checkDocExistence returns null when no .active-skill', () => {
+  test('checkDocExistence returns null when no .active-skill', async () => {
     expect(checkDocExistence({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
   });
 
-  test('checkDocExistence blocks when PROJECT.md missing for plan skill', () => {
+  test('checkDocExistence blocks when PROJECT.md missing for plan skill', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     const result = checkDocExistence({ tool_input: { subagent_type: 'pbr:planner' } });
     if (result) {
@@ -52,7 +52,7 @@ describe('validate-task additional branch coverage', () => {
     }
   });
 
-  test('checkDocExistence passes when PROJECT.md and REQUIREMENTS.md exist', () => {
+  test('checkDocExistence passes when PROJECT.md and REQUIREMENTS.md exist', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     fs.writeFileSync(path.join(planningDir, 'PROJECT.md'), '# Project');
     fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Requirements');
@@ -72,12 +72,12 @@ describe('check-subagent-output additional branches', () => {
   }
 
   if (handleHttp) {
-    test('handleHttp returns null for empty data', () => {
+    test('handleHttp returns null for empty data', async () => {
       const result = handleHttp({ data: {} });
       expect(result === null || typeof result === 'object').toBe(true);
     });
 
-    test('handleHttp processes executor output', () => {
+    test('handleHttp processes executor output', async () => {
       const result = handleHttp({
         data: {
           tool_input: { subagent_type: 'pbr:executor' },
@@ -99,12 +99,12 @@ describe('event-handler additional branches', () => {
   } catch (_e) { /* */ }
 
   if (handleHttp) {
-    test('handleHttp returns null for empty data', () => {
+    test('handleHttp returns null for empty data', async () => {
       const result = handleHttp({ data: {}, planningDir });
       expect(result === null || typeof result === 'object').toBe(true);
     });
 
-    test('handleHttp processes SubagentStop with verifier result', () => {
+    test('handleHttp processes SubagentStop with verifier result', async () => {
       const result = handleHttp({
         data: {
           tool_input: { subagent_type: 'pbr:verifier' },
@@ -115,7 +115,7 @@ describe('event-handler additional branches', () => {
       expect(result === null || typeof result === 'object').toBe(true);
     });
 
-    test('handleHttp processes SubagentStop without output', () => {
+    test('handleHttp processes SubagentStop without output', async () => {
       const result = handleHttp({
         data: { tool_input: { subagent_type: 'pbr:executor' } },
         planningDir
@@ -134,12 +134,12 @@ describe('task-completed additional branches', () => {
   } catch (_e) { /* */ }
 
   if (handleHttp) {
-    test('handleHttp returns null for empty data', () => {
+    test('handleHttp returns null for empty data', async () => {
       const result = handleHttp({ data: {}, planningDir });
       expect(result).toBeNull();
     });
 
-    test('handleHttp processes task completion', () => {
+    test('handleHttp processes task completion', async () => {
       const result = handleHttp({
         data: { task_id: 'test-1', status: 'completed' },
         planningDir
@@ -202,7 +202,7 @@ describe('milestone-learnings additional branches', () => {
   } catch (_e) { /* */ }
 
   if (handleHttp) {
-    test('handleHttp returns null for empty data', () => {
+    test('handleHttp returns null for empty data', async () => {
       const result = handleHttp({ data: {}, planningDir });
       expect(result === null || typeof result === 'object').toBe(true);
     });
@@ -218,12 +218,12 @@ describe('prompt-routing additional branches', () => {
   } catch (_e) { /* */ }
 
   if (handleHttp) {
-    test('handleHttp returns null for empty data', () => {
+    test('handleHttp returns null for empty data', async () => {
       const result = handleHttp({ data: {}, planningDir });
       expect(result === null || typeof result === 'object').toBe(true);
     });
 
-    test('handleHttp processes prompt with PBR context', () => {
+    test('handleHttp processes prompt with PBR context', async () => {
       fs.writeFileSync(path.join(planningDir, 'STATE.md'),
         '---\ncurrent_phase: 1\n---\nPhase: 1 of 1');
       const result = handleHttp({
@@ -240,12 +240,12 @@ describe('prompt-routing additional branches', () => {
 describe('config.cjs additional branches', () => {
   const { configValidate } = require('../plugins/pbr/scripts/lib/config');
 
-  test('validates config with no gates in autonomous mode', () => {
+  test('validates config with no gates in autonomous mode', async () => {
     const result = configValidate({ mode: 'autonomous' });
     expect(result.errors.filter(e => e.includes('gates')).length).toBe(0);
   });
 
-  test('validates config with gates all false in autonomous mode', () => {
+  test('validates config with gates all false in autonomous mode', async () => {
     const result = configValidate({ mode: 'autonomous', gates: { human_verify: false } });
     expect(result.errors.filter(e => e.includes('gates')).length).toBe(0);
   });
@@ -256,29 +256,29 @@ describe('config.cjs additional branches', () => {
 describe('core.cjs additional branches', () => {
   const { normalizePhaseName, generateSlugInternal, comparePhaseNum, toPosixPath, isGitIgnored, escapeRegex } = require('../plugins/pbr/scripts/lib/core');
 
-  test('normalizePhaseName pads single digit', () => {
+  test('normalizePhaseName pads single digit', async () => {
     expect(normalizePhaseName('3')).toBe('03');
     expect(normalizePhaseName('03')).toBe('03');
     expect(normalizePhaseName('12')).toBe('12');
   });
 
-  test('normalizePhaseName handles sub-phases', () => {
+  test('normalizePhaseName handles sub-phases', async () => {
     expect(normalizePhaseName('3.1')).toBe('03.1');
   });
 
-  test('generateSlugInternal creates slugs', () => {
+  test('generateSlugInternal creates slugs', async () => {
     expect(generateSlugInternal('Hello World')).toBe('hello-world');
     expect(generateSlugInternal('Test Feature!')).toBe('test-feature');
   });
 
-  test('comparePhaseNum sorts correctly', () => {
+  test('comparePhaseNum sorts correctly', async () => {
     expect(comparePhaseNum('01', '02')).toBeLessThan(0);
     expect(comparePhaseNum('02', '01')).toBeGreaterThan(0);
     expect(comparePhaseNum('01', '01')).toBe(0);
     expect(comparePhaseNum('01.1', '01.2')).toBeLessThan(0);
   });
 
-  test('toPosixPath converts backslashes', () => {
+  test('toPosixPath converts backslashes', async () => {
     // On Windows, backslashes are path separators and get converted
     // On Linux/macOS, backslashes are valid filename chars and stay as-is
     if (process.platform === 'win32') {
@@ -289,13 +289,13 @@ describe('core.cjs additional branches', () => {
     expect(toPosixPath('a/b/c')).toBe('a/b/c');
   });
 
-  test('isGitIgnored handles missing .git', () => {
+  test('isGitIgnored handles missing .git', async () => {
     // In a temp dir without .git, should return false gracefully
     const result = isGitIgnored(tmpDir, 'test.txt');
     expect(typeof result).toBe('boolean');
   });
 
-  test('escapeRegex escapes special characters', () => {
+  test('escapeRegex escapes special characters', async () => {
     const result = escapeRegex('a.b*c?d(e)f');
     expect(result).toBe('a\\.b\\*c\\?d\\(e\\)f');
   });

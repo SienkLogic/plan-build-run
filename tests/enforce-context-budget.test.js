@@ -35,7 +35,7 @@ describe('enforce-context-budget.js', () => {
     );
   }
 
-  test('blocks Task when percent >= threshold', () => {
+  test('blocks Task when percent >= threshold', async () => {
     writeBridge(75);
     writeConfig({ context_budget: { hard_stop_percent: 70 } });
 
@@ -46,7 +46,7 @@ describe('enforce-context-budget.js', () => {
     expect(result.reason).toContain('70%');
   });
 
-  test('blocks Skill when percent >= threshold', () => {
+  test('blocks Skill when percent >= threshold', async () => {
     writeBridge(80);
     writeConfig({ context_budget: { hard_stop_percent: 70 } });
 
@@ -55,7 +55,7 @@ describe('enforce-context-budget.js', () => {
     expect(result.decision).toBe('block');
   });
 
-  test('allows Task when percent < threshold', () => {
+  test('allows Task when percent < threshold', async () => {
     writeBridge(50);
     writeConfig({ context_budget: { hard_stop_percent: 70 } });
 
@@ -63,7 +63,7 @@ describe('enforce-context-budget.js', () => {
     expect(result).toBeNull();
   });
 
-  test('allows non-Task/Skill tools regardless of percent', () => {
+  test('allows non-Task/Skill tools regardless of percent', async () => {
     writeBridge(90);
     writeConfig({ context_budget: { hard_stop_percent: 70 } });
 
@@ -75,13 +75,13 @@ describe('enforce-context-budget.js', () => {
     expect(checkBudget({ toolName: 'Edit', planningDir })).toBeNull();
   });
 
-  test('allows when bridge file is missing', () => {
+  test('allows when bridge file is missing', async () => {
     // No bridge file written
     const result = checkBudget({ toolName: 'Task', planningDir });
     expect(result).toBeNull();
   });
 
-  test('allows when enforce is false', () => {
+  test('allows when enforce is false', async () => {
     writeBridge(90);
     writeConfig({ context_budget: { hard_stop_percent: 70, enforce: false } });
 
@@ -89,7 +89,7 @@ describe('enforce-context-budget.js', () => {
     expect(result).toBeNull();
   });
 
-  test('allows when bridge is stale (>60s old)', () => {
+  test('allows when bridge is stale (>60s old)', async () => {
     const staleTimestamp = new Date(Date.now() - 120000).toISOString(); // 2 minutes ago
     writeBridge(90, staleTimestamp);
     writeConfig({ context_budget: { hard_stop_percent: 70 } });
@@ -98,7 +98,7 @@ describe('enforce-context-budget.js', () => {
     expect(result).toBeNull();
   });
 
-  test('uses default hard_stop_percent of 70 when no config', () => {
+  test('uses default hard_stop_percent of 70 when no config', async () => {
     writeBridge(70);
     // No config file
 
@@ -108,7 +108,7 @@ describe('enforce-context-budget.js', () => {
     expect(result.reason).toContain('70%');
   });
 
-  test('allows at 69% with default threshold', () => {
+  test('allows at 69% with default threshold', async () => {
     writeBridge(69);
 
     const result = checkBudget({ toolName: 'Task', planningDir });

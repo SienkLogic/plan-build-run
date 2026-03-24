@@ -26,7 +26,7 @@ function cleanup(tmpDir) {
 }
 
 describe('suggestNextTask', () => {
-  test('returns null when no ROADMAP.md exists', () => {
+  test('returns null when no ROADMAP.md exists', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const result = suggestNextTask(planningDir);
@@ -36,7 +36,7 @@ describe('suggestNextTask', () => {
     }
   });
 
-  test('returns null when all phases are completed', () => {
+  test('returns null when all phases are completed', async () => {
 
     const { tmpDir, planningDir } = createTempPlanning();
     try {
@@ -62,7 +62,7 @@ describe('suggestNextTask', () => {
     }
   });
 
-  test('returns first unblocked phase in linear chain', () => {
+  test('returns first unblocked phase in linear chain', async () => {
 
     const { tmpDir, planningDir } = createTempPlanning();
     try {
@@ -95,7 +95,7 @@ describe('suggestNextTask', () => {
     }
   });
 
-  test('returns critical-path phase when multiple are unblocked', () => {
+  test('returns critical-path phase when multiple are unblocked', async () => {
 
     const { tmpDir, planningDir } = createTempPlanning();
     try {
@@ -143,7 +143,7 @@ describe('suggestNextTask', () => {
     }
   });
 
-  test('suggests next plan within current in-progress phase', () => {
+  test('suggests next plan within current in-progress phase', async () => {
 
     const { tmpDir, planningDir } = createTempPlanning();
     try {
@@ -172,7 +172,7 @@ describe('suggestNextTask', () => {
     }
   });
 
-  test('skips phase with unmet dependency', () => {
+  test('skips phase with unmet dependency', async () => {
 
     const { tmpDir, planningDir } = createTempPlanning();
     try {

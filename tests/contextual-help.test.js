@@ -38,7 +38,7 @@ describe('getContextualHelp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns planning-phase help when status is "planning"', () => {
+  test('returns planning-phase help when status is "planning"', async () => {
     makeStateMd(tmpDir, 'planning');
     const config = { features: { contextual_help: true } };
     const result = getContextualHelp(tmpDir, config);
@@ -48,7 +48,7 @@ describe('getContextualHelp', () => {
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
 
-  test('returns building-phase help when status is "building"', () => {
+  test('returns building-phase help when status is "building"', async () => {
     makeStateMd(tmpDir, 'building');
     const config = { features: { contextual_help: true } };
     const result = getContextualHelp(tmpDir, config);
@@ -58,7 +58,7 @@ describe('getContextualHelp', () => {
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
 
-  test('returns blocker-resolution help when blockers exist in STATE.md', () => {
+  test('returns blocker-resolution help when blockers exist in STATE.md', async () => {
     makeStateMd(tmpDir, 'building', ['test failure in auth.test.js']);
     const config = { features: { contextual_help: true } };
     const result = getContextualHelp(tmpDir, config);
@@ -69,7 +69,7 @@ describe('getContextualHelp', () => {
     expect(allText.toLowerCase()).toMatch(/debug|blocker|fix/);
   });
 
-  test('returns error-context help when recent hook errors in logs', () => {
+  test('returns error-context help when recent hook errors in logs', async () => {
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     const errorEntry = JSON.stringify({
@@ -87,7 +87,7 @@ describe('getContextualHelp', () => {
     expect(allText.toLowerCase()).toMatch(/error|hook|log/);
   });
 
-  test('returns disabled stub when features.contextual_help is false', () => {
+  test('returns disabled stub when features.contextual_help is false', async () => {
     makeStateMd(tmpDir, 'planning');
     const config = { features: { contextual_help: false } };
     const result = getContextualHelp(tmpDir, config);

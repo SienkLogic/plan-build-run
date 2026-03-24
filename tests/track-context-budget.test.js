@@ -9,14 +9,14 @@ describe('track-context-budget.js', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -38,18 +38,18 @@ describe('track-context-budget.js', () => {
     return JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
   }
 
-  test('exits silently when no .planning directory', () => {
+  test('exits silently when no .planning directory', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     const output = run({ file_path: '/some/file.js' });
     expect(output).toBe('');
   });
 
-  test('exits silently when no file_path in input', () => {
+  test('exits silently when no file_path in input', async () => {
     const output = run({});
     expect(output).toBe('');
   });
 
-  test('creates tracker file on first read', () => {
+  test('creates tracker file on first read', async () => {
     run({ file_path: '/some/file.js' }, 'file content here');
 
     const tracker = readTracker();
@@ -58,7 +58,7 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toContain('/some/file.js');
   });
 
-  test('increments read count on subsequent reads', () => {
+  test('increments read count on subsequent reads', async () => {
     run({ file_path: '/a.js' }, 'content a');
     run({ file_path: '/b.js' }, 'content b');
     run({ file_path: '/c.js' }, 'content c');
@@ -68,7 +68,7 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toHaveLength(3);
   });
 
-  test('tracks total chars from tool output', () => {
+  test('tracks total chars from tool output', async () => {
     const content = 'x'.repeat(500);
     run({ file_path: '/file.js' }, content);
 
@@ -76,7 +76,7 @@ describe('track-context-budget.js', () => {
     expect(tracker.total_chars).toBe(500);
   });
 
-  test('does not duplicate file paths', () => {
+  test('does not duplicate file paths', async () => {
     run({ file_path: '/same.js' }, 'a');
     run({ file_path: '/same.js' }, 'b');
 
@@ -85,7 +85,7 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toHaveLength(1);
   });
 
-  test('warns when unique file count crosses milestone (10)', () => {
+  test('warns when unique file count crosses milestone (10)', async () => {
     // Pre-seed tracker with 9 unique files (just below milestone of 10)
     const trackerPath = path.join(planningDir, '.context-tracker');
     const files = Array.from({ length: 9 }, (_, i) => `/file${i}.js`);
@@ -100,7 +100,7 @@ describe('track-context-budget.js', () => {
     expect(parsed.additionalContext).toContain('10 unique files read');
   });
 
-  test('does not warn when unique files below milestone', () => {
+  test('does not warn when unique files below milestone', async () => {
     // Pre-seed tracker with 5 unique files — well below 10
     const trackerPath = path.join(planningDir, '.context-tracker');
     const files = Array.from({ length: 5 }, (_, i) => `/file${i}.js`);
@@ -112,7 +112,7 @@ describe('track-context-budget.js', () => {
     expect(output).toBe('');
   });
 
-  test('warns when char count crosses milestone (50k)', () => {
+  test('warns when char count crosses milestone (50k)', async () => {
     const trackerPath = path.join(planningDir, '.context-tracker');
     fs.writeFileSync(trackerPath, JSON.stringify({
       skill: '', reads: 5, total_chars: 49500, files: ['/a.js']
@@ -126,7 +126,7 @@ describe('track-context-budget.js', () => {
     expect(parsed.additionalContext).toContain('chars read');
   });
 
-  test('does not warn when char count stays within same milestone bucket', () => {
+  test('does not warn when char count stays within same milestone bucket', async () => {
     // Total will be 20000 + 500 = 20500, still in first 50k bucket
     const trackerPath = path.join(planningDir, '.context-tracker');
     fs.writeFileSync(trackerPath, JSON.stringify({
@@ -137,7 +137,7 @@ describe('track-context-budget.js', () => {
     expect(output).toBe('');
   });
 
-  test('warns when a single file read is large (>5000 chars)', () => {
+  test('warns when a single file read is large (>5000 chars)', async () => {
     const largeContent = 'x'.repeat(6000);
     const output = run({ file_path: '/huge.js' }, largeContent);
 
@@ -147,12 +147,12 @@ describe('track-context-budget.js', () => {
     expect(parsed.additionalContext).toContain('huge.js');
   });
 
-  test('no warning for small read below all thresholds', () => {
+  test('no warning for small read below all thresholds', async () => {
     const output = run({ file_path: '/small.js' }, 'tiny');
     expect(output).toBe('');
   });
 
-  test('does not warn on every read after crossing a milestone', () => {
+  test('does not warn on every read after crossing a milestone', async () => {
     // Pre-seed at 10 unique files (already crossed first milestone)
     // Adding file 11 should NOT trigger unique-files warning (next milestone is 20)
     const trackerPath = path.join(planningDir, '.context-tracker');
@@ -165,7 +165,7 @@ describe('track-context-budget.js', () => {
     expect(output).toBe('');
   });
 
-  test('resets tracker when active skill changes', () => {
+  test('resets tracker when active skill changes', async () => {
     const skillPath = path.join(planningDir, '.active-skill');
     fs.writeFileSync(skillPath, 'build');
 
@@ -183,7 +183,7 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toEqual(['/new.js']);
   });
 
-  test('skips tracking for files under CLAUDE_PLUGIN_ROOT', () => {
+  test('skips tracking for files under CLAUDE_PLUGIN_ROOT', async () => {
     const pluginDir = path.join(tmpDir, 'my-plugin');
     fs.mkdirSync(pluginDir, { recursive: true });
 
@@ -200,7 +200,7 @@ describe('track-context-budget.js', () => {
     expect(tracker).toBeNull();
   });
 
-  test('still tracks files outside CLAUDE_PLUGIN_ROOT', () => {
+  test('still tracks files outside CLAUDE_PLUGIN_ROOT', async () => {
     const pluginDir = path.join(tmpDir, 'my-plugin');
 
     const largeContent = 'x'.repeat(6000);
@@ -215,7 +215,7 @@ describe('track-context-budget.js', () => {
     expect(parsed.additionalContext).toContain('large read');
   });
 
-  test('does not reset when skill is the same', () => {
+  test('does not reset when skill is the same', async () => {
     const skillPath = path.join(planningDir, '.active-skill');
     fs.writeFileSync(skillPath, 'build');
 
@@ -232,7 +232,7 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toContain('/b.js');
   });
 
-  test('CHAR_MILESTONE fires at 250k chars (not 50k) when config has 1M tokens', () => {
+  test('CHAR_MILESTONE fires at 250k chars (not 50k) when config has 1M tokens', async () => {
     const { processEvent, getScaledMilestones } = require('../plugins/pbr/scripts/track-context-budget');
     // Clear both config caches (hooks/ uses config.cjs, plugins/ uses config.js)
     const { configClearCache: clearPlugins } = require('../plugins/pbr/scripts/lib/config.js');
@@ -268,26 +268,26 @@ describe('ledger stale entry detection', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-stale-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { writeLedgerEntry, readLedger } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('readLedger returns empty array for malformed JSON', () => {
+  test('readLedger returns empty array for malformed JSON', async () => {
     fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), '{bad');
     const entries = readLedger(planningDir);
     expect(entries).toEqual([]);
   });
 
-  test('writeLedgerEntry handles concurrent writes without crash', () => {
+  test('writeLedgerEntry handles concurrent writes without crash', async () => {
     // Write multiple entries rapidly
     for (let i = 0; i < 5; i++) {
       writeLedgerEntry(planningDir, {
@@ -302,7 +302,7 @@ describe('ledger stale entry detection', () => {
     expect(entries).toHaveLength(5);
   });
 
-  test('writeLedgerEntry does not throw when planningDir is missing', () => {
+  test('writeLedgerEntry does not throw when planningDir is missing', async () => {
     expect(() => writeLedgerEntry('/nonexistent/dir', {
       file: '/x.js', timestamp: 't', est_tokens: 10, phase: null, stale: false
     })).not.toThrow();
@@ -313,20 +313,20 @@ describe('milestone crossing', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-milestone-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { processEvent, UNIQUE_FILE_MILESTONE } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('warns when unique files cross milestone from 9 to 10', () => {
+  test('warns when unique files cross milestone from 9 to 10', async () => {
     // Seed tracker just below milestone
     const trackerPath = path.join(planningDir, '.context-tracker');
     const files = Array.from({ length: 9 }, (_, i) => `/file${i}.js`);
@@ -338,7 +338,7 @@ describe('milestone crossing', () => {
     expect(result.additionalContext).toContain(`${UNIQUE_FILE_MILESTONE} unique files`);
   });
 
-  test('no warning when files at 11 (not crossing a milestone)', () => {
+  test('no warning when files at 11 (not crossing a milestone)', async () => {
     const trackerPath = path.join(planningDir, '.context-tracker');
     const files = Array.from({ length: 10 }, (_, i) => `/file${i}.js`);
     fs.writeFileSync(trackerPath, JSON.stringify({ skill: '', reads: 10, total_chars: 2000, files }));
@@ -349,7 +349,7 @@ describe('milestone crossing', () => {
     expect(result).toBeNull();
   });
 
-  test('warns at char milestone crossing (50k boundary)', () => {
+  test('warns at char milestone crossing (50k boundary)', async () => {
     const trackerPath = path.join(planningDir, '.context-tracker');
     fs.writeFileSync(trackerPath, JSON.stringify({ skill: '', reads: 3, total_chars: 49500, files: ['/a.js'] }));
 
@@ -364,30 +364,30 @@ describe('handleHttp path', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-http-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { handleHttp } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('returns null when planningDir is missing', () => {
+  test('returns null when planningDir is missing', async () => {
     const result = handleHttp({ planningDir: '/nonexistent', data: { tool_input: { file_path: '/a.js' } } }, {});
     expect(result).toBeNull();
   });
 
-  test('returns null when planningDir is empty string', () => {
+  test('returns null when planningDir is empty string', async () => {
     const result = handleHttp({ planningDir: '', data: {} }, {});
     expect(result).toBeNull();
   });
 
-  test('processes event with valid planningDir', () => {
+  test('processes event with valid planningDir', async () => {
     const result = handleHttp({
       planningDir,
       data: { tool_input: { file_path: '/test.js' }, tool_output: 'content' }
@@ -399,7 +399,7 @@ describe('handleHttp path', () => {
     expect(tracker.reads).toBe(1);
   });
 
-  test('returns null when data has no tool_input', () => {
+  test('returns null when data has no tool_input', async () => {
     const result = handleHttp({ planningDir, data: {} }, {});
     expect(result).toBeNull();
   });
@@ -409,20 +409,20 @@ describe('malformed tool_output', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-malformed-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { processEvent } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('handles undefined tool_output (uses estimated chars)', () => {
+  test('handles undefined tool_output (uses estimated chars)', async () => {
     const data = { tool_input: { file_path: '/a.js' } };
     // Should not crash — uses default 8000 char estimate
     expect(() => processEvent(data, planningDir, {}, null)).not.toThrow();
@@ -430,7 +430,7 @@ describe('malformed tool_output', () => {
     expect(tracker.total_chars).toBe(8000);
   });
 
-  test('handles numeric tool_output (coerced to string)', () => {
+  test('handles numeric tool_output (coerced to string)', async () => {
     const data = { tool_input: { file_path: '/a.js' }, tool_output: 12345 };
     expect(() => processEvent(data, planningDir, {}, null)).not.toThrow();
     const tracker = JSON.parse(fs.readFileSync(path.join(planningDir, '.context-tracker'), 'utf8'));
@@ -438,7 +438,7 @@ describe('malformed tool_output', () => {
     expect(tracker.total_chars).toBe(5);
   });
 
-  test('handles empty string tool_output (falls back to estimate)', () => {
+  test('handles empty string tool_output (falls back to estimate)', async () => {
     const data = { tool_input: { file_path: '/a.js' }, tool_output: '' };
     expect(() => processEvent(data, planningDir, {}, null)).not.toThrow();
     const tracker = JSON.parse(fs.readFileSync(path.join(planningDir, '.context-tracker'), 'utf8'));
@@ -451,20 +451,20 @@ describe('context_window_tokens scaling', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-scale-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { getScaledMilestones } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('default milestones at 200k tokens', () => {
+  test('default milestones at 200k tokens', async () => {
     const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     configClearCache();
     const milestones = getScaledMilestones(planningDir);
@@ -473,7 +473,7 @@ describe('context_window_tokens scaling', () => {
     configClearCache();
   });
 
-  test('scaled milestones at 1M tokens', () => {
+  test('scaled milestones at 1M tokens', async () => {
     const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
     configClearCache();
@@ -483,7 +483,7 @@ describe('context_window_tokens scaling', () => {
     configClearCache();
   });
 
-  test('scaled milestones at 500k tokens', () => {
+  test('scaled milestones at 500k tokens', async () => {
     const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 500000 }));
     configClearCache();
@@ -498,20 +498,20 @@ describe('context ledger', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ledger-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { writeLedgerEntry, readLedger, resetLedger, processEvent } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('writeLedgerEntry creates .context-ledger.json with one entry', () => {
+  test('writeLedgerEntry creates .context-ledger.json with one entry', async () => {
     const entry = { file: '/foo/bar.js', timestamp: '2026-01-01T00:00:00Z', est_tokens: 500, phase: 'test', stale: false };
     writeLedgerEntry(planningDir, entry);
 
@@ -526,7 +526,7 @@ describe('context ledger', () => {
     expect(entries[0].stale).toBe(false);
   });
 
-  test('writeLedgerEntry appends to existing ledger', () => {
+  test('writeLedgerEntry appends to existing ledger', async () => {
     writeLedgerEntry(planningDir, { file: '/a.js', timestamp: '2026-01-01T00:00:00Z', est_tokens: 100, phase: 'p1', stale: false });
     writeLedgerEntry(planningDir, { file: '/b.js', timestamp: '2026-01-01T00:01:00Z', est_tokens: 200, phase: 'p1', stale: false });
 
@@ -536,12 +536,12 @@ describe('context ledger', () => {
     expect(entries[1].file).toBe('/b.js');
   });
 
-  test('readLedger returns empty array when no file exists', () => {
+  test('readLedger returns empty array when no file exists', async () => {
     const entries = readLedger(planningDir);
     expect(entries).toEqual([]);
   });
 
-  test('readLedger returns entries from written ledger', () => {
+  test('readLedger returns entries from written ledger', async () => {
     writeLedgerEntry(planningDir, { file: '/a.js', timestamp: 't1', est_tokens: 10, phase: null, stale: false });
     writeLedgerEntry(planningDir, { file: '/b.js', timestamp: 't2', est_tokens: 20, phase: null, stale: false });
     writeLedgerEntry(planningDir, { file: '/c.js', timestamp: 't3', est_tokens: 30, phase: null, stale: false });
@@ -550,7 +550,7 @@ describe('context ledger', () => {
     expect(entries).toHaveLength(3);
   });
 
-  test('resetLedger deletes the file', () => {
+  test('resetLedger deletes the file', async () => {
     writeLedgerEntry(planningDir, { file: '/a.js', timestamp: 't1', est_tokens: 10, phase: null, stale: false });
     const ledgerPath = path.join(planningDir, '.context-ledger.json');
     expect(fs.existsSync(ledgerPath)).toBe(true);
@@ -562,7 +562,7 @@ describe('context ledger', () => {
     expect(entries).toEqual([]);
   });
 
-  test('processEvent writes ledger entry when context_ledger.enabled is true', () => {
+  test('processEvent writes ledger entry when context_ledger.enabled is true', async () => {
     const { configClearCache: clearHooks } = require('../plugins/pbr/scripts/lib/config');
 
     // Write config with ledger enabled
@@ -592,7 +592,7 @@ describe('context ledger', () => {
     clearHooks();
   });
 
-  test('processEvent does NOT write ledger when context_ledger.enabled is false', () => {
+  test('processEvent does NOT write ledger when context_ledger.enabled is false', async () => {
     const { configClearCache: clearHooks } = require('../plugins/pbr/scripts/lib/config');
 
     // Write config with ledger disabled
@@ -615,20 +615,20 @@ describe('Read consolidation (check-read-first dispatch)', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-readcons-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const { handleHttp } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('Read event dispatches to check-read-first and merges results', () => {
+  test('Read event dispatches to check-read-first and merges results', async () => {
     // Mock check-read-first via the module cache
     const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
     const originalHandleHttp = checkReadFirstModule.handleHttp;
@@ -665,7 +665,7 @@ describe('Read consolidation (check-read-first dispatch)', () => {
     }
   });
 
-  test('check-read-first returning null means only budget result returned', () => {
+  test('check-read-first returning null means only budget result returned', async () => {
     const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
     const originalHandleHttp = checkReadFirstModule.handleHttp;
 
@@ -691,7 +691,7 @@ describe('Read consolidation (check-read-first dispatch)', () => {
     }
   });
 
-  test('check-read-first result alone is returned when budget has no warning', () => {
+  test('check-read-first result alone is returned when budget has no warning', async () => {
     const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
     const originalHandleHttp = checkReadFirstModule.handleHttp;
 
@@ -719,7 +719,7 @@ describe('Read consolidation (check-read-first dispatch)', () => {
     }
   });
 
-  test('non-Read events still dispatch to check-read-first (handleHttp always dispatches)', () => {
+  test('non-Read events still dispatch to check-read-first (handleHttp always dispatches)', async () => {
     // handleHttp dispatches to check-read-first for ALL events (it's the Read handler)
     // The filtering is done by check-read-first itself, not by track-context-budget
     const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');

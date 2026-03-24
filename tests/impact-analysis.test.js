@@ -31,7 +31,7 @@ describe('impact-analysis', () => {
   }
 
   describe('buildDependencyMap()', () => {
-    test('scans a directory and returns map of file -> dependencies', () => {
+    test('scans a directory and returns map of file -> dependencies', async () => {
       writeFile('a.js', "const b = require('./b');");
       writeFile('b.js', 'module.exports = {};');
       const depMap = impactAnalysis.buildDependencyMap(tmpDir, {
@@ -42,7 +42,7 @@ describe('impact-analysis', () => {
       expect(depMap.size).toBeGreaterThan(0);
     });
 
-    test('detects require() calls in CJS files', () => {
+    test('detects require() calls in CJS files', async () => {
       writeFile('x.js', [
         "const y = require('./y');",
         "const z = require('./z.js');",
@@ -59,7 +59,7 @@ describe('impact-analysis', () => {
       expect(xDeps.length).toBeGreaterThan(0);
     });
 
-    test('detects import statements in ESM files', () => {
+    test('detects import statements in ESM files', async () => {
       writeFile('esm-a.mjs', "import { foo } from './esm-b.mjs';");
       writeFile('esm-b.mjs', "export function foo() {}");
       const depMap = impactAnalysis.buildDependencyMap(tmpDir, {
@@ -73,7 +73,7 @@ describe('impact-analysis', () => {
       expect(aDeps.length).toBeGreaterThan(0);
     });
 
-    test('resolves relative paths to absolute', () => {
+    test('resolves relative paths to absolute', async () => {
       writeFile('src/alpha.js', "const beta = require('./beta');");
       writeFile('src/beta.js', 'module.exports = {};');
       const depMap = impactAnalysis.buildDependencyMap(tmpDir);
@@ -87,7 +87,7 @@ describe('impact-analysis', () => {
   });
 
   describe('analyzeImpact()', () => {
-    test('given changed files returns affected files including direct dependents', () => {
+    test('given changed files returns affected files including direct dependents', async () => {
       // a depends on b, c depends on b
       const bPath = writeFile('b.js', 'module.exports = {};');
       writeFile('a.js', "const b = require('./b');");
@@ -110,14 +110,14 @@ describe('impact-analysis', () => {
       }
     });
 
-    test('assigns risk low for <= 3 affected files', () => {
+    test('assigns risk low for <= 3 affected files', async () => {
       const target = writeFile('lone.js', 'module.exports = {};');
       const report = impactAnalysis.analyzeImpact([target], tmpDir);
       // Only the file itself, no dependents — should be low
       expect(['low', 'medium', 'high']).toContain(report.risk);
     });
 
-    test('assigns risk medium for 4-10 affected files', () => {
+    test('assigns risk medium for 4-10 affected files', async () => {
       // Create a hub file that 6 files depend on
       const hub = writeFile('hub.js', 'module.exports = {};');
       for (let i = 0; i < 6; i++) {
@@ -127,7 +127,7 @@ describe('impact-analysis', () => {
       expect(['medium', 'high']).toContain(report.risk);
     });
 
-    test('assigns risk high for > 10 affected files', () => {
+    test('assigns risk high for > 10 affected files', async () => {
       const core = writeFile('core.js', 'module.exports = {};');
       for (let i = 0; i < 12; i++) {
         writeFile(`user${i}.js`, `const core = require('./core');`);

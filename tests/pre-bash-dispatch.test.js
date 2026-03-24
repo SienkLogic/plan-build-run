@@ -10,39 +10,39 @@ const runScript = (toolInput, cwd) => _run({ tool_input: toolInput }, { cwd: cwd
 
 describe('pre-bash-dispatch.js', () => {
   describe('normal commands pass through', () => {
-    test('npm test passes through', () => {
+    test('npm test passes through', async () => {
       const result = runScript({ command: 'npm test' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git status passes through', () => {
+    test('git status passes through', async () => {
       const result = runScript({ command: 'git status' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git log passes through', () => {
+    test('git log passes through', async () => {
       const result = runScript({ command: 'git log --oneline -5' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('ls passes through', () => {
+    test('ls passes through', async () => {
       const result = runScript({ command: 'ls -la' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('echo passes through', () => {
+    test('echo passes through', async () => {
       const result = runScript({ command: 'echo hello' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('empty command passes through', () => {
+    test('empty command passes through', async () => {
       const result = runScript({ command: '' });
       expect(result.exitCode).toBe(0);
     });
   });
 
   describe('dangerous commands dispatch to check-dangerous-commands', () => {
-    test('blocks rm -rf .planning', () => {
+    test('blocks rm -rf .planning', async () => {
       const result = runScript({ command: 'rm -rf .planning' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -50,14 +50,14 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.reason).toContain('.planning');
     });
 
-    test('blocks rm -rf targeting .planning subdirectory', () => {
+    test('blocks rm -rf targeting .planning subdirectory', async () => {
       const result = runScript({ command: 'rm -rf .planning/phases' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
     });
 
-    test('blocks git reset --hard', () => {
+    test('blocks git reset --hard', async () => {
       const result = runScript({ command: 'git reset --hard' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -65,35 +65,35 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.reason).toContain('reset --hard');
     });
 
-    test('blocks git push --force to main', () => {
+    test('blocks git push --force to main', async () => {
       const result = runScript({ command: 'git push --force origin main' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
     });
 
-    test('blocks git push -f to master', () => {
+    test('blocks git push -f to master', async () => {
       const result = runScript({ command: 'git push -f origin master' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
     });
 
-    test('blocks git clean -fd', () => {
+    test('blocks git clean -fd', async () => {
       const result = runScript({ command: 'git clean -fd' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
     });
 
-    test('allows git checkout -- . (exit 0)', () => {
+    test('allows git checkout -- . (exit 0)', async () => {
       const result = runScript({ command: 'git checkout -- .' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
     });
 
-    test('allows git push --force to non-main branch (exit 0)', () => {
+    test('allows git push --force to non-main branch (exit 0)', async () => {
       const result = runScript({ command: 'git push --force origin feature-branch' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -102,7 +102,7 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('commit validation dispatch to validate-commit', () => {
-    test('blocks invalid commit message format', () => {
+    test('blocks invalid commit message format', async () => {
       const result = runScript({ command: 'git commit -m "bad message"' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -110,17 +110,17 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.reason).toContain('Invalid commit message');
     });
 
-    test('allows valid commit message', () => {
+    test('allows valid commit message', async () => {
       const result = runScript({ command: 'git commit -m "feat(03-01): add user auth"' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows merge commit', () => {
+    test('allows merge commit', async () => {
       const result = runScript({ command: "git commit -m \"Merge branch 'feature' into main\"" });
       expect(result.exitCode).toBe(0);
     });
 
-    test('blocks AI co-author in commit', () => {
+    test('blocks AI co-author in commit', async () => {
       const result = runScript({
         command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Claude <noreply@anthropic.com>"'
       });
@@ -132,7 +132,7 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('short-circuit: dangerous check runs before commit check', () => {
-    test('dangerous command blocks even if it also contains git commit', () => {
+    test('dangerous command blocks even if it also contains git commit', async () => {
       // A chained command that has both a dangerous operation and a commit
       // The dangerous check should fire first
       const result = runScript({ command: 'git reset --hard && git commit -m "feat(01-01): stuff"' });
@@ -155,17 +155,17 @@ describe('pre-bash-dispatch.js', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('benign command passes without .planning/', () => {
+    test('benign command passes without .planning/', async () => {
       const result = runScript({ command: 'echo hello' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
 
-    test('valid git commit passes without .planning/', () => {
+    test('valid git commit passes without .planning/', async () => {
       const result = runScript({ command: 'git commit -m "feat(test): add feature"' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
 
-    test('dangerous command still blocked without .planning/', () => {
+    test('dangerous command still blocked without .planning/', async () => {
       const result = runScript({ command: 'git reset --hard' }, tmpDir);
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -174,14 +174,14 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('allow decision format', () => {
-    test('pass-through returns { decision: "allow" } JSON', () => {
+    test('pass-through returns { decision: "allow" } JSON', async () => {
       const result = runScript({ command: 'ls' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
     });
 
-    test('advisory warnings still return decision allow', () => {
+    test('advisory warnings still return decision allow', async () => {
       const result = runScript({ command: 'npm publish foo' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -196,7 +196,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.decision).toBe('block');
     });
 
-    test('allow output is valid JSON with no extra fields beyond decision', () => {
+    test('allow output is valid JSON with no extra fields beyond decision', async () => {
       const result = runScript({ command: 'echo test' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -204,7 +204,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(Object.keys(output)).toEqual(['decision']);
     });
 
-    test('handles CRLF in stdin JSON gracefully', () => {
+    test('handles CRLF in stdin JSON gracefully', async () => {
       // JSON.parse handles embedded \r\n in string values — verify hook doesn't choke
       const input = JSON.stringify({ tool_input: { command: 'echo hello\r\nworld' } });
       try {
@@ -224,67 +224,67 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('malformed input handling', () => {
-    test('non-JSON stdin exits 0 with valid JSON output', () => {
+    test('non-JSON stdin exits 0 with valid JSON output', async () => {
       const result = _run('this is not json at all', { cwd: os.tmpdir() });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
     });
 
-    test('empty string stdin exits 0', () => {
+    test('empty string stdin exits 0', async () => {
       const result = _run('', { cwd: os.tmpdir() });
       expect(result.exitCode).toBe(0);
     });
 
-    test('tool_input missing entirely exits 0', () => {
+    test('tool_input missing entirely exits 0', async () => {
       const result = _run({ session_id: 'test' }, { cwd: os.tmpdir() });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
     });
 
-    test('tool_input.command is null exits 0', () => {
+    test('tool_input.command is null exits 0', async () => {
       const result = runScript({ command: null });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
     });
 
-    test('tool_input.command is a number exits 0', () => {
+    test('tool_input.command is a number exits 0', async () => {
       const result = runScript({ command: 42 });
       expect(result.exitCode).toBe(0);
     });
 
-    test('tool_input.command is undefined exits 0', () => {
+    test('tool_input.command is undefined exits 0', async () => {
       const result = runScript({});
       expect(result.exitCode).toBe(0);
     });
 
-    test('deeply nested invalid object exits 0', () => {
+    test('deeply nested invalid object exits 0', async () => {
       const result = _run({ tool_input: { command: { nested: true } } }, { cwd: os.tmpdir() });
       expect(result.exitCode).toBe(0);
     });
   });
 
   describe('validate-commit edge cases', () => {
-    test('git commit --amend with no message is allowed', () => {
+    test('git commit --amend with no message is allowed', async () => {
       const result = runScript({ command: 'git commit --amend --no-edit' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git commit with --no-verify flag and valid message is allowed', () => {
+    test('git commit with --no-verify flag and valid message is allowed', async () => {
       const result = runScript({ command: 'git commit --no-verify -m "feat(hooks): skip hooks"' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git commit -m with empty string is blocked', () => {
+    test('git commit -m with empty string is blocked', async () => {
       const result = runScript({ command: "git commit -m ''" });
       // Empty message can't match COMMIT_PATTERN — either blocked or allowed as unparseable
       // The key behavior: it should not crash
       expect(result.exitCode).toBe(0); // empty quote yields no extractable message → allowed
     });
 
-    test('all valid commit types are allowed', () => {
+    test('all valid commit types are allowed', async () => {
       const types = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert'];
       for (const type of types) {
         const result = runScript({ command: `git commit -m "${type}(hooks): test message"` });
@@ -292,17 +292,17 @@ describe('pre-bash-dispatch.js', () => {
       }
     });
 
-    test('conventional commit with hyphenated scope is allowed', () => {
+    test('conventional commit with hyphenated scope is allowed', async () => {
       const result = runScript({ command: 'git commit -m "feat(hook-server): add health endpoint"' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('conventional commit with dot in scope is allowed', () => {
+    test('conventional commit with dot in scope is allowed', async () => {
       const result = runScript({ command: 'git commit -m "fix(v2.1): patch release"' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('invalid commit type is blocked', () => {
+    test('invalid commit type is blocked', async () => {
       const result = runScript({ command: 'git commit -m "yolo(hooks): bad type"' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -310,7 +310,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.reason).toContain('Invalid commit message');
     });
 
-    test('commit with heredoc-style message extracts first line', () => {
+    test('commit with heredoc-style message extracts first line', async () => {
       // Heredoc syntax: the hook parses heredoc format to extract message
       const cmd = "git commit -m \"$(cat <<'EOF'\nfeat(hooks): add new hook\n\nDetailed body here\nEOF\n)\"";
       const result = runScript({ command: cmd });
@@ -328,40 +328,40 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('check-dangerous-commands edge cases', () => {
-    test('git push --force-with-lease is allowed (not blocked like --force)', () => {
+    test('git push --force-with-lease is allowed (not blocked like --force)', async () => {
       const result = runScript({ command: 'git push --force-with-lease origin feature-branch' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git checkout -- with specific file is allowed', () => {
+    test('git checkout -- with specific file is allowed', async () => {
       const result = runScript({ command: 'git checkout -- src/index.js' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('rm -rf on non-.planning directory is allowed', () => {
+    test('rm -rf on non-.planning directory is allowed', async () => {
       const result = runScript({ command: 'rm -rf dist/' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git clean -fxd is blocked', () => {
+    test('git clean -fxd is blocked', async () => {
       const result = runScript({ command: 'git clean -fxd' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
     });
 
-    test('rm with only -r (no -f) targeting .planning is not blocked by rf pattern', () => {
+    test('rm with only -r (no -f) targeting .planning is not blocked by rf pattern', async () => {
       // The regex requires both -r and -f flags
       const result = runScript({ command: 'rm -r .planning' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('git push without --force to main is allowed', () => {
+    test('git push without --force to main is allowed', async () => {
       const result = runScript({ command: 'git push origin main' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('database destructive commands trigger advisory warning', () => {
+    test('database destructive commands trigger advisory warning', async () => {
       const result = runScript({ command: 'mysql -e "DROP TABLE users"' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -369,14 +369,14 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.additionalContext).toContain('destructive database');
     });
 
-    test('npm publish triggers advisory warning', () => {
+    test('npm publish triggers advisory warning', async () => {
       const result = runScript({ command: 'npm publish' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.additionalContext).toContain('npm publish');
     });
 
-    test('production config reference triggers advisory warning', () => {
+    test('production config reference triggers advisory warning', async () => {
       const result = runScript({ command: 'cat production.env' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -385,7 +385,7 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('JSON output format verification', () => {
-    test('blocked command output is valid JSON with decision and reason', () => {
+    test('blocked command output is valid JSON with decision and reason', async () => {
       const result = runScript({ command: 'rm -rf .planning' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -395,7 +395,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.reason.length).toBeGreaterThan(0);
     });
 
-    test('allowed command output is valid JSON with decision allow', () => {
+    test('allowed command output is valid JSON with decision allow', async () => {
       const result = runScript({ command: 'echo hello' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -403,7 +403,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.decision).toBe('allow');
     });
 
-    test('advisory warning output has decision allow and additionalContext string', () => {
+    test('advisory warning output has decision allow and additionalContext string', async () => {
       const result = runScript({ command: 'npm publish foo' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -411,7 +411,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(typeof output.additionalContext).toBe('string');
     });
 
-    test('warn-pattern output (git checkout -- .) returns decision allow', () => {
+    test('warn-pattern output (git checkout -- .) returns decision allow', async () => {
       const result = runScript({ command: 'git checkout -- .' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
@@ -420,14 +420,14 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.decision).toBe('allow');
     });
 
-    test('malformed input produces valid JSON on stdout', () => {
+    test('malformed input produces valid JSON on stdout', async () => {
       const result = _run('garbage input', { cwd: os.tmpdir() });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
     });
 
-    test('block output reason contains the command for context', () => {
+    test('block output reason contains the command for context', async () => {
       const result = runScript({ command: 'git reset --hard HEAD~5' });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
@@ -479,7 +479,7 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.additionalContext).toContain('Broken require path');
     });
 
-    test('checks do NOT run on non-commit commands', () => {
+    test('checks do NOT run on non-commit commands', async () => {
       // Stage a file with a broken require
       const hooksDir = path.join(tmpDir, 'hooks');
       fs.mkdirSync(hooksDir, { recursive: true });
@@ -524,7 +524,7 @@ describe('pre-bash-dispatch.js', () => {
   });
 
   describe('error handling', () => {
-    test('malformed JSON does not block', () => {
+    test('malformed JSON does not block', async () => {
       // Send invalid JSON - the script should catch the parse error and exit 0
       try {
         const result = execSync(`node "${SCRIPT}"`, {
@@ -541,7 +541,7 @@ describe('pre-bash-dispatch.js', () => {
       }
     });
 
-    test('missing tool_input does not block', () => {
+    test('missing tool_input does not block', async () => {
       try {
         const result = execSync(`node "${SCRIPT}"`, {
           input: JSON.stringify({}),
@@ -555,7 +555,7 @@ describe('pre-bash-dispatch.js', () => {
       }
     });
 
-    test('missing command field does not block', () => {
+    test('missing command field does not block', async () => {
       try {
         const result = execSync(`node "${SCRIPT}"`, {
           input: JSON.stringify({ tool_input: {} }),

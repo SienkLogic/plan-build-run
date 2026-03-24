@@ -43,24 +43,24 @@ describe('auto-continue.js', () => {
     fs.writeFileSync(path.join(planningDir, '.auto-next'), content);
   }
 
-  test('exits silently when no config.json exists', () => {
+  test('exits silently when no config.json exists', async () => {
     const output = run();
     expect(output).toBe('');
   });
 
-  test('exits silently when auto_continue is false', () => {
+  test('exits silently when auto_continue is false', async () => {
     writeConfig({ features: { auto_continue: false } });
     const output = run();
     expect(output).toBe('');
   });
 
-  test('exits silently when auto_continue feature missing', () => {
+  test('exits silently when auto_continue feature missing', async () => {
     writeConfig({ features: {} });
     const output = run();
     expect(output).toBe('');
   });
 
-  test('exits silently when config.json exists but features key is missing entirely', () => {
+  test('exits silently when config.json exists but features key is missing entirely', async () => {
     // Write config with no features key at all — REQ-F-019 edge case
     fs.writeFileSync(
       path.join(planningDir, 'config.json'),
@@ -70,14 +70,14 @@ describe('auto-continue.js', () => {
     expect(output).toBe('');
   });
 
-  test('exits silently when config.json is malformed JSON', () => {
+  test('exits silently when config.json is malformed JSON', async () => {
     // Write invalid JSON — configLoad should return null, script exits gracefully
     fs.writeFileSync(path.join(planningDir, 'config.json'), '{bad json');
     const output = run();
     expect(output).toBe('');
   });
 
-  test('exits with no-signal log when no .auto-next file', () => {
+  test('exits with no-signal log when no .auto-next file', async () => {
     writeConfig();
     const output = run();
     expect(output).toBe('');
@@ -91,7 +91,7 @@ describe('auto-continue.js', () => {
     expect(entry.decision).toBe('no-signal');
   });
 
-  test('reads signal file and outputs block decision with next command', () => {
+  test('reads signal file and outputs block decision with next command', async () => {
     writeConfig();
     writeSignal('/pbr:execute-phase 3');
 
@@ -101,7 +101,7 @@ describe('auto-continue.js', () => {
     expect(parsed.reason).toContain('/pbr:execute-phase 3');
   });
 
-  test('exits silently when stop_hook_active is true (prevents infinite loops)', () => {
+  test('exits silently when stop_hook_active is true (prevents infinite loops)', async () => {
     writeConfig();
     writeSignal('/pbr:execute-phase 3');
 
@@ -113,7 +113,7 @@ describe('auto-continue.js', () => {
     expect(fs.existsSync(signalPath)).toBe(true);
   });
 
-  test('deletes signal file after reading (one-shot)', () => {
+  test('deletes signal file after reading (one-shot)', async () => {
     writeConfig();
     writeSignal('/pbr:verify-work 2');
 
@@ -123,7 +123,7 @@ describe('auto-continue.js', () => {
     expect(fs.existsSync(signalPath)).toBe(false);
   });
 
-  test('handles empty signal file gracefully', () => {
+  test('handles empty signal file gracefully', async () => {
     writeConfig();
     writeSignal('');
 
@@ -137,7 +137,7 @@ describe('auto-continue.js', () => {
     expect(entry.decision).toBe('empty-signal');
   });
 
-  test('handles whitespace-only signal file', () => {
+  test('handles whitespace-only signal file', async () => {
     writeConfig();
     writeSignal('   \n  ');
 
@@ -145,7 +145,7 @@ describe('auto-continue.js', () => {
     expect(output).toBe('');
   });
 
-  test('logs continue decision with next command', () => {
+  test('logs continue decision with next command', async () => {
     writeConfig();
     writeSignal('/pbr:plan-phase 4');
 
@@ -159,7 +159,7 @@ describe('auto-continue.js', () => {
     expect(entry.next).toBe('/pbr:plan-phase 4');
   });
 
-  test('does not crash when .planning dir is missing', () => {
+  test('does not crash when .planning dir is missing', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     // No config.json exists since we deleted .planning — script should exit silently
     const output = run();
@@ -167,7 +167,7 @@ describe('auto-continue.js', () => {
   });
 
   describe('session length guard', () => {
-    test('increments continue count on each continue', () => {
+    test('increments continue count on each continue', async () => {
       writeConfig();
       writeSignal('/pbr:execute-phase 1');
       run();
@@ -180,7 +180,7 @@ describe('auto-continue.js', () => {
       expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('2');
     });
 
-    test('advisory warning appears after 3 continues', () => {
+    test('advisory warning appears after 3 continues', async () => {
       writeConfig();
       const countPath = path.join(planningDir, '.continue-count');
       // Set count to 3 so next increment = 4 (> 3)
@@ -193,7 +193,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('4 consecutive continues');
     });
 
-    test('no advisory at exactly 3 continues', () => {
+    test('no advisory at exactly 3 continues', async () => {
       writeConfig();
       const countPath = path.join(planningDir, '.continue-count');
       fs.writeFileSync(countPath, '2');
@@ -204,7 +204,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).not.toContain('Advisory');
     });
 
-    test('hard stop (no block output) after 6 continues', () => {
+    test('hard stop (no block output) after 6 continues', async () => {
       writeConfig();
       const countPath = path.join(planningDir, '.continue-count');
       fs.writeFileSync(countPath, '6');
@@ -216,7 +216,7 @@ describe('auto-continue.js', () => {
       expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('7');
     });
 
-    test('count resets when no signal file present', () => {
+    test('count resets when no signal file present', async () => {
       writeConfig();
       const countPath = path.join(planningDir, '.continue-count');
       fs.writeFileSync(countPath, '5');
@@ -242,7 +242,7 @@ describe('auto-continue.js', () => {
       });
     }
 
-    test('triggers cycle when phases_completed >= session_phase_limit', () => {
+    test('triggers cycle when phases_completed >= session_phase_limit', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 3 });
       writeTracker({ phases_completed: 3, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -257,7 +257,7 @@ describe('auto-continue.js', () => {
       expect(fs.readFileSync(signalPath, 'utf8')).toBe('/pbr:pause-work');
     });
 
-    test('no cycle when session_phase_limit is 0 (disabled)', () => {
+    test('no cycle when session_phase_limit is 0 (disabled)', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 0 });
       writeTracker({ phases_completed: 10, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -265,7 +265,7 @@ describe('auto-continue.js', () => {
       expect(output).toBe('');
     });
 
-    test('no cycle when phases_completed < limit', () => {
+    test('no cycle when phases_completed < limit', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 3 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -273,7 +273,7 @@ describe('auto-continue.js', () => {
       expect(output).toBe('');
     });
 
-    test('no cycle when tracker file missing', () => {
+    test('no cycle when tracker file missing', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 3 });
       // Do NOT write .session-tracker
 
@@ -281,7 +281,7 @@ describe('auto-continue.js', () => {
       expect(output).toBe('');
     });
 
-    test('uses default limit of 3 when session_phase_limit not in config', () => {
+    test('uses default limit of 3 when session_phase_limit not in config', async () => {
       writeConfig({ features: { auto_continue: true } });
       writeTracker({ phases_completed: 3, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -291,7 +291,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:pause-work');
     });
 
-    test('TMUX branch logs cycle-tmux', () => {
+    test('TMUX branch logs cycle-tmux', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -306,7 +306,7 @@ describe('auto-continue.js', () => {
       expect(entry).toBeDefined();
     });
 
-    test('session_cycling tmux config overrides env detection', () => {
+    test('session_cycling tmux config overrides env detection', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2, session_cycling: 'tmux' });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -318,7 +318,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('TMUX auto-cycle');
     });
 
-    test('non-TMUX defaults to compact cycling mode', () => {
+    test('non-TMUX defaults to compact cycling mode', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -338,7 +338,7 @@ describe('auto-continue.js', () => {
       expect(entry).toBeDefined();
     });
 
-    test('session_cycling manual shows checkpoint banner', () => {
+    test('session_cycling manual shows checkpoint banner', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2, session_cycling: 'manual' });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -354,7 +354,7 @@ describe('auto-continue.js', () => {
       expect(entry).toBeDefined();
     });
 
-    test('stop_hook_active prevents cycling even when limit reached', () => {
+    test('stop_hook_active prevents cycling even when limit reached', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
       writeTracker({ phases_completed: 5, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -362,7 +362,7 @@ describe('auto-continue.js', () => {
       expect(output).toBe('');
     });
 
-    test('normal auto-continue works when under limit', () => {
+    test('normal auto-continue works when under limit', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 5 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
       writeSignal('/pbr:execute-phase 3');
@@ -382,7 +382,7 @@ describe('auto-continue.js', () => {
       fs.writeFileSync(path.join(planningDir, '.phase-boundary-pending'), String(phaseNum));
     }
 
-    test('blocks auto-continue when enforce mode and .phase-boundary-pending exists', () => {
+    test('blocks auto-continue when enforce mode and .phase-boundary-pending exists', async () => {
       writeConfig({
         features: { auto_continue: true },
         workflow: { phase_boundary_clear: 'enforce' },
@@ -402,7 +402,7 @@ describe('auto-continue.js', () => {
       expect(fs.existsSync(path.join(planningDir, '.auto-next'))).toBe(false);
     });
 
-    test('logs phase-boundary-enforce in hook log', () => {
+    test('logs phase-boundary-enforce in hook log', async () => {
       writeConfig({
         features: { auto_continue: true },
         workflow: { phase_boundary_clear: 'enforce' },
@@ -417,7 +417,7 @@ describe('auto-continue.js', () => {
       expect(entry).toBeDefined();
     });
 
-    test('recommend mode cleans up signal file but does not block', () => {
+    test('recommend mode cleans up signal file but does not block', async () => {
       writeConfig({
         features: { auto_continue: true },
         workflow: { phase_boundary_clear: 'recommend' },
@@ -442,7 +442,7 @@ describe('auto-continue.js', () => {
       expect(entry).toBeDefined();
     });
 
-    test('off mode cleans up stale signal file', () => {
+    test('off mode cleans up stale signal file', async () => {
       writeConfig({
         features: { auto_continue: true },
         workflow: { phase_boundary_clear: 'off' },
@@ -460,7 +460,7 @@ describe('auto-continue.js', () => {
       expect(fs.existsSync(path.join(planningDir, '.phase-boundary-pending'))).toBe(false);
     });
 
-    test('no behavior change when no .phase-boundary-pending file exists', () => {
+    test('no behavior change when no .phase-boundary-pending file exists', async () => {
       writeConfig({
         features: { auto_continue: true },
         workflow: { phase_boundary_clear: 'enforce' },
@@ -474,7 +474,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:plan-phase 4');
     });
 
-    test('missing workflow config defaults to off (backward compat)', () => {
+    test('missing workflow config defaults to off (backward compat)', async () => {
       writeConfig({
         features: { auto_continue: true },
       });
@@ -493,7 +493,7 @@ describe('auto-continue.js', () => {
   });
 
   describe('config flag migration (_auto_chain_active)', () => {
-    test('reads next command from workflow._auto_chain_active config flag', () => {
+    test('reads next command from workflow._auto_chain_active config flag', async () => {
       const config = {
         features: { auto_continue: true },
         workflow: { _auto_chain_active: '/pbr:execute-phase 5' },
@@ -507,7 +507,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:execute-phase 5');
     });
 
-    test('clears _auto_chain_active flag after reading', () => {
+    test('clears _auto_chain_active flag after reading', async () => {
       const config = {
         features: { auto_continue: true },
         workflow: { _auto_chain_active: '/pbr:build-phase 3' },
@@ -521,7 +521,7 @@ describe('auto-continue.js', () => {
       expect(updated.workflow._auto_chain_active).toBeFalsy();
     });
 
-    test('backward compat: reads .auto-next signal file when config flag absent', () => {
+    test('backward compat: reads .auto-next signal file when config flag absent', async () => {
       writeConfig();
       writeSignal('/pbr:execute-phase 3');
 
@@ -531,7 +531,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:execute-phase 3');
     });
 
-    test('config flag takes priority over .auto-next signal file', () => {
+    test('config flag takes priority over .auto-next signal file', async () => {
       const config = {
         features: { auto_continue: true },
         workflow: { _auto_chain_active: '/pbr:build-phase 7' },
@@ -552,7 +552,7 @@ describe('auto-continue.js', () => {
       fs.writeFileSync(path.join(planningDir, '.session-tracker'), JSON.stringify(data));
     }
 
-    test('.auto-next file is written with correct command when phase limit triggers', () => {
+    test('.auto-next file is written with correct command when phase limit triggers', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -563,7 +563,7 @@ describe('auto-continue.js', () => {
       expect(fs.readFileSync(signalPath, 'utf8')).toBe('/pbr:pause-work');
     });
 
-    test('.auto-next file is NOT written when stop_hook_active is set', () => {
+    test('.auto-next file is NOT written when stop_hook_active is set', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -573,7 +573,7 @@ describe('auto-continue.js', () => {
       expect(fs.existsSync(signalPath)).toBe(false);
     });
 
-    test('.auto-next file is NOT written when auto_continue is disabled', () => {
+    test('.auto-next file is NOT written when auto_continue is disabled', async () => {
       writeConfig({ features: { auto_continue: false }, session_phase_limit: 2 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -600,7 +600,7 @@ describe('auto-continue.js', () => {
       });
     }
 
-    test('compact-first cycling suggests /compact before session end', () => {
+    test('compact-first cycling suggests /compact before session end', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 2, session_cycling: 'compact-first' });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -614,7 +614,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:pause-work');
     });
 
-    test('session_phase_limit = 0 does not trigger cycling', () => {
+    test('session_phase_limit = 0 does not trigger cycling', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 0 });
       writeTracker({ phases_completed: 100, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -623,7 +623,7 @@ describe('auto-continue.js', () => {
       expect(output).toBe('');
     });
 
-    test('session_phase_limit = 1 triggers cycling after first phase', () => {
+    test('session_phase_limit = 1 triggers cycling after first phase', async () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 1 });
       writeTracker({ phases_completed: 1, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -633,7 +633,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:pause-work');
     });
 
-    test('default phase limit scales with context_window_tokens (1M = 8)', () => {
+    test('default phase limit scales with context_window_tokens (1M = 8)', async () => {
       writeConfig({ features: { auto_continue: true }, context_window_tokens: 1000000 });
       // phases_completed = 7 (under 8 limit for 1M)
       writeTracker({ phases_completed: 7, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
@@ -643,7 +643,7 @@ describe('auto-continue.js', () => {
       expect(output).toBe('');
     });
 
-    test('default phase limit at 500k is 6', () => {
+    test('default phase limit at 500k is 6', async () => {
       writeConfig({ features: { auto_continue: true }, context_window_tokens: 500000 });
       writeTracker({ phases_completed: 6, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
 
@@ -655,19 +655,19 @@ describe('auto-continue.js', () => {
   });
 
   describe('config fallback paths', () => {
-    test('exits silently when config.json is missing (no features)', () => {
+    test('exits silently when config.json is missing (no features)', async () => {
       // No config.json at all
       const output = run();
       expect(output).toBe('');
     });
 
-    test('exits silently when config.json has invalid JSON', () => {
+    test('exits silently when config.json has invalid JSON', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), '{{not valid json}}');
       const output = run();
       expect(output).toBe('');
     });
 
-    test('exits silently when features.auto_continue is explicitly false', () => {
+    test('exits silently when features.auto_continue is explicitly false', async () => {
       writeConfig({ features: { auto_continue: false } });
       writeSignal('/pbr:execute-phase 3');
 
@@ -677,7 +677,7 @@ describe('auto-continue.js', () => {
       expect(fs.existsSync(path.join(planningDir, '.auto-next'))).toBe(true);
     });
 
-    test('exits silently when features object is empty', () => {
+    test('exits silently when features object is empty', async () => {
       writeConfig({ features: {} });
       writeSignal('/pbr:execute-phase 3');
 
@@ -698,7 +698,7 @@ describe('auto-continue.js', () => {
       expect(typeof parsed.reason).toBe('string');
     });
 
-    test('reason string contains the next command to execute', () => {
+    test('reason string contains the next command to execute', async () => {
       writeConfig();
       writeSignal('/pbr:verify-work 5');
 
@@ -707,7 +707,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:verify-work 5');
     });
 
-    test('output is empty when no auto-continue action needed', () => {
+    test('output is empty when no auto-continue action needed', async () => {
       writeConfig();
       // No signal file, no config flag
       const output = run();
@@ -728,7 +728,7 @@ describe('auto-continue.js', () => {
   });
 
   describe('session-cleanup config flag clearing', () => {
-    test('session-cleanup clears stale _auto_chain_active flag', () => {
+    test('session-cleanup clears stale _auto_chain_active flag', async () => {
       const config = {
         features: { auto_continue: true },
         workflow: { _auto_chain_active: '/pbr:stale-command' },
@@ -754,7 +754,7 @@ describe('auto-continue.js', () => {
   });
 
   describe('pending todos reminder', () => {
-    test('pending todos reminder fires when .auto-next absent but pending/ has items', () => {
+    test('pending todos reminder fires when .auto-next absent but pending/ has items', async () => {
       writeConfig();
       // Create .planning/todos/pending/ with a pending todo file
       const pendingDir = path.join(planningDir, 'todos', 'pending');
@@ -783,7 +783,7 @@ describe('auto-continue.js', () => {
       expect(pendingEntry.count).toBe(1);
     });
 
-    test('no pending todos reminder when pending/ dir is empty', () => {
+    test('no pending todos reminder when pending/ dir is empty', async () => {
       writeConfig();
       // Create empty pending/ dir
       const pendingDir = path.join(planningDir, 'todos', 'pending');
@@ -799,7 +799,7 @@ describe('auto-continue.js', () => {
       expect(pendingEntry).toBeUndefined();
     });
 
-    test('no pending todos reminder when pending/ dir does not exist', () => {
+    test('no pending todos reminder when pending/ dir does not exist', async () => {
       writeConfig();
       // Do NOT create todos/pending/ dir
 

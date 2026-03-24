@@ -41,7 +41,7 @@ function cleanup(tmp) {
 }
 
 describe('extractDecisions', () => {
-  test('extracts "Locked Decision:" pattern from agent output', () => {
+  test('extracts "Locked Decision:" pattern from agent output', async () => {
     const output = 'Some preamble text.\nLocked Decision: Use PostgreSQL instead of MongoDB for persistence.\nFollowing text here.';
     const results = extractDecisions(output, 'executor');
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -49,7 +49,7 @@ describe('extractDecisions', () => {
     expect(results[0].agent).toBe('executor');
   });
 
-  test('extracts "DECISION:" pattern from agent output', () => {
+  test('extracts "DECISION:" pattern from agent output', async () => {
     const output = 'Analysis complete.\nDECISION: Adopt event sourcing pattern for audit trail because it provides immutable history.\nMore text.';
     const results = extractDecisions(output, 'planner');
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -57,7 +57,7 @@ describe('extractDecisions', () => {
     expect(results[0].agent).toBe('planner');
   });
 
-  test('extracts "chose X over Y because Z" pattern', () => {
+  test('extracts "chose X over Y because Z" pattern', async () => {
     const output = 'After evaluation, chose Redis over Memcached because Redis supports persistence and pub/sub natively.\nDone.';
     const results = extractDecisions(output, 'executor');
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -65,33 +65,33 @@ describe('extractDecisions', () => {
     expect(results[0].rationale).toBeTruthy();
   });
 
-  test('extracts "Deviation:" justification pattern', () => {
+  test('extracts "Deviation:" justification pattern', async () => {
     const output = 'Task 3 status: done.\nDeviation: Used callback-based API instead of promises because the library does not support async.\nTask 4 started.';
     const results = extractDecisions(output, 'executor');
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results[0].decision).toContain('callback-based API');
   });
 
-  test('returns empty array when no decision patterns found', () => {
+  test('returns empty array when no decision patterns found', async () => {
     const output = 'All tasks completed successfully. No issues encountered. Everything is fine.';
     const results = extractDecisions(output, 'executor');
     expect(results).toEqual([]);
   });
 
-  test('returns empty array when output is empty', () => {
+  test('returns empty array when output is empty', async () => {
     expect(extractDecisions('', 'executor')).toEqual([]);
     expect(extractDecisions(null, 'executor')).toEqual([]);
     expect(extractDecisions(undefined, 'executor')).toEqual([]);
   });
 
-  test('truncates decision title to 80 chars', () => {
+  test('truncates decision title to 80 chars', async () => {
     const longDecision = 'Locked Decision: ' + 'A'.repeat(200) + ' because reasons.';
     const results = extractDecisions(longDecision, 'executor');
     expect(results.length).toBe(1);
     expect(results[0].decision.length).toBeLessThanOrEqual(80);
   });
 
-  test('avoids false positives on casual use of "decided"', () => {
+  test('avoids false positives on casual use of "decided"', async () => {
     // Common prose that should NOT trigger extraction
     const output = 'The team decided to take a break. I decided this looks good. We decided nothing special.';
     const results = extractDecisions(output, 'executor');
@@ -100,7 +100,7 @@ describe('extractDecisions', () => {
 });
 
 describe('handleDecisionExtraction', () => {
-  test('records extracted decisions to .planning/decisions/', () => {
+  test('records extracted decisions to .planning/decisions/', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       const agentOutput = 'Locked Decision: Use TypeScript strict mode for all new files.\nDone.';
@@ -119,7 +119,7 @@ describe('handleDecisionExtraction', () => {
     }
   });
 
-  test('skips extraction when features.decision_journal is false', () => {
+  test('skips extraction when features.decision_journal is false', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       // Override config to disable
@@ -138,7 +138,7 @@ describe('handleDecisionExtraction', () => {
     }
   });
 
-  test('skips extraction when config has no features section', () => {
+  test('skips extraction when config has no features section', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       fs.writeFileSync(
@@ -156,7 +156,7 @@ describe('handleDecisionExtraction', () => {
     }
   });
 
-  test('skips when agent output has no decision patterns', () => {
+  test('skips when agent output has no decision patterns', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       handleDecisionExtraction(planningDir, 'All good, no decisions.', 'executor');

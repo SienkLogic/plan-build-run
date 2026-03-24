@@ -53,7 +53,7 @@ describe('hook performance (<500ms production target)', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('post-write-dispatch.js exits within budget for non-target file', () => {
+  test('post-write-dispatch.js exits within budget for non-target file', async () => {
     const scriptPath = path.join(HOOKS_DIR, 'post-write-dispatch.js');
     const stdinData = JSON.stringify({
       tool_name: 'Write',
@@ -63,7 +63,7 @@ describe('hook performance (<500ms production target)', () => {
     expect(durationMs).toBeLessThan(PERFORMANCE_BUDGET_MS);
   });
 
-  test('pre-write-dispatch.js exits within budget for non-planning file', () => {
+  test('pre-write-dispatch.js exits within budget for non-planning file', async () => {
     const scriptPath = path.join(HOOKS_DIR, 'pre-write-dispatch.js');
     const stdinData = JSON.stringify({
       tool_name: 'Write',
@@ -73,7 +73,7 @@ describe('hook performance (<500ms production target)', () => {
     expect(durationMs).toBeLessThan(PERFORMANCE_BUDGET_MS);
   });
 
-  test('pre-bash-dispatch.js exits within budget for benign command', () => {
+  test('pre-bash-dispatch.js exits within budget for benign command', async () => {
     const scriptPath = path.join(HOOKS_DIR, 'pre-bash-dispatch.js');
     const stdinData = JSON.stringify({
       tool_name: 'Bash',
@@ -83,7 +83,7 @@ describe('hook performance (<500ms production target)', () => {
     expect(durationMs).toBeLessThan(PERFORMANCE_BUDGET_MS);
   });
 
-  test('context-budget-check.js exits within budget when no STATE.md', () => {
+  test('context-budget-check.js exits within budget when no STATE.md', async () => {
     const scriptPath = path.join(HOOKS_DIR, 'context-budget-check.js');
     const stdinData = JSON.stringify({
       tool_name: 'Compact',
@@ -93,7 +93,7 @@ describe('hook performance (<500ms production target)', () => {
     expect(durationMs).toBeLessThan(PERFORMANCE_BUDGET_MS);
   });
 
-  test('auto-continue.js exits within budget when not enabled', () => {
+  test('auto-continue.js exits within budget when not enabled', async () => {
     const scriptPath = path.join(HOOKS_DIR, 'auto-continue.js');
     // No config.json in tmpDir, so auto-continue exits immediately
     const { durationMs } = measureHookExecution(scriptPath, tmpDir);

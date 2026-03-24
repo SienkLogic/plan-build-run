@@ -19,13 +19,13 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-test('finds root when .planning/ exists in start dir', () => {
+test('finds root when .planning/ exists in start dir', async () => {
   fs.mkdirSync(path.join(tmpDir, '.planning'));
   const root = resolveProjectRoot(tmpDir);
   expect(root).toBe(tmpDir);
 });
 
-test('walks up to find .planning/ in parent', () => {
+test('walks up to find .planning/ in parent', async () => {
   fs.mkdirSync(path.join(tmpDir, '.planning'));
   const childDir = path.join(tmpDir, 'src', 'lib');
   fs.mkdirSync(childDir, { recursive: true });
@@ -34,7 +34,7 @@ test('walks up to find .planning/ in parent', () => {
   expect(root).toBe(tmpDir);
 });
 
-test('returns start dir as fallback when no .planning/ found', () => {
+test('returns start dir as fallback when no .planning/ found', async () => {
   // tmpDir has no .planning
   const root = resolveProjectRoot(tmpDir);
   // Falls back to tmpDir (or finds it walking up if parent has .planning)
@@ -42,7 +42,7 @@ test('returns start dir as fallback when no .planning/ found', () => {
   expect(root.length).toBeGreaterThan(0);
 });
 
-test('cache: second call returns cached value', () => {
+test('cache: second call returns cached value', async () => {
   fs.mkdirSync(path.join(tmpDir, '.planning'));
   const first = resolveProjectRoot(tmpDir);
   // Even with a different startDir, cache returns the same
@@ -50,7 +50,7 @@ test('cache: second call returns cached value', () => {
   expect(second).toBe(first);
 });
 
-test('clearRootCache resets the cache', () => {
+test('clearRootCache resets the cache', async () => {
   fs.mkdirSync(path.join(tmpDir, '.planning'));
   resolveProjectRoot(tmpDir);
   clearRootCache();
@@ -65,7 +65,7 @@ test('clearRootCache resets the cache', () => {
   fs.rmSync(tmpDir2, { recursive: true, force: true });
 });
 
-test('uses cwd when no startDir provided', () => {
+test('uses cwd when no startDir provided', async () => {
   clearRootCache();
   const root = resolveProjectRoot();
   expect(typeof root).toBe('string');

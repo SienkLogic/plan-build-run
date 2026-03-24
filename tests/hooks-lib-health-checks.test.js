@@ -27,14 +27,14 @@ function writeConfig(features = {}) {
 }
 
 describe('checkPostHocArtifacts', () => {
-  test('returns a result object with name field', () => {
+  test('returns a result object with name field', async () => {
     const result = checkPostHocArtifacts(planningDir);
     expect(result.name).toBe('post_hoc_artifacts');
     expect(result).toHaveProperty('status');
     expect(result).toHaveProperty('enabled');
   });
 
-  test('returns error when module not loadable', () => {
+  test('returns error when module not loadable', async () => {
     // The module require('../post-hoc') may or may not exist - just check structure
     const result = checkPostHocArtifacts(planningDir);
     expect(['healthy', 'disabled', 'error']).toContain(result.status);
@@ -42,20 +42,20 @@ describe('checkPostHocArtifacts', () => {
 });
 
 describe('checkAgentFeedbackLoop', () => {
-  test('returns a result object with name field', () => {
+  test('returns a result object with name field', async () => {
     const result = checkAgentFeedbackLoop(planningDir);
     expect(result.name).toBe('agent_feedback_loop');
     expect(result).toHaveProperty('status');
   });
 
-  test('returns error when module not loadable', () => {
+  test('returns error when module not loadable', async () => {
     const result = checkAgentFeedbackLoop(planningDir);
     expect(['healthy', 'disabled', 'error']).toContain(result.status);
   });
 });
 
 describe('checkSessionMetrics', () => {
-  test('returns disabled when feature is explicitly false', () => {
+  test('returns disabled when feature is explicitly false', async () => {
     writeConfig({ session_metrics: false });
     const result = checkSessionMetrics(planningDir);
     expect(result.name).toBe('session_metrics');
@@ -63,7 +63,7 @@ describe('checkSessionMetrics', () => {
     expect(result.status).toBe('disabled');
   });
 
-  test('returns a result when feature enabled (default)', () => {
+  test('returns a result when feature enabled (default)', async () => {
     writeConfig({});
     const result = checkSessionMetrics(planningDir);
     expect(result.name).toBe('session_metrics');
@@ -71,7 +71,7 @@ describe('checkSessionMetrics', () => {
     expect(['healthy', 'degraded', 'error']).toContain(result.status);
   });
 
-  test('handles missing config file', () => {
+  test('handles missing config file', async () => {
     const result = checkSessionMetrics(planningDir);
     expect(result.name).toBe('session_metrics');
     // No config => feature not explicitly false => tries to load module
@@ -80,7 +80,7 @@ describe('checkSessionMetrics', () => {
 });
 
 describe('getAllPhase10Checks', () => {
-  test('returns array of 3 check results', () => {
+  test('returns array of 3 check results', async () => {
     const results = getAllPhase10Checks(planningDir);
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBe(3);

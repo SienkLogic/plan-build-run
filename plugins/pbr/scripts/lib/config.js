@@ -1260,10 +1260,10 @@ function configFormat(config) {
   return JSON.stringify(output, null, 2) + '\n';
 }
 
-function configWrite(planningDir, config) {
+async function configWrite(planningDir, config) {
   const configPath = path.join(planningDir, 'config.json');
   const formatted = configFormat(config);
-  const result = lockedFileUpdate(configPath, () => formatted);
+  const result = await lockedFileUpdate(configPath, () => formatted);
   if (!result.success) {
     // Fallback: write without lock (availability over consistency)
     fs.writeFileSync(configPath, formatted, 'utf8');

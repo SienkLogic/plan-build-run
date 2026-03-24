@@ -40,7 +40,7 @@ describe('scanFiles', () => {
     expect(result.every(f => /\.(js|ts)$/.test(f))).toBe(true);
   });
 
-  it('respects maxFiles limit', () => {
+  it('respects maxFiles limit', async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     const srcDir = path.join(tmpDir, 'src');
     fs.mkdirSync(srcDir, { recursive: true });

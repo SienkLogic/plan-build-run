@@ -17,26 +17,26 @@ describe('pbr-tools.js', () => {
 
     // Legacy v1 format test removed
 
-    test('handles missing phase info', () => {
+    test('handles missing phase info', async () => {
       const content = 'Some random content\nNo phase data here\n';
       const result = parseStateMd(content);
       expect(result.current_phase).toBeNull();
       expect(result.total_phases).toBeUndefined();
     });
 
-    test('handles missing status', () => {
+    test('handles missing status', async () => {
       const content = 'Phase: 1 of 3\nNo status line here';
       const result = parseStateMd(content);
       expect(result.status).toBeNull();
     });
 
-    test('handles missing phase name', () => {
+    test('handles missing phase name', async () => {
       const content = 'Phase: 1 of 3\nStatus: building';
       const result = parseStateMd(content);
       expect(result.phase_name).toBeNull();
     });
 
-    test('counts lines', () => {
+    test('counts lines', async () => {
       const content = 'line1\nline2\nline3';
       const result = parseStateMd(content);
       expect(result.line_count).toBe(3);
@@ -44,7 +44,7 @@ describe('pbr-tools.js', () => {
 
     // Legacy v1 format test removed
 
-    test('parses YAML frontmatter format (version 2)', () => {
+    test('parses YAML frontmatter format (version 2)', async () => {
       const content = `---
 version: 2
 current_phase: 3
@@ -74,7 +74,7 @@ Status: building`;
       expect(result.blockers).toEqual([]);
     });
 
-    test('frontmatter with blockers', () => {
+    test('frontmatter with blockers', async () => {
       const content = `---
 version: 2
 current_phase: 5
@@ -95,7 +95,7 @@ blockers:
   describe('parseRoadmapMd', () => {
     // Legacy Phase Overview table test removed
 
-    test('detects progress table', () => {
+    test('detects progress table', async () => {
       const content = `## Phase Overview
 | Phase | Name | Goal |
 |-------|------|------|
@@ -108,7 +108,7 @@ Some progress data
       expect(result.has_progress_table).toBe(true);
     });
 
-    test('returns false for missing progress table', () => {
+    test('returns false for missing progress table', async () => {
       const content = `## Phase Overview
 | Phase | Name | Goal |
 |-------|------|------|
@@ -118,18 +118,18 @@ Some progress data
       expect(result.has_progress_table).toBe(false);
     });
 
-    test('returns empty phases for missing table', () => {
+    test('returns empty phases for missing table', async () => {
       const content = '# Roadmap\n\nNo table here\n';
       const result = parseRoadmapMd(content);
       expect(result.phases).toEqual([]);
     });
 
-    test('returns empty phases for empty content', () => {
+    test('returns empty phases for empty content', async () => {
       const result = parseRoadmapMd('');
       expect(result.phases).toEqual([]);
     });
 
-    test('discovers phases from headings when no table exists', () => {
+    test('discovers phases from headings when no table exists', async () => {
       const content = `# Roadmap
 
 ### Phase 41: Planning File Desync Prevention
@@ -153,7 +153,7 @@ Some progress data
       expect(result.phases[2].name).toBe('Minor Patch');
     });
 
-    test('heading fallback does not activate when table has phases', () => {
+    test('heading fallback does not activate when table has phases', async () => {
       const content = `## Progress
 | Phase | Plans Complete | Status |
 |---|---|---|
@@ -170,7 +170,7 @@ Some progress data
   });
 
   describe('parseYamlFrontmatter', () => {
-    test('parses basic key-value pairs', () => {
+    test('parses basic key-value pairs', async () => {
       const content = '---\nphase: 03-auth\nplan: 01\nwave: 1\n---\nBody';
       const result = parseYamlFrontmatter(content);
       expect(result.phase).toBe('03-auth');
@@ -178,57 +178,57 @@ Some progress data
       expect(result.wave).toBe(1);
     });
 
-    test('coerces boolean true', () => {
+    test('coerces boolean true', async () => {
       const content = '---\nautonomous: true\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.autonomous).toBe(true);
     });
 
-    test('coerces boolean false', () => {
+    test('coerces boolean false', async () => {
       const content = '---\nautonomous: false\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.autonomous).toBe(false);
     });
 
-    test('coerces integer values', () => {
+    test('coerces integer values', async () => {
       const content = '---\nwave: 3\nmax_tokens: 500\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.wave).toBe(3);
       expect(result.max_tokens).toBe(500);
     });
 
-    test('parses inline arrays', () => {
+    test('parses inline arrays', async () => {
       const content = '---\ndepends_on: [plan-01, plan-02]\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.depends_on).toEqual(['plan-01', 'plan-02']);
     });
 
-    test('parses multi-line arrays', () => {
+    test('parses multi-line arrays', async () => {
       const content = '---\nfiles_modified:\n  - src/auth.ts\n  - src/login.ts\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.files_modified).toEqual(['src/auth.ts', 'src/login.ts']);
     });
 
-    test('strips quotes from values', () => {
+    test('strips quotes from values', async () => {
       const content = '---\nstatus: "complete"\nname: \'auth\'\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.status).toBe('complete');
       expect(result.name).toBe('auth');
     });
 
-    test('returns empty object for missing frontmatter', () => {
+    test('returns empty object for missing frontmatter', async () => {
       const content = 'No frontmatter here';
       const result = parseYamlFrontmatter(content);
       expect(result).toEqual({});
     });
 
-    test('handles empty inline array', () => {
+    test('handles empty inline array', async () => {
       const content = '---\ndepends_on: []\n---\n';
       const result = parseYamlFrontmatter(content);
       expect(result.depends_on).toEqual([]);
     });
 
-    test('parses must_haves as nested object', () => {
+    test('parses must_haves as nested object', async () => {
       const content = `---
 plan: 01
 must_haves:
@@ -247,7 +247,7 @@ Body`;
   });
 
   describe('parseMustHaves', () => {
-    test('parses all three categories', () => {
+    test('parses all three categories', async () => {
       const yaml = `plan: 01
 must_haves:
   truths:
@@ -264,7 +264,7 @@ must_haves:
       expect(result.key_links).toHaveLength(1);
     });
 
-    test('handles empty sections', () => {
+    test('handles empty sections', async () => {
       const yaml = `must_haves:
   truths:
   artifacts:
@@ -276,7 +276,7 @@ next_field: value`;
       expect(result.key_links).toEqual([]);
     });
 
-    test('handles missing must_haves', () => {
+    test('handles missing must_haves', async () => {
       const yaml = 'plan: 01\nwave: 1';
       const result = parseMustHaves(yaml);
       // parseMustHaves always returns the structure, but with empty arrays
@@ -285,7 +285,7 @@ next_field: value`;
       expect(result.key_links).toEqual([]);
     });
 
-    test('stops at next top-level key', () => {
+    test('stops at next top-level key', async () => {
       const yaml = `must_haves:
   truths:
     - Truth 1
@@ -302,7 +302,7 @@ next_top_level: something`;
   });
 
   describe('countMustHaves', () => {
-    test('counts across all categories', () => {
+    test('counts across all categories', async () => {
       const mustHaves = {
         truths: ['a', 'b'],
         artifacts: ['c'],
@@ -311,15 +311,15 @@ next_top_level: something`;
       expect(countMustHaves(mustHaves)).toBe(6);
     });
 
-    test('returns 0 for null input', () => {
+    test('returns 0 for null input', async () => {
       expect(countMustHaves(null)).toBe(0);
     });
 
-    test('returns 0 for undefined input', () => {
+    test('returns 0 for undefined input', async () => {
       expect(countMustHaves(undefined)).toBe(0);
     });
 
-    test('handles missing categories', () => {
+    test('handles missing categories', async () => {
       expect(countMustHaves({ truths: ['a'] })).toBe(1);
       expect(countMustHaves({})).toBe(0);
     });
@@ -338,7 +338,7 @@ next_top_level: something`;
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
 
-    test('writes content to new file', () => {
+    test('writes content to new file', async () => {
       const { tmpDir, filePath } = makeTmpFile();
       const result = atomicWrite(filePath, '# New Content');
       expect(result.success).toBe(true);
@@ -346,7 +346,7 @@ next_top_level: something`;
       cleanupDir(tmpDir);
     });
 
-    test('overwrites existing file', () => {
+    test('overwrites existing file', async () => {
       const { tmpDir, filePath } = makeTmpFile();
       fs.writeFileSync(filePath, '# Old Content');
       const result = atomicWrite(filePath, '# Updated Content');
@@ -355,7 +355,7 @@ next_top_level: something`;
       cleanupDir(tmpDir);
     });
 
-    test('cleans up .bak file after successful write', () => {
+    test('cleans up .bak file after successful write', async () => {
       const { tmpDir, filePath } = makeTmpFile();
       fs.writeFileSync(filePath, '# Original');
       atomicWrite(filePath, '# Updated');
@@ -366,7 +366,7 @@ next_top_level: something`;
       cleanupDir(tmpDir);
     });
 
-    test('cleans up .tmp file on success', () => {
+    test('cleans up .tmp file on success', async () => {
       const { tmpDir, filePath } = makeTmpFile();
       atomicWrite(filePath, '# Content');
       const tmpFilePath = filePath + '.tmp';
@@ -374,7 +374,7 @@ next_top_level: something`;
       cleanupDir(tmpDir);
     });
 
-    test('no .bak when writing to new file (no original to backup)', () => {
+    test('no .bak when writing to new file (no original to backup)', async () => {
       const { tmpDir, filePath } = makeTmpFile();
       atomicWrite(filePath, '# Brand New');
       const bakPath = filePath + '.bak';
@@ -382,13 +382,13 @@ next_top_level: something`;
       cleanupDir(tmpDir);
     });
 
-    test('returns error for invalid directory', () => {
+    test('returns error for invalid directory', async () => {
       const result = atomicWrite('/nonexistent/dir/file.md', '# Content');
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
 
-    test('preserves content on multiple successive writes', () => {
+    test('preserves content on multiple successive writes', async () => {
       const { tmpDir, filePath } = makeTmpFile();
       atomicWrite(filePath, 'Version 1');
       atomicWrite(filePath, 'Version 2');
@@ -405,29 +405,29 @@ next_top_level: something`;
   describe('updateFrontmatterField', () => {
     const fmContent = '---\nversion: 2\ncurrent_phase: 3\nstatus: "building"\nplans_complete: 1\n---\n# Project State\n';
 
-    test('updates existing string field', () => {
+    test('updates existing string field', async () => {
       const result = updateFrontmatterField(fmContent, 'status', 'verified');
       expect(result).toContain('status: "verified"');
       expect(result).not.toContain('status: "building"');
     });
 
-    test('updates existing integer field', () => {
+    test('updates existing integer field', async () => {
       const result = updateFrontmatterField(fmContent, 'current_phase', '5');
       expect(result).toContain('current_phase: 5');
       expect(result).not.toContain('current_phase: 3');
     });
 
-    test('adds new field when not present', () => {
+    test('adds new field when not present', async () => {
       const result = updateFrontmatterField(fmContent, 'last_activity', '2026-02-10');
       expect(result).toContain('last_activity: "2026-02-10"');
     });
 
-    test('preserves content after frontmatter', () => {
+    test('preserves content after frontmatter', async () => {
       const result = updateFrontmatterField(fmContent, 'status', 'verified');
       expect(result).toContain('# Project State');
     });
 
-    test('returns content unchanged if no frontmatter', () => {
+    test('returns content unchanged if no frontmatter', async () => {
       const noFm = '# No frontmatter here\nJust content';
       const result = updateFrontmatterField(noFm, 'status', 'verified');
       expect(result).toBe(noFm);
@@ -437,23 +437,23 @@ next_top_level: something`;
   describe('updateTableRow', () => {
     const row = '| 02 | Auth | Authentication system | 2 | 2 | planned |';
 
-    test('updates status column (index 5)', () => {
+    test('updates status column (index 5)', async () => {
       const result = updateTableRow(row, 5, 'building');
       expect(result).toContain('| building |');
       expect(result).not.toContain('| planned |');
     });
 
-    test('updates plans column (index 3)', () => {
+    test('updates plans column (index 3)', async () => {
       const result = updateTableRow(row, 3, '1/2');
       expect(result).toContain('| 1/2 |');
     });
 
-    test('updates phase column (index 0)', () => {
+    test('updates phase column (index 0)', async () => {
       const result = updateTableRow(row, 0, '03');
       expect(result).toContain('| 03 |');
     });
 
-    test('preserves other columns', () => {
+    test('preserves other columns', async () => {
       const result = updateTableRow(row, 5, 'verified');
       expect(result).toContain('| Auth |');
       expect(result).toContain('| Authentication system |');
@@ -461,7 +461,7 @@ next_top_level: something`;
   });
 
   describe('resolveDepthProfile', () => {
-    test('returns standard defaults when config is null', () => {
+    test('returns standard defaults when config is null', async () => {
       const result = resolveDepthProfile(null);
       expect(result.depth).toBe('standard');
       expect(result.profile['features.research_phase']).toBe(true);
@@ -469,7 +469,7 @@ next_top_level: something`;
       expect(result.profile['scan.mapper_count']).toBe(4);
     });
 
-    test('returns quick profile with reduced spawns', () => {
+    test('returns quick profile with reduced spawns', async () => {
       const result = resolveDepthProfile({ depth: 'quick' });
       expect(result.depth).toBe('quick');
       expect(result.profile['features.research_phase']).toBe(false);
@@ -480,7 +480,7 @@ next_top_level: something`;
       expect(result.profile['debug.max_hypothesis_rounds']).toBe(3);
     });
 
-    test('returns comprehensive profile with all spawns', () => {
+    test('returns comprehensive profile with all spawns', async () => {
       const result = resolveDepthProfile({ depth: 'comprehensive' });
       expect(result.depth).toBe('comprehensive');
       expect(result.profile['features.research_phase']).toBe(true);
@@ -489,7 +489,7 @@ next_top_level: something`;
       expect(result.profile['debug.max_hypothesis_rounds']).toBe(10);
     });
 
-    test('user overrides merge with defaults', () => {
+    test('user overrides merge with defaults', async () => {
       const config = {
         depth: 'quick',
         depth_profiles: {
@@ -503,13 +503,13 @@ next_top_level: something`;
       expect(result.profile['features.research_phase']).toBe(false);  // still default
     });
 
-    test('unknown depth falls back to standard', () => {
+    test('unknown depth falls back to standard', async () => {
       const result = resolveDepthProfile({ depth: 'nonexistent' });
       expect(result.depth).toBe('nonexistent');
       expect(result.profile['features.research_phase']).toBe(true);  // standard default
     });
 
-    test('config without depth field defaults to standard', () => {
+    test('config without depth field defaults to standard', async () => {
       const result = resolveDepthProfile({});
       expect(result.depth).toBe('standard');
       expect(result.profile['scan.mapper_count']).toBe(4);
@@ -526,19 +526,19 @@ next_top_level: something`;
       '| 03 | API | REST API endpoints | 0 | 0 | pending |',
     ];
 
-    test('finds phase 01 at correct row', () => {
+    test('finds phase 01 at correct row', async () => {
       expect(findRoadmapRow(lines, '1')).toBe(3);
     });
 
-    test('finds phase 02 at correct row', () => {
+    test('finds phase 02 at correct row', async () => {
       expect(findRoadmapRow(lines, '2')).toBe(4);
     });
 
-    test('returns -1 for nonexistent phase', () => {
+    test('returns -1 for nonexistent phase', async () => {
       expect(findRoadmapRow(lines, '99')).toBe(-1);
     });
 
-    test('handles already-padded input', () => {
+    test('handles already-padded input', async () => {
       expect(findRoadmapRow(lines, '03')).toBe(5);
     });
   });
@@ -559,7 +559,7 @@ next_top_level: something`;
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('historyAppend creates HISTORY.md with header on first call', () => {
+    test('historyAppend creates HISTORY.md with header on first call', async () => {
       const dir = path.join(tmpDir, '.planning');
       const result = historyAppend({ type: 'phase', title: 'Phase 1 (Setup)', body: 'Verified. Basic scaffolding complete.' }, dir);
       expect(result.success).toBe(true);
@@ -570,7 +570,7 @@ next_top_level: something`;
       expect(content).toContain('Verified. Basic scaffolding complete.');
     });
 
-    test('historyAppend appends to existing HISTORY.md without duplicating header', () => {
+    test('historyAppend appends to existing HISTORY.md without duplicating header', async () => {
       const dir = path.join(tmpDir, '.planning');
       historyAppend({ type: 'phase', title: 'Phase 1', body: 'Done.' }, dir);
       historyAppend({ type: 'milestone', title: 'v1.0', body: 'Phases 1-4 complete.' }, dir);
@@ -582,7 +582,7 @@ next_top_level: something`;
       expect(content).toContain('## Milestone: v1.0');
     });
 
-    test('historyAppend includes completion date', () => {
+    test('historyAppend includes completion date', async () => {
       const dir = path.join(tmpDir, '.planning');
       historyAppend({ type: 'phase', title: 'Phase 2', body: 'Auth done.' }, dir);
 
@@ -591,12 +591,12 @@ next_top_level: something`;
       expect(content).toContain(`_Completed: ${today}_`);
     });
 
-    test('historyLoad returns null when HISTORY.md missing', () => {
+    test('historyLoad returns null when HISTORY.md missing', async () => {
       const result = historyLoad(path.join(tmpDir, '.planning'));
       expect(result).toBeNull();
     });
 
-    test('historyLoad parses records from HISTORY.md', () => {
+    test('historyLoad parses records from HISTORY.md', async () => {
       const dir = path.join(tmpDir, '.planning');
       historyAppend({ type: 'phase', title: 'Phase 1 (Setup)', body: 'Scaffolding complete.' }, dir);
       historyAppend({ type: 'milestone', title: 'v1.0 Auth', body: 'Phases 1-4. All verified.' }, dir);
@@ -614,7 +614,7 @@ next_top_level: something`;
   });
 
   describe('VALID_STATUS_TRANSITIONS', () => {
-    test('defines transitions for all 13 primary states plus legacy pending alias', () => {
+    test('defines transitions for all 13 primary states plus legacy pending alias', async () => {
       const allStates = [
         'not_started', 'discussed', 'ready_to_plan', 'planning', 'planned',
         'ready_to_execute', 'building', 'built', 'partial', 'verified',
@@ -631,23 +631,23 @@ next_top_level: something`;
       expect(VALID_STATUS_TRANSITIONS.not_started).toEqual(['discussed', 'ready_to_plan', 'planned', 'skipped']);
     });
 
-    test('discussed can transition to ready_to_plan or planning', () => {
+    test('discussed can transition to ready_to_plan or planning', async () => {
       expect(VALID_STATUS_TRANSITIONS.discussed).toEqual(['ready_to_plan', 'planning']);
     });
 
-    test('ready_to_plan can transition to planning or planned', () => {
+    test('ready_to_plan can transition to planning or planned', async () => {
       expect(VALID_STATUS_TRANSITIONS.ready_to_plan).toEqual(['planning', 'planned']);
     });
 
-    test('planning can transition to planned', () => {
+    test('planning can transition to planned', async () => {
       expect(VALID_STATUS_TRANSITIONS.planning).toEqual(['planned']);
     });
 
-    test('planned can transition to ready_to_execute or building', () => {
+    test('planned can transition to ready_to_execute or building', async () => {
       expect(VALID_STATUS_TRANSITIONS.planned).toEqual(['ready_to_execute', 'building']);
     });
 
-    test('ready_to_execute can transition to building', () => {
+    test('ready_to_execute can transition to building', async () => {
       expect(VALID_STATUS_TRANSITIONS.ready_to_execute).toEqual(['building']);
     });
 
@@ -655,11 +655,11 @@ next_top_level: something`;
       expect(VALID_STATUS_TRANSITIONS.building).toEqual(['built', 'partial', 'needs_fixes']);
     });
 
-    test('built can transition to verified or needs_fixes', () => {
+    test('built can transition to verified or needs_fixes', async () => {
       expect(VALID_STATUS_TRANSITIONS.built).toEqual(['verified', 'needs_fixes']);
     });
 
-    test('verified can transition to complete or building (re-execution)', () => {
+    test('verified can transition to complete or building (re-execution)', async () => {
       expect(VALID_STATUS_TRANSITIONS.verified).toEqual(['complete', 'building']);
     });
 
@@ -667,11 +667,11 @@ next_top_level: something`;
       expect(VALID_STATUS_TRANSITIONS.needs_fixes).toEqual(['planned', 'building', 'ready_to_plan']);
     });
 
-    test('complete is terminal (no outgoing transitions)', () => {
+    test('complete is terminal (no outgoing transitions)', async () => {
       expect(VALID_STATUS_TRANSITIONS.complete).toEqual([]);
     });
 
-    test('skipped can transition to not_started or pending (unskip)', () => {
+    test('skipped can transition to not_started or pending (unskip)', async () => {
       expect(VALID_STATUS_TRANSITIONS.skipped).toEqual(['not_started', 'pending']);
     });
 
@@ -679,7 +679,7 @@ next_top_level: something`;
       expect(VALID_STATUS_TRANSITIONS.pending).toEqual(['planned', 'discussed', 'skipped', 'not_started']);
     });
 
-    test('full lifecycle path: not_started through complete', () => {
+    test('full lifecycle path: not_started through complete', async () => {
       const lifecycle = [
         'not_started', 'discussed', 'ready_to_plan', 'planning', 'planned',
         'ready_to_execute', 'building', 'built', 'verified', 'complete'
@@ -693,7 +693,7 @@ next_top_level: something`;
   });
 
   describe('STATUS_LABELS', () => {
-    test('provides labels for all 13 primary states', () => {
+    test('provides labels for all 13 primary states', async () => {
       const expected = {
         not_started: 'Not Started',
         discussed: 'Discussed',
@@ -714,17 +714,17 @@ next_top_level: something`;
       }
     });
 
-    test('legacy reviewed maps to Verified', () => {
+    test('legacy reviewed maps to Verified', async () => {
       expect(STATUS_LABELS.reviewed).toBe('Verified');
     });
 
-    test('legacy pending maps to Not Started', () => {
+    test('legacy pending maps to Not Started', async () => {
       expect(STATUS_LABELS.pending).toBe('Not Started');
     });
   });
 
   describe('validateStatusTransition', () => {
-    test('valid transition returns { valid: true }', () => {
+    test('valid transition returns { valid: true }', async () => {
       expect(validateStatusTransition('pending', 'planned')).toEqual({ valid: true });
       expect(validateStatusTransition('planned', 'building')).toEqual({ valid: true });
       expect(validateStatusTransition('building', 'built')).toEqual({ valid: true });
@@ -744,7 +744,7 @@ next_top_level: something`;
       expect(validateStatusTransition('ready_to_execute', 'building')).toEqual({ valid: true });
     });
 
-    test('invalid transition: not_started -> built (skips many steps)', () => {
+    test('invalid transition: not_started -> built (skips many steps)', async () => {
       const result = validateStatusTransition('not_started', 'built');
       expect(result.valid).toBe(false);
       expect(result.warning).toContain('Suspicious status transition');
@@ -759,46 +759,46 @@ next_top_level: something`;
       expect(result.warning).toContain('planned, discussed, skipped, not_started');
     });
 
-    test('pending -> built is invalid', () => {
+    test('pending -> built is invalid', async () => {
       const result = validateStatusTransition('pending', 'built');
       expect(result.valid).toBe(false);
     });
 
-    test('planned -> verified is invalid (skips building)', () => {
+    test('planned -> verified is invalid (skips building)', async () => {
       const result = validateStatusTransition('planned', 'verified');
       expect(result.valid).toBe(false);
     });
 
-    test('skipped -> building is invalid (must unskip first)', () => {
+    test('skipped -> building is invalid (must unskip first)', async () => {
       const result = validateStatusTransition('skipped', 'building');
       expect(result.valid).toBe(false);
     });
 
-    test('complete is terminal: no valid outgoing transitions', () => {
+    test('complete is terminal: no valid outgoing transitions', async () => {
       const result = validateStatusTransition('complete', 'building');
       expect(result.valid).toBe(false);
     });
 
-    test('same status is always valid (no-op)', () => {
+    test('same status is always valid (no-op)', async () => {
       expect(validateStatusTransition('building', 'building')).toEqual({ valid: true });
       expect(validateStatusTransition('pending', 'pending')).toEqual({ valid: true });
     });
 
-    test('unknown old status is treated as valid (cannot validate)', () => {
+    test('unknown old status is treated as valid (cannot validate)', async () => {
       expect(validateStatusTransition('some_custom_status', 'building')).toEqual({ valid: true });
     });
 
-    test('handles whitespace and case normalization', () => {
+    test('handles whitespace and case normalization', async () => {
       expect(validateStatusTransition('  Pending ', ' Planned ')).toEqual({ valid: true });
       expect(validateStatusTransition('BUILDING', 'BUILT')).toEqual({ valid: true });
     });
 
-    test('handles null/undefined old status gracefully', () => {
+    test('handles null/undefined old status gracefully', async () => {
       expect(validateStatusTransition(null, 'planned')).toEqual({ valid: true });
       expect(validateStatusTransition(undefined, 'building')).toEqual({ valid: true });
     });
 
-    test('handles null/undefined new status gracefully', () => {
+    test('handles null/undefined new status gracefully', async () => {
       // empty string from null won't match any allowed transition from pending
       const result = validateStatusTransition('pending', null);
       expect(result.valid).toBe(false);
@@ -833,7 +833,7 @@ next_top_level: something`;
       }
     }
 
-    test('learnings query with no args returns JSON array (may be empty)', () => {
+    test('learnings query with no args returns JSON array (may be empty)', async () => {
       const result = runTool(['learnings', 'query']);
       expect(result.status).toBe(0);
       // output() writes @file: prefix when JSON > 50KB (214+ learnings)
@@ -846,7 +846,7 @@ next_top_level: something`;
       expect(Array.isArray(json)).toBe(true);
     });
 
-    test('learnings query --tags estimation returns filtered results or empty array', () => {
+    test('learnings query --tags estimation returns filtered results or empty array', async () => {
       const result = runTool(['learnings', 'query', '--tags', 'estimation']);
       expect(result.status).toBe(0);
       const json = JSON.parse(result.stdout);
@@ -857,13 +857,13 @@ next_top_level: something`;
       }
     });
 
-    test('learnings ingest with missing input file exits with non-zero', () => {
+    test('learnings ingest with missing input file exits with non-zero', async () => {
       const missingFile = path.join(tmpDir, 'nonexistent.json');
       const result = runTool(['learnings', 'ingest', missingFile]);
       expect(result.status).not.toBe(0);
     });
 
-    test('learnings check-thresholds returns JSON array of triggered thresholds', () => {
+    test('learnings check-thresholds returns JSON array of triggered thresholds', async () => {
       const result = runTool(['learnings', 'check-thresholds']);
       expect(result.status).toBe(0);
       const json = JSON.parse(result.stdout);
@@ -877,7 +877,7 @@ next_top_level: something`;
   });
 
   describe('configClearCache', () => {
-    test('resets cache so next configLoad reads fresh data', () => {
+    test('resets cache so next configLoad reads fresh data', async () => {
       const tmpDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-cache1-'));
       const tmpDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-cache2-'));
 
@@ -898,7 +898,7 @@ next_top_level: something`;
       }
     });
 
-    test('does not throw when called before any configLoad', () => {
+    test('does not throw when called before any configLoad', async () => {
       expect(() => configClearCache()).not.toThrow();
     });
   });
@@ -913,7 +913,7 @@ describe('referenceGet / lib/reference', () => {
 
   // ── listHeadings ──────────────────────────────────────────────────────────
 
-  test('listHeadings extracts H2 and H3 headings', () => {
+  test('listHeadings extracts H2 and H3 headings', async () => {
     const content = [
       '# Title',
       '',
@@ -942,7 +942,7 @@ describe('referenceGet / lib/reference', () => {
 
   // ── extractSection ────────────────────────────────────────────────────────
 
-  test('extractSection with exact match', () => {
+  test('extractSection with exact match', async () => {
     const content = [
       '## YAML Frontmatter',
       '',
@@ -961,7 +961,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.char_count).toBeGreaterThan(0);
   });
 
-  test('extractSection with fuzzy starts-with match', () => {
+  test('extractSection with fuzzy starts-with match', async () => {
     const content = [
       '## YAML Frontmatter',
       '',
@@ -976,7 +976,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.heading).toBe('YAML Frontmatter');
   });
 
-  test('extractSection with contains match', () => {
+  test('extractSection with contains match', async () => {
     const content = [
       '## Contract: Researcher -> Synthesizer',
       '',
@@ -992,7 +992,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.content).toContain('researcher feeds the synthesizer');
   });
 
-  test('extractSection with word-boundary match', () => {
+  test('extractSection with word-boundary match', async () => {
     const content = [
       '## Rule 1: Bug Discovered',
       '',
@@ -1009,7 +1009,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.content).not.toContain('Install it');
   });
 
-  test('extractSection for H3 stops at next H3 or H2', () => {
+  test('extractSection for H3 stops at next H3 or H2', async () => {
     const content = [
       '## Parent Section',
       '',
@@ -1036,7 +1036,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.content).not.toContain('H2 content');
   });
 
-  test('extractSection for H2 includes nested H3s', () => {
+  test('extractSection for H2 includes nested H3s', async () => {
     const content = [
       '## Parent Section',
       '',
@@ -1058,7 +1058,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.content).not.toContain('Different section');
   });
 
-  test('returns null when section not found', () => {
+  test('returns null when section not found', async () => {
     const content = [
       '## Section One',
       'Content one.',
@@ -1071,7 +1071,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result).toBeNull();
   });
 
-  test('handles CRLF line endings', () => {
+  test('handles CRLF line endings', async () => {
     const content = [
       '## CRLF Section',
       '',
@@ -1094,7 +1094,7 @@ describe('referenceGet / lib/reference', () => {
 
   // ── resolveReferencePath ──────────────────────────────────────────────────
 
-  test('resolveReferencePath lists available refs when name not found', () => {
+  test('resolveReferencePath lists available refs when name not found', async () => {
     const result = resolveReferencePath('nonexistent-ref-xyz', PLUGIN_ROOT);
     expect(result).toHaveProperty('error');
     expect(result).toHaveProperty('available');
@@ -1102,7 +1102,7 @@ describe('referenceGet / lib/reference', () => {
     expect(result.available).toContain('checkpoints');
   });
 
-  test('resolveReferencePath resolves known reference', () => {
+  test('resolveReferencePath resolves known reference', async () => {
     const result = resolveReferencePath('checkpoints', PLUGIN_ROOT);
     expect(typeof result).toBe('string');
     expect(result).toMatch(/checkpoints\.md$/);
@@ -1110,7 +1110,7 @@ describe('referenceGet / lib/reference', () => {
 
   // ── referenceGet integration ──────────────────────────────────────────────
 
-  test('referenceGet --list returns headings array', () => {
+  test('referenceGet --list returns headings array', async () => {
     const result = referenceGetLib('checkpoints', { list: true }, PLUGIN_ROOT);
     expect(result).toHaveProperty('name', 'checkpoints');
     expect(result).toHaveProperty('headings');
@@ -1118,14 +1118,14 @@ describe('referenceGet / lib/reference', () => {
     expect(result.headings.length).toBeGreaterThan(0);
   });
 
-  test('referenceGet --section extracts matching content', () => {
+  test('referenceGet --section extracts matching content', async () => {
     const result = referenceGetLib('checkpoints', { section: 'Service CLI Reference' }, PLUGIN_ROOT);
     expect(result).toHaveProperty('name', 'checkpoints');
     expect(result).toHaveProperty('heading', 'Service CLI Reference');
     expect(result.content).toBeTruthy();
   });
 
-  test('referenceGet returns error with available headings on missing section', () => {
+  test('referenceGet returns error with available headings on missing section', async () => {
     const result = referenceGetLib('checkpoints', { section: 'Nonexistent XYZ Section' }, PLUGIN_ROOT);
     expect(result).toHaveProperty('error');
     expect(result).toHaveProperty('available');
@@ -1174,7 +1174,7 @@ describe('milestoneStats', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), content, 'utf8');
   }
 
-  test('extracts frontmatter from active phases', () => {
+  test('extracts frontmatter from active phases', async () => {
     writeRoadmap('## Milestone: Test Milestone (v1.0)\n\n### Phase 1: first-phase\n**Goal:** test\n\n### Phase 2: second-phase\n**Goal:** test\n');
     const phase1Dir = path.join(tmpDir, '.planning', 'phases', '01-first-phase');
     const phase2Dir = path.join(tmpDir, '.planning', 'phases', '02-second-phase');
@@ -1190,7 +1190,7 @@ describe('milestoneStats', () => {
     expect(result.phases[1].summaries[0].provides).toEqual(['feature-b']);
   });
 
-  test('reads from milestone archive if phases are archived', () => {
+  test('reads from milestone archive if phases are archived', async () => {
     const archiveDir = path.join(tmpDir, '.planning', 'milestones', 'v1.0', 'phases', '01-test');
     writeSummary(archiveDir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['archived-feature'], key_files: ['src/archived.js'] }, 'Body should be ignored.');
 
@@ -1202,7 +1202,7 @@ describe('milestoneStats', () => {
     expect(result.phases[0].summaries[0].key_files).toEqual(['src/archived.js']);
   });
 
-  test('aggregated fields are deduplicated', () => {
+  test('aggregated fields are deduplicated', async () => {
     writeRoadmap('## Milestone: Dedup Test (v2.0)\n\n### Phase 1: phase-a\n### Phase 2: phase-b\n');
     const phase1Dir = path.join(tmpDir, '.planning', 'phases', '01-phase-a');
     const phase2Dir = path.join(tmpDir, '.planning', 'phases', '02-phase-b');
@@ -1217,7 +1217,7 @@ describe('milestoneStats', () => {
     expect(result.aggregated.all_key_files.filter(f => f === 'src/shared.js').length).toBe(1);
   });
 
-  test('handles milestone with no matching phases', () => {
+  test('handles milestone with no matching phases', async () => {
     writeRoadmap('## Milestone: Other Milestone (v9.0)\n\n### Phase 99: nonexistent\n');
 
     const result = milestoneStats('9.0');
@@ -1228,7 +1228,7 @@ describe('milestoneStats', () => {
     expect(result.aggregated.total_metrics.tasks_completed).toBe(0);
   });
 
-  test('never includes SUMMARY body content in output', () => {
+  test('never includes SUMMARY body content in output', async () => {
     const archiveDir = path.join(tmpDir, '.planning', 'milestones', 'v3.0', 'phases', '01-body-test');
     const longBody = 'This is a long body section with lots of content. '.repeat(50);
     writeSummary(archiveDir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['something'] }, longBody);
@@ -1326,7 +1326,7 @@ describe('stateBundle / initStateBundle', () => {
     configClearCache();
   });
 
-  test('returns complete state bundle for existing phase', () => {
+  test('returns complete state bundle for existing phase', async () => {
     buildBundleFixture(bundleTmpDir);
     const result = initStateBundle('3');
     expect(result.error).toBeUndefined();
@@ -1353,7 +1353,7 @@ describe('stateBundle / initStateBundle', () => {
     expect(result.git).toHaveProperty('clean');
   });
 
-  test('prior_summaries contains only frontmatter fields', () => {
+  test('prior_summaries contains only frontmatter fields', async () => {
     buildBundleFixture(bundleTmpDir, { withSummary: true });
     const result = initStateBundle('3');
     for (const entry of result.prior_summaries) {
@@ -1367,26 +1367,26 @@ describe('stateBundle / initStateBundle', () => {
     }
   });
 
-  test('prior_summaries capped at 10', () => {
+  test('prior_summaries capped at 10', async () => {
     buildBundleFixture(bundleTmpDir, { summaryCount: 12 });
     const result = initStateBundle('3');
     expect(result.prior_summaries.length).toBeLessThanOrEqual(10);
   });
 
-  test('handles missing phase gracefully', () => {
+  test('handles missing phase gracefully', async () => {
     buildBundleFixture(bundleTmpDir);
     const result = initStateBundle('99');
     expect(result.error).toBeDefined();
     expect(typeof result.error).toBe('string');
   });
 
-  test('handles empty .planning/ directory', () => {
+  test('handles empty .planning/ directory', async () => {
     const result = initStateBundle('3');
     expect(result.error).toBeDefined();
     expect(result.error).toMatch(/No .planning/);
   });
 
-  test('config_summary includes resolved depth profile', () => {
+  test('config_summary includes resolved depth profile', async () => {
     buildBundleFixture(bundleTmpDir);
     const result = initStateBundle('3');
     expect(result.config_summary).toHaveProperty('depth');
@@ -1431,7 +1431,7 @@ describe('contextTriage', () => {
     fs.writeFileSync(path.join(planningDir, '.context-tracker'), JSON.stringify(data), 'utf8');
   }
 
-  test('returns PROCEED when bridge shows low percentage', () => {
+  test('returns PROCEED when bridge shows low percentage', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     writeBridge(planningDir, { percentage: 30, tier: 'PEAK', timestamp: new Date().toISOString() });
     const result = contextTriageLib({}, planningDir);
@@ -1440,7 +1440,7 @@ describe('contextTriage', () => {
     expect(result.percentage).toBe(30);
   });
 
-  test('returns CHECKPOINT when bridge shows 50-70%', () => {
+  test('returns CHECKPOINT when bridge shows 50-70%', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     writeBridge(planningDir, { percentage: 60, tier: 'DEGRADING', timestamp: new Date().toISOString() });
     const result = contextTriageLib({}, planningDir);
@@ -1448,7 +1448,7 @@ describe('contextTriage', () => {
     expect(result.data_source).toBe('bridge');
   });
 
-  test('returns COMPACT when bridge shows >70%', () => {
+  test('returns COMPACT when bridge shows >70%', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     writeBridge(planningDir, { percentage: 80, tier: 'POOR', timestamp: new Date().toISOString() });
     const result = contextTriageLib({}, planningDir);
@@ -1456,7 +1456,7 @@ describe('contextTriage', () => {
     expect(result.data_source).toBe('bridge');
   });
 
-  test('falls back to heuristic when bridge is missing', () => {
+  test('falls back to heuristic when bridge is missing', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     writeTracker(planningDir, { total_chars: 15000, unique_files: 3, reads: 5 });
     const result = contextTriageLib({}, planningDir);
@@ -1464,7 +1464,7 @@ describe('contextTriage', () => {
     expect(result.data_source).toBe('heuristic');
   });
 
-  test('falls back to heuristic when bridge is stale', () => {
+  test('falls back to heuristic when bridge is stale', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     // Set mtime to 120 seconds ago
     const staleMtime = Date.now() - 120 * 1000;
@@ -1476,7 +1476,7 @@ describe('contextTriage', () => {
     expect(result.recommendation).toBe('PROCEED');
   });
 
-  test('relaxes threshold near completion', () => {
+  test('relaxes threshold near completion', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     // 55% would normally give CHECKPOINT, but agentsDone/plansTotal > 0.8 relaxes to PROCEED
     // Use 5/6 = 0.833 which is strictly > 0.8
@@ -1486,7 +1486,7 @@ describe('contextTriage', () => {
     expect(result.reason).toMatch(/Near completion/);
   });
 
-  test('always PROCEED during cleanup step', () => {
+  test('always PROCEED during cleanup step', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     // 75% would normally give COMPACT, but finalize step overrides
     writeBridge(planningDir, { percentage: 75, tier: 'POOR', timestamp: new Date().toISOString() });
@@ -1495,7 +1495,7 @@ describe('contextTriage', () => {
     expect(result.reason).toMatch(/Cleanup\/finalize/);
   });
 
-  test('handles completely empty .planning/ directory', () => {
+  test('handles completely empty .planning/ directory', async () => {
     // No bridge, no tracker
     const planningDir = path.join(tmpDir, '.planning');
     const result = contextTriageLib({}, planningDir);
@@ -1503,7 +1503,7 @@ describe('contextTriage', () => {
     expect(result.data_source).toBe('heuristic');
   });
 
-  test('reason field includes human-readable explanation with percentage and tier', () => {
+  test('reason field includes human-readable explanation with percentage and tier', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     writeBridge(planningDir, { percentage: 42, tier: 'GOOD', timestamp: new Date().toISOString() });
     const result = contextTriageLib({}, planningDir);
@@ -1539,7 +1539,7 @@ describe('build helpers', () => {
   // ── summaryGate ──────────────────────────────────────────
 
   describe('summaryGate', () => {
-    test('returns gate:"exists" when SUMMARY file does not exist', () => {
+    test('returns gate:"exists" when SUMMARY file does not exist', async () => {
       const planningDir = tmpDir;
       fs.mkdirSync(path.join(tmpDir, 'phases', '01-test'), { recursive: true });
       const result = summaryGate('01-test', '01-01', planningDir);
@@ -1547,7 +1547,7 @@ describe('build helpers', () => {
       expect(result.gate).toBe('exists');
     });
 
-    test('returns gate:"nonempty" when SUMMARY file is empty', () => {
+    test('returns gate:"nonempty" when SUMMARY file is empty', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '01-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1557,7 +1557,7 @@ describe('build helpers', () => {
       expect(result.gate).toBe('nonempty');
     });
 
-    test('returns gate:"valid-frontmatter" when SUMMARY has content but no frontmatter', () => {
+    test('returns gate:"valid-frontmatter" when SUMMARY has content but no frontmatter', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '01-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1567,7 +1567,7 @@ describe('build helpers', () => {
       expect(result.gate).toBe('valid-frontmatter');
     });
 
-    test('returns ok:true when SUMMARY has valid frontmatter with status', () => {
+    test('returns ok:true when SUMMARY has valid frontmatter with status', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '01-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1582,7 +1582,7 @@ describe('build helpers', () => {
   // ── checkpointInit ───────────────────────────────────────
 
   describe('checkpointInit', () => {
-    test('creates .checkpoint-manifest.json with correct structure', () => {
+    test('creates .checkpoint-manifest.json with correct structure', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '02-alpha');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1600,7 +1600,7 @@ describe('build helpers', () => {
       expect(manifest.last_good_commit).toBeNull();
     });
 
-    test('accepts an array of plan IDs', () => {
+    test('accepts an array of plan IDs', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '02-beta');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1610,7 +1610,7 @@ describe('build helpers', () => {
       expect(manifest.plans).toEqual(['02-01', '02-03']);
     });
 
-    test('handles empty plans string', () => {
+    test('handles empty plans string', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '03-empty');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1624,7 +1624,7 @@ describe('build helpers', () => {
   // ── checkpointUpdate ─────────────────────────────────────
 
   describe('checkpointUpdate', () => {
-    test('moves resolved plan from plans to checkpoints_resolved', () => {
+    test('moves resolved plan from plans to checkpoints_resolved', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '04-update');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1638,7 +1638,7 @@ describe('build helpers', () => {
       expect(manifest.checkpoints_resolved).toContain('04-01');
     });
 
-    test('advances wave counter', () => {
+    test('advances wave counter', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '04-wave');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1649,7 +1649,7 @@ describe('build helpers', () => {
       expect(manifest.wave).toBe(2);
     });
 
-    test('appends to commit_log and updates last_good_commit when sha provided', () => {
+    test('appends to commit_log and updates last_good_commit when sha provided', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '04-log');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1662,7 +1662,7 @@ describe('build helpers', () => {
       expect(manifest.last_good_commit).toBe('deadbeef');
     });
 
-    test('returns error when manifest does not exist', () => {
+    test('returns error when manifest does not exist', async () => {
       const planningDir = tmpDir;
       fs.mkdirSync(path.join(tmpDir, 'phases', '05-nofile'), { recursive: true });
       const result = checkpointUpdate('05-nofile', { wave: 1, resolved: '05-01', sha: '' }, planningDir);
@@ -1673,13 +1673,13 @@ describe('build helpers', () => {
   // ── seedsMatch ───────────────────────────────────────────
 
   describe('seedsMatch', () => {
-    test('returns matched:[] when seeds directory does not exist', () => {
+    test('returns matched:[] when seeds directory does not exist', async () => {
       const planningDir = tmpDir;
       const result = seedsMatch('03-auth', '3', planningDir);
       expect(result.matched).toEqual([]);
     });
 
-    test('returns matched:[] when no seeds match', () => {
+    test('returns matched:[] when no seeds match', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1688,7 +1688,7 @@ describe('build helpers', () => {
       expect(result.matched).toEqual([]);
     });
 
-    test('matches on exact slug', () => {
+    test('matches on exact slug', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1698,7 +1698,7 @@ describe('build helpers', () => {
       expect(result.matched[0].name).toBe('Auth Seed');
     });
 
-    test('matches on wildcard trigger "*"', () => {
+    test('matches on wildcard trigger "*"', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1708,7 +1708,7 @@ describe('build helpers', () => {
       expect(result.matched[0].trigger).toBe('*');
     });
 
-    test('matches on phase number string', () => {
+    test('matches on phase number string', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1721,13 +1721,13 @@ describe('build helpers', () => {
   // ── stalenessCheck ───────────────────────────────────────
 
   describe('stalenessCheck', () => {
-    test('returns error when phase directory does not exist', () => {
+    test('returns error when phase directory does not exist', async () => {
       const planningDir = tmpDir;
       const result = stalenessCheck('99-nonexistent', planningDir);
       expect(result.error).toBeTruthy();
     });
 
-    test('returns stale:false when phase has no plans', () => {
+    test('returns stale:false when phase has no plans', async () => {
       const planningDir = tmpDir;
       fs.mkdirSync(path.join(tmpDir, 'phases', '01-empty'), { recursive: true });
       const result = stalenessCheck('01-empty', planningDir);
@@ -1735,7 +1735,7 @@ describe('build helpers', () => {
       expect(result.plans).toEqual([]);
     });
 
-    test('returns stale:false for plan with no dependencies', () => {
+    test('returns stale:false for plan with no dependencies', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '02-nodeps');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1750,7 +1750,7 @@ describe('build helpers', () => {
   // ── summaryGate edge cases ───────────────────────────────
 
   describe('summaryGate edge cases', () => {
-    test('returns gate:"valid-frontmatter" when file has dashes but no status field', () => {
+    test('returns gate:"valid-frontmatter" when file has dashes but no status field', async () => {
       const planningDir = tmpDir;
       const phaseDir = path.join(tmpDir, 'phases', '06-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -1766,7 +1766,7 @@ describe('build helpers', () => {
   // ── seedsMatch edge cases ────────────────────────────────
 
   describe('seedsMatch edge cases', () => {
-    test('matches on trigger substring of phase slug', () => {
+    test('matches on trigger substring of phase slug', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1777,7 +1777,7 @@ describe('build helpers', () => {
       expect(result.matched[0].name).toBe('Partial Match');
     });
 
-    test('skips seed file with no frontmatter', () => {
+    test('skips seed file with no frontmatter', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1786,7 +1786,7 @@ describe('build helpers', () => {
       expect(result.matched).toEqual([]);
     });
 
-    test('skips seed file with no trigger field', () => {
+    test('skips seed file with no trigger field', async () => {
       const planningDir = tmpDir;
       const seedsDir = path.join(tmpDir, 'seeds');
       fs.mkdirSync(seedsDir, { recursive: true });
@@ -1799,7 +1799,7 @@ describe('build helpers', () => {
   // ── checkpointInit edge cases ────────────────────────────
 
   describe('checkpointInit edge cases', () => {
-    test('returns error when phase directory does not exist', () => {
+    test('returns error when phase directory does not exist', async () => {
       const planningDir = tmpDir;
       // Do NOT create the directory
       const result = checkpointInit('99-missing', '99-01', planningDir);
@@ -1828,7 +1828,7 @@ describe('ciPoll', () => {
     jest.unmock('child_process');
   });
 
-  test('returns next_action:continue when CI run completed with success', () => {
+  test('returns next_action:continue when CI run completed with success', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue(JSON.stringify({
       status: 'completed',
@@ -1842,7 +1842,7 @@ describe('ciPoll', () => {
     expect(typeof result.elapsed_seconds).toBe('number');
   });
 
-  test('returns next_action:abort when CI run completed with failure', () => {
+  test('returns next_action:abort when CI run completed with failure', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue(JSON.stringify({
       status: 'completed',
@@ -1855,7 +1855,7 @@ describe('ciPoll', () => {
     expect(result.conclusion).toBe('failure');
   });
 
-  test('returns next_action:wait when CI run is in_progress', () => {
+  test('returns next_action:wait when CI run is in_progress', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue(JSON.stringify({
       status: 'in_progress',
@@ -1866,7 +1866,7 @@ describe('ciPoll', () => {
     expect(result.next_action).toBe('wait');
   });
 
-  test('returns next_action:abort when timeout is exceeded', () => {
+  test('returns next_action:abort when timeout is exceeded', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue(JSON.stringify({
       status: 'in_progress',
@@ -1879,13 +1879,13 @@ describe('ciPoll', () => {
     expect(result.status).toBe('timed_out');
   });
 
-  test('returns error JSON when run-id is missing', () => {
+  test('returns error JSON when run-id is missing', async () => {
     const result = ciPoll(null, 300, '/tmp/.planning');
     expect(result.error).toBeTruthy();
     expect(result.next_action).toBe('abort');
   });
 
-  test('returns error JSON when gh command fails', () => {
+  test('returns error JSON when gh command fails', async () => {
     const { execSync } = require('child_process');
     execSync.mockImplementation(() => { throw new Error('gh: command not found'); });
     const result = ciPoll('12345', 300, '/tmp/.planning');
@@ -1924,7 +1924,7 @@ describe('rollback', () => {
     return p;
   }
 
-  test('successfully rolls back when manifest has last_good_commit', () => {
+  test('successfully rolls back when manifest has last_good_commit', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue('');
     const phaseDir = path.join(tmpDir, 'phases', '01-test');
@@ -1946,7 +1946,7 @@ describe('rollback', () => {
     expect(Array.isArray(result.warnings)).toBe(true);
   });
 
-  test('returns ok:false when manifest has no last_good_commit', () => {
+  test('returns ok:false when manifest has no last_good_commit', async () => {
     const phaseDir = path.join(tmpDir, 'phases', '01-test');
     const manifest = {
       plans: ['01-01'],
@@ -1963,13 +1963,13 @@ describe('rollback', () => {
     expect(result.error).toMatch(/No rollback point/i);
   });
 
-  test('returns ok:false when manifest file does not exist', () => {
+  test('returns ok:false when manifest file does not exist', async () => {
     const result = rollback('/nonexistent/path/.checkpoint-manifest.json', tmpDir);
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/Manifest not found/i);
   });
 
-  test('deletes failed plan SUMMARY.md when it exists', () => {
+  test('deletes failed plan SUMMARY.md when it exists', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue('');
     const phaseDir = path.join(tmpDir, 'phases', '01-test');
@@ -1994,7 +1994,7 @@ describe('rollback', () => {
     expect(result.files_deleted).toContain(summaryPath);
   });
 
-  test('invalidates downstream plans that depend on failed plan', () => {
+  test('invalidates downstream plans that depend on failed plan', async () => {
     const { execSync } = require('child_process');
     execSync.mockReturnValue('');
     const phaseDir = path.join(tmpDir, 'phases', '01-test');
@@ -2056,14 +2056,14 @@ describe('session subcommand (pbr-tools)', () => {
 
   // ── CLI tests ─────────────────────────────────────────────────────────────
 
-  test('session get returns null when no .session.json exists', () => {
+  test('session get returns null when no .session.json exists', async () => {
     const result = runTool(['session', 'get', 'activeSkill']);
     expect(result.status).toBe(0);
     const json = JSON.parse(result.stdout);
     expect(json).toEqual({ key: 'activeSkill', value: null });
   });
 
-  test('session set writes .session.json and returns ok', () => {
+  test('session set writes .session.json and returns ok', async () => {
     const result = runTool(['session', 'set', 'activeSkill', 'build']);
     expect(result.status).toBe(0);
     const json = JSON.parse(result.stdout);
@@ -2075,7 +2075,7 @@ describe('session subcommand (pbr-tools)', () => {
     expect(data.activeSkill).toBe('build');
   });
 
-  test('session get after set returns the stored value', () => {
+  test('session get after set returns the stored value', async () => {
     runTool(['session', 'set', 'activeSkill', 'build']);
     const result = runTool(['session', 'get', 'activeSkill']);
     expect(result.status).toBe(0);
@@ -2083,7 +2083,7 @@ describe('session subcommand (pbr-tools)', () => {
     expect(json).toEqual({ key: 'activeSkill', value: 'build' });
   });
 
-  test('session set merges without overwriting other keys', () => {
+  test('session set merges without overwriting other keys', async () => {
     runTool(['session', 'set', 'activeSkill', 'plan']);
     runTool(['session', 'set', 'compactCounter', '5']);
     const result = runTool(['session', 'get', 'activeSkill']);
@@ -2094,7 +2094,7 @@ describe('session subcommand (pbr-tools)', () => {
     expect(json2.value).toBe(5);
   });
 
-  test('session clear deletes .session.json', () => {
+  test('session clear deletes .session.json', async () => {
     runTool(['session', 'set', 'activeSkill', 'build']);
     const result = runTool(['session', 'clear']);
     expect(result.status).toBe(0);
@@ -2104,7 +2104,7 @@ describe('session subcommand (pbr-tools)', () => {
     expect(fs.existsSync(sessionFile)).toBe(false);
   });
 
-  test('session clear <key> sets key to null without deleting file', () => {
+  test('session clear <key> sets key to null without deleting file', async () => {
     runTool(['session', 'set', 'activeSkill', 'build']);
     runTool(['session', 'set', 'compactCounter', '3']);
     const result = runTool(['session', 'clear', 'activeSkill']);
@@ -2119,7 +2119,7 @@ describe('session subcommand (pbr-tools)', () => {
     expect(data.compactCounter).toBe(3);
   });
 
-  test('session dump prints entire session JSON', () => {
+  test('session dump prints entire session JSON', async () => {
     runTool(['session', 'set', 'activeSkill', 'plan']);
     const result = runTool(['session', 'dump']);
     expect(result.status).toBe(0);
@@ -2127,12 +2127,12 @@ describe('session subcommand (pbr-tools)', () => {
     expect(json.activeSkill).toBe('plan');
   });
 
-  test('session get unknown key exits 1', () => {
+  test('session get unknown key exits 1', async () => {
     const result = runTool(['session', 'get', 'unknownKey']);
     expect(result.status).toBe(1);
   });
 
-  test('session set unknown key exits 1', () => {
+  test('session set unknown key exits 1', async () => {
     const result = runTool(['session', 'set', 'notAValidKey', 'value']);
     expect(result.status).toBe(1);
   });
@@ -2140,7 +2140,7 @@ describe('session subcommand (pbr-tools)', () => {
   // ── tmux detect ───────────────────────────────────────────────────────────
 
   describe('tmux detect', () => {
-    test('returns in_tmux false when TMUX not set', () => {
+    test('returns in_tmux false when TMUX not set', async () => {
       const env = Object.assign({}, process.env, { PBR_PROJECT_ROOT: tmpDir, TMUX: '', TMUX_PANE: '' });
       delete env.TMUX;
       delete env.TMUX_PANE;
@@ -2156,7 +2156,7 @@ describe('session subcommand (pbr-tools)', () => {
       expect(parsed.session).toBeNull();
     });
 
-    test('returns in_tmux true with session and pane when TMUX set', () => {
+    test('returns in_tmux true with session and pane when TMUX set', async () => {
       const stdout = execFileSync(process.execPath, [SCRIPT, 'tmux', 'detect'], {
         encoding: 'utf8',
         timeout: 10000,
@@ -2173,7 +2173,7 @@ describe('session subcommand (pbr-tools)', () => {
       expect(parsed.session).toBe('default');
     });
 
-    test('handles TMUX env with unusual format gracefully', () => {
+    test('handles TMUX env with unusual format gracefully', async () => {
       const stdout = execFileSync(process.execPath, [SCRIPT, 'tmux', 'detect'], {
         encoding: 'utf8',
         timeout: 10000,
@@ -2193,13 +2193,13 @@ describe('session subcommand (pbr-tools)', () => {
 
   // ── sessionLoad / sessionSave exported functions ──────────────────────────
 
-  test('sessionLoad returns empty object when no .session.json', () => {
+  test('sessionLoad returns empty object when no .session.json', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     const data = sessionLoad(planningDir);
     expect(data).toEqual({});
   });
 
-  test('sessionSave writes JSON atomically and sessionLoad reads it back', () => {
+  test('sessionSave writes JSON atomically and sessionLoad reads it back', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     sessionSave(planningDir, { activeSkill: 'build', compactCounter: 2 });
 
@@ -2211,7 +2211,7 @@ describe('session subcommand (pbr-tools)', () => {
     expect(data.compactCounter).toBe(2);
   });
 
-  test('sessionSave uses atomic write (no .tmp file left behind)', () => {
+  test('sessionSave uses atomic write (no .tmp file left behind)', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     sessionSave(planningDir, { activeSkill: 'test' });
 

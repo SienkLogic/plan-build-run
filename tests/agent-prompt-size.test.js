@@ -21,7 +21,7 @@ describe('agent prompt size limits', () => {
     .filter(f => f.endsWith('.md'))
     .sort();
 
-  test('agents directory contains at least one agent file', () => {
+  test('agents directory contains at least one agent file', async () => {
     expect(agentFiles.length).toBeGreaterThan(0);
   });
 

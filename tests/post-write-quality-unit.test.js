@@ -24,27 +24,27 @@ afterEach(() => {
 });
 
 describe('checkQuality direct calls', () => {
-  test('returns null for missing file_path', () => {
+  test('returns null for missing file_path', async () => {
     expect(checkQuality({ tool_input: {} })).toBeNull();
   });
 
-  test('returns null for empty file_path', () => {
+  test('returns null for empty file_path', async () => {
     expect(checkQuality({ tool_input: { file_path: '' } })).toBeNull();
   });
 
-  test('returns null for .md files', () => {
+  test('returns null for .md files', async () => {
     expect(checkQuality({ tool_input: { file_path: '/tmp/readme.md' } })).toBeNull();
   });
 
-  test('returns null for .py files', () => {
+  test('returns null for .py files', async () => {
     expect(checkQuality({ tool_input: { file_path: '/tmp/app.py' } })).toBeNull();
   });
 
-  test('returns null when no hooks enabled', () => {
+  test('returns null when no hooks enabled', async () => {
     expect(checkQuality({ tool_input: { file_path: '/tmp/app.ts' } })).toBeNull();
   });
 
-  test('returns detectConsoleLogs result when enabled', () => {
+  test('returns detectConsoleLogs result when enabled', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ hooks: { detectConsoleLogs: true } }));
     const filePath = path.join(tmpDir, 'test.js');
@@ -54,7 +54,7 @@ describe('checkQuality direct calls', () => {
     expect(result.output.additionalContext).toContain('[Console.log]');
   });
 
-  test('returns null when detectConsoleLogs enabled but file is clean', () => {
+  test('returns null when detectConsoleLogs enabled but file is clean', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ hooks: { detectConsoleLogs: true } }));
     const filePath = path.join(tmpDir, 'clean.js');
@@ -62,7 +62,7 @@ describe('checkQuality direct calls', () => {
     expect(checkQuality({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('handles all JS/TS extensions', () => {
+  test('handles all JS/TS extensions', async () => {
     const extensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
     for (const ext of extensions) {
       // Without config, returns null — but exercises the extension check
@@ -71,7 +71,7 @@ describe('checkQuality direct calls', () => {
     }
   });
 
-  test('autoFormat with no prettier installed returns null', () => {
+  test('autoFormat with no prettier installed returns null', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ hooks: { autoFormat: true } }));
     const filePath = path.join(tmpDir, 'test.js');
@@ -79,7 +79,7 @@ describe('checkQuality direct calls', () => {
     expect(checkQuality({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('typeCheck with no tsc installed returns null for .ts files', () => {
+  test('typeCheck with no tsc installed returns null for .ts files', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ hooks: { typeCheck: true } }));
     const filePath = path.join(tmpDir, 'test.ts');
@@ -87,7 +87,7 @@ describe('checkQuality direct calls', () => {
     expect(checkQuality({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('typeCheck skipped for .js files even when enabled', () => {
+  test('typeCheck skipped for .js files even when enabled', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ hooks: { typeCheck: true } }));
     const filePath = path.join(tmpDir, 'test.js');
@@ -97,18 +97,18 @@ describe('checkQuality direct calls', () => {
 });
 
 describe('loadHooksConfig edge cases', () => {
-  test('returns {} for invalid JSON config', () => {
+  test('returns {} for invalid JSON config', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'not json');
     expect(loadHooksConfig(tmpDir)).toEqual({});
   });
 });
 
 describe('findLocalBin edge cases', () => {
-  test('returns null for nonexistent tool', () => {
+  test('returns null for nonexistent tool', async () => {
     expect(findLocalBin(tmpDir, 'nonexistent-tool')).toBeNull();
   });
 
-  test('finds .cmd variant on Windows', () => {
+  test('finds .cmd variant on Windows', async () => {
     if (process.platform !== 'win32') return; // Skip on non-Windows
     const binDir = path.join(tmpDir, 'node_modules', '.bin');
     fs.mkdirSync(binDir, { recursive: true });
@@ -118,17 +118,17 @@ describe('findLocalBin edge cases', () => {
 });
 
 describe('runPrettier', () => {
-  test('returns null when prettier not installed', () => {
+  test('returns null when prettier not installed', async () => {
     expect(runPrettier('/tmp/file.js', tmpDir)).toBeNull();
   });
 });
 
 describe('runTypeCheck', () => {
-  test('returns null when tsc not installed', () => {
+  test('returns null when tsc not installed', async () => {
     expect(runTypeCheck('/tmp/file.ts', tmpDir)).toBeNull();
   });
 
-  test('returns null when tsconfig.json missing', () => {
+  test('returns null when tsconfig.json missing', async () => {
     const binDir = path.join(tmpDir, 'node_modules', '.bin');
     fs.mkdirSync(binDir, { recursive: true });
     const binName = process.platform === 'win32' ? 'tsc.cmd' : 'tsc';
@@ -138,11 +138,11 @@ describe('runTypeCheck', () => {
 });
 
 describe('detectConsoleLogs edge cases', () => {
-  test('returns null for nonexistent file', () => {
+  test('returns null for nonexistent file', async () => {
     expect(detectConsoleLogs('/nonexistent/path.js')).toBeNull();
   });
 
-  test('detects multiple console.logs with proper line numbers', () => {
+  test('detects multiple console.logs with proper line numbers', async () => {
     const filePath = path.join(tmpDir, 'multi.js');
     fs.writeFileSync(filePath, 'const a = 1;\nconsole.log(a);\nconst b = 2;\nconsole.log(b);');
     const result = detectConsoleLogs(filePath);
@@ -151,7 +151,7 @@ describe('detectConsoleLogs edge cases', () => {
     expect(result).toContain('L4');
   });
 
-  test('truncates at 3 entries with ...and N more', () => {
+  test('truncates at 3 entries with ...and N more', async () => {
     const filePath = path.join(tmpDir, 'many.js');
     const lines = Array.from({ length: 6 }, (_, i) => `console.log("line ${i}")`);
     fs.writeFileSync(filePath, lines.join('\n'));
@@ -160,13 +160,13 @@ describe('detectConsoleLogs edge cases', () => {
     expect(result).toContain('...and 3 more');
   });
 
-  test('ignores single-line comments', () => {
+  test('ignores single-line comments', async () => {
     const filePath = path.join(tmpDir, 'commented.js');
     fs.writeFileSync(filePath, '// console.log("debug")\nconst x = 1;');
     expect(detectConsoleLogs(filePath)).toBeNull();
   });
 
-  test('detects console.log with leading whitespace', () => {
+  test('detects console.log with leading whitespace', async () => {
     const filePath = path.join(tmpDir, 'indented.js');
     fs.writeFileSync(filePath, '  console.log("test");\n');
     const result = detectConsoleLogs(filePath);

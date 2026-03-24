@@ -18,7 +18,7 @@ describe('convention-detector', () => {
   });
 
   describe('detectConventions', () => {
-    test('returns naming patterns from JS files', () => {
+    test('returns naming patterns from JS files', async () => {
       const srcDir = path.join(tmpDir, 'src');
       fs.mkdirSync(srcDir, { recursive: true });
 
@@ -41,7 +41,7 @@ describe('convention-detector', () => {
       expect(camelPattern.count).toBeGreaterThanOrEqual(3);
     });
 
-    test('returns test structure patterns', () => {
+    test('returns test structure patterns', async () => {
       const srcDir = path.join(tmpDir, 'src');
       const testsDir = path.join(tmpDir, 'tests');
       fs.mkdirSync(srcDir, { recursive: true });
@@ -50,9 +50,9 @@ describe('convention-detector', () => {
       fs.writeFileSync(path.join(srcDir, 'foo.js'), 'module.exports = {};');
       fs.writeFileSync(path.join(srcDir, 'bar.js'), 'module.exports = {};');
       fs.writeFileSync(path.join(srcDir, 'baz.js'), 'module.exports = {};');
-      fs.writeFileSync(path.join(testsDir, 'foo.test.js'), 'test("x", () => {});');
-      fs.writeFileSync(path.join(testsDir, 'bar.test.js'), 'test("x", () => {});');
-      fs.writeFileSync(path.join(testsDir, 'baz.test.js'), 'test("x", () => {});');
+      fs.writeFileSync(path.join(testsDir, 'foo.test.js'), 'test("x", async () => {});');
+      fs.writeFileSync(path.join(testsDir, 'bar.test.js'), 'test("x", async () => {});');
+      fs.writeFileSync(path.join(testsDir, 'baz.test.js'), 'test("x", async () => {});');
 
       const result = detectConventions(tmpDir);
       expect(result.testing).toBeDefined();
@@ -60,7 +60,7 @@ describe('convention-detector', () => {
       expect(mirrorPattern).toBeDefined();
     });
 
-    test('returns import patterns', () => {
+    test('returns import patterns', async () => {
       const srcDir = path.join(tmpDir, 'src');
       fs.mkdirSync(srcDir, { recursive: true });
 
@@ -81,7 +81,7 @@ describe('convention-detector', () => {
   });
 
   describe('writeConventions', () => {
-    test('creates .planning/conventions/ directory and files', () => {
+    test('creates .planning/conventions/ directory and files', async () => {
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
 
@@ -104,7 +104,7 @@ describe('convention-detector', () => {
   });
 
   describe('loadConventions', () => {
-    test('reads conventions from disk (round-trip)', () => {
+    test('reads conventions from disk (round-trip)', async () => {
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
 
@@ -123,7 +123,7 @@ describe('convention-detector', () => {
       expect(loaded.imports).toBeDefined();
     });
 
-    test('returns empty object when directory does not exist', () => {
+    test('returns empty object when directory does not exist', async () => {
       const planningDir = path.join(tmpDir, 'nonexistent');
       const loaded = loadConventions(planningDir);
       expect(loaded).toEqual({});

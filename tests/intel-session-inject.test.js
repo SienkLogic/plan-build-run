@@ -44,7 +44,7 @@ describe('intel session injection', () => {
   }
 
   describe('getIntelContext', () => {
-    test('returns arch.md content when file exists and inject_on_start is true', () => {
+    test('returns arch.md content when file exists and inject_on_start is true', async () => {
       const { getIntelContext } = loadModule();
       writeConfig({ intel: { enabled: true, inject_on_start: true } });
       const config = { intel: { enabled: true, inject_on_start: true } };
@@ -55,7 +55,7 @@ describe('intel session injection', () => {
       expect(result).toContain('This is the arch summary.');
     });
 
-    test('returns empty string when inject_on_start is false', () => {
+    test('returns empty string when inject_on_start is false', async () => {
       const { getIntelContext } = loadModule();
       const config = { intel: { enabled: true, inject_on_start: false } };
       writeArchMd('# Architecture\nSome content.');
@@ -64,7 +64,7 @@ describe('intel session injection', () => {
       expect(result).toBe('');
     });
 
-    test('returns empty string when intel.enabled is false', () => {
+    test('returns empty string when intel.enabled is false', async () => {
       const { getIntelContext } = loadModule();
       const config = { intel: { enabled: false, inject_on_start: true } };
       writeArchMd('# Architecture\nSome content.');
@@ -73,7 +73,7 @@ describe('intel session injection', () => {
       expect(result).toBe('');
     });
 
-    test('returns empty string when arch.md does not exist', () => {
+    test('returns empty string when arch.md does not exist', async () => {
       const { getIntelContext } = loadModule();
       const config = { intel: { enabled: true, inject_on_start: true } };
       // No arch.md written
@@ -82,13 +82,13 @@ describe('intel session injection', () => {
       expect(result).toBe('');
     });
 
-    test('returns empty string when config is null', () => {
+    test('returns empty string when config is null', async () => {
       const { getIntelContext } = loadModule();
       const result = getIntelContext(planningDir, null);
       expect(result).toBe('');
     });
 
-    test('truncates arch.md to ~2000 chars if longer', () => {
+    test('truncates arch.md to ~2000 chars if longer', async () => {
       const { getIntelContext } = loadModule();
       const config = { intel: { enabled: true, inject_on_start: true } };
       const longContent = 'A'.repeat(5000);
@@ -104,7 +104,7 @@ describe('intel session injection', () => {
   });
 
   describe('getIntelStalenessWarning', () => {
-    test('returns warning when intel file updated_at > 24h ago', () => {
+    test('returns warning when intel file updated_at > 24h ago', async () => {
       const { getIntelStalenessWarning } = loadModule();
       const config = { intel: { enabled: true } };
       // Create an arch.md with old mtime
@@ -128,7 +128,7 @@ describe('intel session injection', () => {
       expect(result).toContain('/pbr:intel update');
     });
 
-    test('returns empty string when all files are fresh', () => {
+    test('returns empty string when all files are fresh', async () => {
       const { getIntelStalenessWarning } = loadModule();
       const config = { intel: { enabled: true } };
       // Create all intel files with fresh timestamps
@@ -146,7 +146,7 @@ describe('intel session injection', () => {
       expect(result).toBe('');
     });
 
-    test('returns empty string when intel.enabled is false', () => {
+    test('returns empty string when intel.enabled is false', async () => {
       const { getIntelStalenessWarning } = loadModule();
       const config = { intel: { enabled: false } };
 
@@ -154,7 +154,7 @@ describe('intel session injection', () => {
       expect(result).toBe('');
     });
 
-    test('returns warning suggesting /pbr:intel update', () => {
+    test('returns warning suggesting /pbr:intel update', async () => {
       const { getIntelStalenessWarning } = loadModule();
       const config = { intel: { enabled: true } };
       // Create arch.md with stale mtime

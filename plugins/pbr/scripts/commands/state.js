@@ -24,7 +24,7 @@ const { initStateBundle: _initStateBundle } = require('../lib/init');
  * @param {string[]} args - Full CLI args (args[0] === 'state')
  * @param {{ planningDir: string, cwd: string, output: function, error: function }} ctx
  */
-function handleState(args, ctx) {
+async function handleState(args, ctx) {
   const subcommand = args[1];
 
   if (subcommand === 'load') {
@@ -37,23 +37,23 @@ function handleState(args, ctx) {
     if (!field || value === undefined) {
       ctx.error('Usage: pbr-tools.js state update <field> <value>\nFields: current_phase, status, plans_complete, last_activity, progress_percent, phase_slug, last_command, blockers');
     }
-    ctx.output(_stateUpdate(field, value, ctx.planningDir));
+    ctx.output(await _stateUpdate(field, value, ctx.planningDir));
   } else if (subcommand === 'patch') {
     const jsonStr = args[2];
     if (!jsonStr) ctx.error('Usage: pbr-tools.js state patch JSON');
-    ctx.output(_statePatch(jsonStr, ctx.planningDir));
+    ctx.output(await _statePatch(jsonStr, ctx.planningDir));
   } else if (subcommand === 'advance-plan') {
-    ctx.output(_stateAdvancePlan(ctx.planningDir));
+    ctx.output(await _stateAdvancePlan(ctx.planningDir));
   } else if (subcommand === 'record-metric') {
-    ctx.output(_stateRecordMetric(args.slice(2), ctx.planningDir));
+    ctx.output(await _stateRecordMetric(args.slice(2), ctx.planningDir));
   } else if (subcommand === 'record-activity') {
     const description = args.slice(2).join(' ');
     if (!description) ctx.error('Usage: pbr-tools.js state record-activity <description>');
-    ctx.output(_stateRecordActivity(description, ctx.planningDir));
+    ctx.output(await _stateRecordActivity(description, ctx.planningDir));
   } else if (subcommand === 'update-progress') {
-    ctx.output(_stateUpdateProgress(ctx.planningDir));
+    ctx.output(await _stateUpdateProgress(ctx.planningDir));
   } else if (subcommand === 'reconcile') {
-    ctx.output(_stateReconcile(ctx.planningDir));
+    ctx.output(await _stateReconcile(ctx.planningDir));
   } else if (subcommand === 'backup') {
     ctx.output(_stateBackup(ctx.planningDir));
   } else if (subcommand === 'enqueue') {
@@ -64,7 +64,7 @@ function handleState(args, ctx) {
     ctx.output(stateEnqueue(field, value, ctx.planningDir));
   } else if (subcommand === 'drain') {
     const { stateDrain } = require('../lib/state-queue');
-    ctx.output(stateDrain(ctx.planningDir));
+    ctx.output(await stateDrain(ctx.planningDir));
   } else {
     ctx.error('Usage: state load|check-progress|update|patch|advance-plan|record-metric|record-activity|update-progress|reconcile|backup|enqueue|drain');
   }

@@ -19,7 +19,7 @@ describe('init continue', () => {
     cleanup(tmpDir);
   });
 
-  test('returns JSON with routing and state fields', () => {
+  test('returns JSON with routing and state fields', async () => {
     // createTempProject creates .planning/phases/ but no STATE.md
     // so we need to create a minimal STATE.md
     fs.writeFileSync(
@@ -37,7 +37,7 @@ describe('init continue', () => {
     assert.ok(output.drift !== undefined, 'should have drift field');
   });
 
-  test('includes suggest-next routing recommendation', () => {
+  test('includes suggest-next routing recommendation', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '---\nstatus: building\ncurrent_phase: 1\n---\n'
@@ -51,7 +51,7 @@ describe('init continue', () => {
     assert.ok(output.routing.reason, 'routing should have a reason');
   });
 
-  test('returns error when no .planning/ exists', () => {
+  test('returns error when no .planning/ exists', async () => {
     const emptyDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pbr-test-'));
     try {
       const result = runPbrTools('init continue', emptyDir);
@@ -75,7 +75,7 @@ describe('init milestone', () => {
     cleanup(tmpDir);
   });
 
-  test('returns JSON with milestones and state fields', () => {
+  test('returns JSON with milestones and state fields', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '---\nstatus: verified\ncurrent_phase: 3\n---\n'
@@ -92,7 +92,7 @@ describe('init milestone', () => {
     assert.strictEqual(typeof output.has_project, 'boolean', 'should have has_project boolean');
   });
 
-  test('detects existing roadmap milestones', () => {
+  test('detects existing roadmap milestones', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '---\nstatus: verified\ncurrent_phase: 3\n---\n'
@@ -123,7 +123,7 @@ describe('init begin', () => {
     cleanup(tmpDir);
   });
 
-  test('returns JSON with has_planning and brownfield fields', () => {
+  test('returns JSON with has_planning and brownfield fields', async () => {
     const result = runPbrTools('init begin', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -134,7 +134,7 @@ describe('init begin', () => {
     assert.strictEqual(typeof output.has_git, 'boolean', 'should have has_git boolean');
   });
 
-  test('returns has_planning: false on empty dir', () => {
+  test('returns has_planning: false on empty dir', async () => {
     const emptyDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pbr-test-'));
     try {
       const result = runPbrTools('init begin', emptyDir);
@@ -149,7 +149,7 @@ describe('init begin', () => {
     }
   });
 
-  test('detects existing phases', () => {
+  test('detects existing phases', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -173,7 +173,7 @@ describe('init status', () => {
     cleanup(tmpDir);
   });
 
-  test('returns JSON with progress and routing fields', () => {
+  test('returns JSON with progress and routing fields', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '---\nstatus: building\ncurrent_phase: 2\n---\n'
@@ -191,7 +191,7 @@ describe('init status', () => {
     assert.strictEqual(typeof output.has_paused_work, 'boolean', 'should have has_paused_work boolean');
   });
 
-  test('includes suggest-next routing recommendation', () => {
+  test('includes suggest-next routing recommendation', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '---\nstatus: planned\ncurrent_phase: 1\n---\n'
@@ -205,7 +205,7 @@ describe('init status', () => {
     assert.ok(output.routing.reason, 'routing should have a reason');
   });
 
-  test('counts pending todos', () => {
+  test('counts pending todos', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '---\nstatus: building\ncurrent_phase: 1\n---\n'

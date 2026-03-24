@@ -17,7 +17,7 @@ function makeTmpDir() {
 
 describe('prompt-routing.js', () => {
   describe('INTENT_PATTERNS', () => {
-    test('exports an array of intent patterns', () => {
+    test('exports an array of intent patterns', async () => {
       expect(Array.isArray(INTENT_PATTERNS)).toBe(true);
       expect(INTENT_PATTERNS.length).toBeGreaterThan(0);
     });
@@ -32,7 +32,7 @@ describe('prompt-routing.js', () => {
   });
 
   describe('analyzePrompt', () => {
-    test('returns null for null/undefined/empty prompt', () => {
+    test('returns null for null/undefined/empty prompt', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt(null, planningDir)).toBeNull();
       expect(analyzePrompt(undefined, planningDir)).toBeNull();
@@ -40,21 +40,21 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns null for non-string prompt', () => {
+    test('returns null for non-string prompt', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt(123, planningDir)).toBeNull();
       expect(analyzePrompt({}, planningDir)).toBeNull();
       cleanupTmp(tmpDir);
     });
 
-    test('returns null for slash commands', () => {
+    test('returns null for slash commands', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt('/pbr:do something here', planningDir)).toBeNull();
       expect(analyzePrompt('/help me with this task', planningDir)).toBeNull();
       cleanupTmp(tmpDir);
     });
 
-    test('returns null for short prompts (< 15 chars)', () => {
+    test('returns null for short prompts (< 15 chars)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt('yes', planningDir)).toBeNull();
       expect(analyzePrompt('ok do it', planningDir)).toBeNull();
@@ -62,14 +62,14 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns null when .planning dir does not exist', () => {
+    test('returns null when .planning dir does not exist', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pr-noplan-'));
       const planningDir = path.join(tmpDir, '.planning');
       expect(analyzePrompt('There is a bug in the authentication module', planningDir)).toBeNull();
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('returns null when STATE.md does not exist', () => {
+    test('returns null when STATE.md does not exist', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pr-nostate-'));
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
@@ -78,7 +78,7 @@ describe('prompt-routing.js', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('detects bug/error intent and suggests /pbr:debug', () => {
+    test('detects bug/error intent and suggests /pbr:debug', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('There is a bug in the authentication module', planningDir);
       expect(result).not.toBeNull();
@@ -86,7 +86,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('detects error keywords', () => {
+    test('detects error keywords', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const keywords = ['there is an error in the login flow', 'the app has a crash on every startup', 'got an exception from the API call', 'this feature is broken badly'];
       for (const prompt of keywords) {
@@ -97,7 +97,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('detects status/progress intent and suggests /pbr:progress', () => {
+    test('detects status/progress intent and suggests /pbr:progress', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('what is the current status of the project', planningDir);
       expect(result).not.toBeNull();
@@ -105,7 +105,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('detects exploration intent and suggests /pbr:explore', () => {
+    test('detects exploration intent and suggests /pbr:explore', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('how should we handle the caching layer', planningDir);
       expect(result).not.toBeNull();
@@ -113,7 +113,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('detects refactor/architecture intent and suggests /pbr:plan-phase add', () => {
+    test('detects refactor/architecture intent and suggests /pbr:plan-phase add', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('we need to refactor the entire database layer', planningDir);
       expect(result).not.toBeNull();
@@ -121,7 +121,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('detects generic task intent and suggests /pbr:do', () => {
+    test('detects generic task intent and suggests /pbr:do', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('add a new endpoint for user preferences', planningDir);
       expect(result).not.toBeNull();
@@ -129,14 +129,14 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns null for prompts that match no pattern', () => {
+    test('returns null for prompts that match no pattern', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('the sky is blue and water is wet today', planningDir);
       expect(result).toBeNull();
       cleanupTmp(tmpDir);
     });
 
-    test('first matching pattern wins (bug beats generic task)', () => {
+    test('first matching pattern wins (bug beats generic task)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       // "fix" matches generic task but "broken" matches bug — bug is first
       const result = analyzePrompt('the build is broken and we need to fix it now', planningDir);
@@ -147,7 +147,7 @@ describe('prompt-routing.js', () => {
   });
 
   describe('handleHttp', () => {
-    test('returns suggestion for matching prompt', () => {
+    test('returns suggestion for matching prompt', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = handleHttp({
         data: { prompt: 'there is a bug in the payment module right now' },
@@ -159,7 +159,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('returns null for non-matching prompt', () => {
+    test('returns null for non-matching prompt', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = handleHttp({
         data: { prompt: 'the sky is blue and water is wet today' },
@@ -169,12 +169,12 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('handles missing data gracefully', () => {
+    test('handles missing data gracefully', async () => {
       const result = handleHttp({});
       expect(result).toBeNull();
     });
 
-    test('uses user_prompt fallback field', () => {
+    test('uses user_prompt fallback field', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = handleHttp({
         data: { user_prompt: 'there is a crash in the application right now' },
@@ -187,7 +187,7 @@ describe('prompt-routing.js', () => {
   });
 
   describe('ambiguous prompt handling', () => {
-    test('prompt matching multiple patterns returns first match (priority order)', () => {
+    test('prompt matching multiple patterns returns first match (priority order)', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       // "broken" matches bug/error (first), "create" matches generic task (last)
       const result = analyzePrompt('the build is broken so create a workaround fix', planningDir);
@@ -196,7 +196,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('very short prompts (1-2 words) return null', () => {
+    test('very short prompts (1-2 words) return null', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt('hi', planningDir)).toBeNull();
       expect(analyzePrompt('ok', planningDir)).toBeNull();
@@ -204,20 +204,20 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('prompts with only whitespace return null', () => {
+    test('prompts with only whitespace return null', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt('   ', planningDir)).toBeNull();
       expect(analyzePrompt('\n\t  \n', planningDir)).toBeNull();
       cleanupTmp(tmpDir);
     });
 
-    test('prompt exactly 14 chars (below threshold) returns null', () => {
+    test('prompt exactly 14 chars (below threshold) returns null', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt('fix the errors', planningDir)).toBeNull(); // 14 chars
       cleanupTmp(tmpDir);
     });
 
-    test('prompt exactly 15 chars (at threshold) is analyzed', () => {
+    test('prompt exactly 15 chars (at threshold) is analyzed', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       // "fix the error!!" is 15 chars and matches generic task "fix"
       const result = analyzePrompt('fix this error!', planningDir);
@@ -314,7 +314,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('non-matching prompts return null', () => {
+    test('non-matching prompts return null', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const noMatchPrompts = [
         'the weather is nice today in Seattle',
@@ -328,19 +328,19 @@ describe('prompt-routing.js', () => {
   });
 
   describe('handleHttp error paths', () => {
-    test('malformed request body returns null', () => {
+    test('malformed request body returns null', async () => {
       expect(handleHttp({})).toBeNull();
       expect(handleHttp({ data: null })).toBeNull();
     });
 
-    test('missing prompt field returns null', () => {
+    test('missing prompt field returns null', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = handleHttp({ data: {}, planningDir });
       expect(result).toBeNull();
       cleanupTmp(tmpDir);
     });
 
-    test('uses content field as fallback', () => {
+    test('uses content field as fallback', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = handleHttp({
         data: { content: 'there is a major bug in the auth system' },
@@ -353,14 +353,14 @@ describe('prompt-routing.js', () => {
   });
 
   describe('main() execution edge cases', () => {
-    test('empty user_prompt does not crash', () => {
+    test('empty user_prompt does not crash', async () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, { user_prompt: '' });
       expect(result.exitCode).toBe(0);
       cleanupTmp(tmpDir);
     });
 
-    test('very long prompt (>1k chars) does not crash', () => {
+    test('very long prompt (>1k chars) does not crash', async () => {
       const { tmpDir } = makeTmpDir();
       const longPrompt = 'there is a bug ' + 'x'.repeat(1000) + ' in the system';
       const result = runScript(tmpDir, { prompt: longPrompt });
@@ -372,7 +372,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('unicode prompt does not crash', () => {
+    test('unicode prompt does not crash', async () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, { prompt: 'there is a bug in the authentication module' });
       expect(result.exitCode).toBe(0);
@@ -381,7 +381,7 @@ describe('prompt-routing.js', () => {
   });
 
   describe('hook execution', () => {
-    test('exits 0 with matching prompt', () => {
+    test('exits 0 with matching prompt', async () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, {
         prompt: 'there is a bug in the login flow right now'
@@ -394,7 +394,7 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 with non-matching prompt', () => {
+    test('exits 0 with non-matching prompt', async () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, {
         prompt: 'the sky is blue and water is wet today'
@@ -404,14 +404,14 @@ describe('prompt-routing.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 with empty input', () => {
+    test('exits 0 with empty input', async () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, {});
       expect(result.exitCode).toBe(0);
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 when not a PBR project', () => {
+    test('exits 0 when not a PBR project', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pr-noplan-'));
       const result = runScript(tmpDir, { prompt: 'there is a bug here right now' });
       expect(result.exitCode).toBe(0);
@@ -419,7 +419,7 @@ describe('prompt-routing.js', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('exits 0 with malformed JSON input', () => {
+    test('exits 0 with malformed JSON input', async () => {
       const { tmpDir } = makeTmpDir();
       const result = _run('not json', { cwd: tmpDir });
       expect(result.exitCode).toBe(0);

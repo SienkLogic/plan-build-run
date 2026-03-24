@@ -26,11 +26,11 @@ afterEach(() => {
 });
 
 describe('configLoad', () => {
-  test('returns null when config.json does not exist', () => {
+  test('returns null when config.json does not exist', async () => {
     expect(configLoad(planningDir)).toBeNull();
   });
 
-  test('returns parsed config when valid', () => {
+  test('returns parsed config when valid', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard', mode: 'interactive' }));
     const result = configLoad(planningDir);
@@ -39,7 +39,7 @@ describe('configLoad', () => {
     expect(result.mode).toBe('interactive');
   });
 
-  test('caches config on repeated calls', () => {
+  test('caches config on repeated calls', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard' }));
     const result1 = configLoad(planningDir);
@@ -47,7 +47,7 @@ describe('configLoad', () => {
     expect(result1).toBe(result2); // same object reference
   });
 
-  test('invalidates cache when path changes', () => {
+  test('invalidates cache when path changes', async () => {
     const configPath = path.join(planningDir, 'config.json');
     fs.writeFileSync(configPath, JSON.stringify({ depth: 'standard' }));
     configLoad(planningDir);
@@ -58,14 +58,14 @@ describe('configLoad', () => {
     expect(result2.depth).toBe('deep');
   });
 
-  test('returns null for invalid JSON', () => {
+  test('returns null for invalid JSON', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'not json');
     expect(configLoad(planningDir)).toBeNull();
   });
 });
 
 describe('configClearCache', () => {
-  test('clears the cache', () => {
+  test('clears the cache', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard' }));
     configLoad(planningDir);
@@ -79,27 +79,27 @@ describe('configClearCache', () => {
 });
 
 describe('configValidate', () => {
-  test('reports error when config.json is missing (string arg)', () => {
+  test('reports error when config.json is missing (string arg)', async () => {
     const result = configValidate(planningDir);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('config.json not found');
   });
 
-  test('reports error for invalid JSON (string arg)', () => {
+  test('reports error for invalid JSON (string arg)', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'bad');
     const result = configValidate(planningDir);
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toContain('not valid JSON');
   });
 
-  test('validates a config object directly', () => {
+  test('validates a config object directly', async () => {
     const result = configValidate({ depth: 'standard', mode: 'interactive' });
     expect(result).toBeDefined();
     expect(Array.isArray(result.errors)).toBe(true);
     expect(Array.isArray(result.warnings)).toBe(true);
   });
 
-  test('validates valid config file (string arg)', () => {
+  test('validates valid config file (string arg)', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard', mode: 'interactive' }));
     const result = configValidate(planningDir);
@@ -108,25 +108,25 @@ describe('configValidate', () => {
     expect(Array.isArray(result.errors)).toBe(true);
   });
 
-  test('warns about autonomous mode with gates', () => {
+  test('warns about autonomous mode with gates', async () => {
     const config = { mode: 'autonomous', gates: { human_verify: true } };
     const result = configValidate(config);
     expect(result.errors.some(e => e.includes('autonomous') && e.includes('gates'))).toBe(true);
   });
 
-  test('warns about auto_continue with interactive mode', () => {
+  test('warns about auto_continue with interactive mode', async () => {
     const config = { mode: 'interactive', features: { auto_continue: true } };
     const result = configValidate(config);
     expect(result.warnings.some(w => w.includes('auto_continue'))).toBe(true);
   });
 
-  test('detects conflicting parallelization config', () => {
+  test('detects conflicting parallelization config', async () => {
     const config = { parallelization: { enabled: false, plan_level: true } };
     const result = configValidate(config);
     expect(result.warnings.some(w => w.includes('plan_level'))).toBe(true);
   });
 
-  test('detects teams conflict with max_concurrent_agents=1', () => {
+  test('detects teams conflict with max_concurrent_agents=1', async () => {
     const config = {
       parallelization: { max_concurrent_agents: 1 },
       teams: { coordination: 'round-robin' }
@@ -135,7 +135,7 @@ describe('configValidate', () => {
     expect(result.errors.some(e => e.includes('teams'))).toBe(true);
   });
 
-  test('handles null/undefined configOrDir', () => {
+  test('handles null/undefined configOrDir', async () => {
     // Should use default location, which won't exist
     jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
     const result = configValidate(null);
@@ -153,31 +153,31 @@ const {
 } = require('../plugins/pbr/scripts/lib/config');
 
 describe('configResolveDepth', () => {
-  test('defaults to standard depth', () => {
+  test('defaults to standard depth', async () => {
     const result = configResolveDepth({});
     expect(result.depth).toBe('standard');
     expect(result.profile).toBeDefined();
   });
 
-  test('resolves quick depth', () => {
+  test('resolves quick depth', async () => {
     const result = configResolveDepth({ depth: 'quick' });
     expect(result.depth).toBe('quick');
     expect(result.profile['features.research_phase']).toBe(false);
   });
 
-  test('resolves comprehensive depth', () => {
+  test('resolves comprehensive depth', async () => {
     const result = configResolveDepth({ depth: 'comprehensive' });
     expect(result.depth).toBe('comprehensive');
     expect(result.profile['features.inline_verify']).toBe(true);
   });
 
-  test('resolves research-heavy depth', () => {
+  test('resolves research-heavy depth', async () => {
     const result = configResolveDepth({ depth: 'research-heavy' });
     expect(result.depth).toBe('research-heavy');
     expect(result.profile['scan.mapper_count']).toBe(6);
   });
 
-  test('merges user overrides', () => {
+  test('merges user overrides', async () => {
     const result = configResolveDepth({
       depth: 'standard',
       depth_profiles: {
@@ -187,14 +187,14 @@ describe('configResolveDepth', () => {
     expect(result.profile['scan.mapper_count']).toBe(8);
   });
 
-  test('handles string arg (planningDir)', () => {
+  test('handles string arg (planningDir)', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'quick' }));
     const result = configResolveDepth(planningDir);
     expect(result.depth).toBe('quick');
   });
 
-  test('falls back to standard for unknown depth', () => {
+  test('falls back to standard for unknown depth', async () => {
     const result = configResolveDepth({ depth: 'nonexistent' });
     expect(result.depth).toBe('nonexistent');
     // Should use standard defaults as fallback
@@ -203,13 +203,13 @@ describe('configResolveDepth', () => {
 });
 
 describe('configLoadDefaults', () => {
-  test('returns hardcoded defaults when no config', () => {
+  test('returns hardcoded defaults when no config', async () => {
     const result = configLoadDefaults(planningDir);
     expect(result.mode).toBe('interactive');
     expect(result.depth).toBe('standard');
   });
 
-  test('returns config when it exists', () => {
+  test('returns config when it exists', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'deep', mode: 'autonomous' }));
     const result = configLoadDefaults(planningDir);
@@ -218,7 +218,7 @@ describe('configLoadDefaults', () => {
 });
 
 describe('configSaveDefaults', () => {
-  test('saves config to disk', () => {
+  test('saves config to disk', async () => {
     configSaveDefaults(planningDir, { depth: 'test' });
     const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
     expect(saved.depth).toBe('test');
@@ -226,40 +226,40 @@ describe('configSaveDefaults', () => {
 });
 
 describe('configGet', () => {
-  test('gets top-level value', () => {
+  test('gets top-level value', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard', mode: 'interactive' }));
     configClearCache();
     expect(configGet(planningDir, 'depth')).toBe('standard');
   });
 
-  test('gets nested value', () => {
+  test('gets nested value', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ features: { research_phase: true } }));
     configClearCache();
     expect(configGet(planningDir, 'features.research_phase')).toBe(true);
   });
 
-  test('returns undefined for missing key', () => {
+  test('returns undefined for missing key', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard' }));
     configClearCache();
     expect(configGet(planningDir, 'nonexistent')).toBeUndefined();
   });
 
-  test('returns undefined for deep missing key', () => {
+  test('returns undefined for deep missing key', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard' }));
     configClearCache();
     expect(configGet(planningDir, 'a.b.c')).toBeUndefined();
   });
 
-  test('returns undefined when no config', () => {
+  test('returns undefined when no config', async () => {
     configClearCache();
     expect(configGet(planningDir, 'depth')).toBeUndefined();
   });
 
-  test('returns undefined for null keyPath', () => {
+  test('returns undefined for null keyPath', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), '{}');
     configClearCache();
     expect(configGet(planningDir, null)).toBeUndefined();
@@ -267,42 +267,42 @@ describe('configGet', () => {
 });
 
 describe('configSet', () => {
-  test('sets top-level value', () => {
+  test('sets top-level value', async () => {
     configClearCache();
     configSet(planningDir, 'depth', 'quick');
     const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
     expect(saved.depth).toBe('quick');
   });
 
-  test('sets nested value', () => {
+  test('sets nested value', async () => {
     configClearCache();
     configSet(planningDir, 'features.research', 'true');
     const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
     expect(saved.features.research).toBe(true);
   });
 
-  test('converts string booleans', () => {
+  test('converts string booleans', async () => {
     configClearCache();
     configSet(planningDir, 'flag', 'false');
     const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
     expect(saved.flag).toBe(false);
   });
 
-  test('converts string numbers', () => {
+  test('converts string numbers', async () => {
     configClearCache();
     configSet(planningDir, 'count', '42');
     const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
     expect(saved.count).toBe(42);
   });
 
-  test('creates nested objects as needed', () => {
+  test('creates nested objects as needed', async () => {
     configClearCache();
     configSet(planningDir, 'a.b.c', 'deep');
     const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
     expect(saved.a.b.c).toBe('deep');
   });
 
-  test('handles existing config', () => {
+  test('handles existing config', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ existing: 'value' }));
     configClearCache();
@@ -314,14 +314,14 @@ describe('configSet', () => {
 });
 
 describe('context_window_tokens in configLoad', () => {
-  test('returns context_window_tokens when present', () => {
+  test('returns context_window_tokens when present', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard', context_window_tokens: 1000000 }));
     const result = configLoad(planningDir);
     expect(result.context_window_tokens).toBe(1000000);
   });
 
-  test('returns undefined context_window_tokens when absent', () => {
+  test('returns undefined context_window_tokens when absent', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard' }));
     const result = configLoad(planningDir);

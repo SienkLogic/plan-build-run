@@ -51,15 +51,15 @@ describe('gate-prompts.md validation', () => {
   const content = fs.readFileSync(GATE_PROMPTS_PATH, 'utf8');
   const patterns = parsePatterns(content);
 
-  test('gate-prompts.md exists and is non-empty', () => {
+  test('gate-prompts.md exists and is non-empty', async () => {
     expect(content.length).toBeGreaterThan(0);
   });
 
-  test('contains expected number of patterns (21)', () => {
+  test('contains expected number of patterns (21)', async () => {
     expect(patterns.length).toBe(21);
   });
 
-  test('all pattern names are unique', () => {
+  test('all pattern names are unique', async () => {
     const names = patterns.map(p => p.name);
     const unique = [...new Set(names)];
     expect(names).toEqual(unique);

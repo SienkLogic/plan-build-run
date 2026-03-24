@@ -33,7 +33,7 @@ function cleanup(tmpDir) {
 
 describe('prompt-routing NL routing integration', () => {
   describe('routing suggestion with classifyIntent', () => {
-    test('input with debug keywords suggests debug via NL route when enabled', () => {
+    test('input with debug keywords suggests debug via NL route when enabled', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       const result = analyzePrompt('fix the auth bug in the login page', planningDir);
       expect(result).not.toBeNull();
@@ -45,7 +45,7 @@ describe('prompt-routing NL routing integration', () => {
       cleanup(tmpDir);
     });
 
-    test('input "add a login button" includes NL route with quick suggestion', () => {
+    test('input "add a login button" includes NL route with quick suggestion', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       const result = analyzePrompt('add a login button to the header component', planningDir);
       expect(result).not.toBeNull();
@@ -54,7 +54,7 @@ describe('prompt-routing NL routing integration', () => {
       cleanup(tmpDir);
     });
 
-    test('NL routing hint mentions /pbr:do for auto-routing', () => {
+    test('NL routing hint mentions /pbr:do for auto-routing', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       const result = analyzePrompt('fix the auth bug in the login page', planningDir);
       expect(result).not.toBeNull();
@@ -64,25 +64,25 @@ describe('prompt-routing NL routing integration', () => {
   });
 
   describe('skip conditions', () => {
-    test('input starting with /pbr: returns null', () => {
+    test('input starting with /pbr: returns null', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       expect(analyzePrompt('/pbr:do something here', planningDir)).toBeNull();
       cleanup(tmpDir);
     });
 
-    test('input starting with / (any slash command) returns null', () => {
+    test('input starting with / (any slash command) returns null', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       expect(analyzePrompt('/help me with this task', planningDir)).toBeNull();
       cleanup(tmpDir);
     });
 
-    test('empty input returns null', () => {
+    test('empty input returns null', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       expect(analyzePrompt('', planningDir)).toBeNull();
       cleanup(tmpDir);
     });
 
-    test('very short input (< 5 chars) returns null', () => {
+    test('very short input (< 5 chars) returns null', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       expect(analyzePrompt('ok', planningDir)).toBeNull();
       cleanup(tmpDir);
@@ -113,7 +113,7 @@ describe('prompt-routing NL routing integration', () => {
   });
 
   describe('non-blocking', () => {
-    test('hook never returns decision: block', () => {
+    test('hook never returns decision: block', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       const result = analyzePrompt('fix the critical auth bug right now', planningDir);
       if (result) {
@@ -122,7 +122,7 @@ describe('prompt-routing NL routing integration', () => {
       cleanup(tmpDir);
     });
 
-    test('handleHttp includes NL route info in additionalContext when enabled', () => {
+    test('handleHttp includes NL route info in additionalContext when enabled', async () => {
       const { tmpDir, planningDir } = makeTmpDir({ features: { natural_language_routing: true } });
       const result = handleHttp({
         data: { prompt: 'there is a bug in the payment module right now' },

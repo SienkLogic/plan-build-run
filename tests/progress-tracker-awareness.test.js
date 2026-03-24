@@ -42,7 +42,7 @@ describe('awareness sweep in SessionStart', () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), content);
   }
 
-  test('shows seed count when seeds directory has .md files', () => {
+  test('shows seed count when seeds directory has .md files', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\nStatus: building\n');
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
@@ -55,7 +55,7 @@ describe('awareness sweep in SessionStart', () => {
     expect(parsed.additionalContext).toContain('2 dormant');
   });
 
-  test('shows deferred item count from phase summaries', () => {
+  test('shows deferred item count from phase summaries', async () => {
     writeState('# State\n\n## Current Position\nPhase: 2 of 3\nStatus: building\n');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -75,7 +75,7 @@ Done.
     expect(parsed.additionalContext).toMatch(/\d+ items/);
   });
 
-  test('shows tech debt count from milestone audit', () => {
+  test('shows tech debt count from milestone audit', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\nStatus: building\n');
     fs.writeFileSync(path.join(planningDir, 'v1-MILESTONE-AUDIT.md'), `---
 tech_debt:
@@ -92,7 +92,7 @@ Tech debt found.
     expect(parsed.additionalContext).toContain('2 items');
   });
 
-  test('shows open research question count', () => {
+  test('shows open research question count', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\nStatus: building\n');
     const researchDir = path.join(planningDir, 'research');
     fs.mkdirSync(researchDir, { recursive: true });
@@ -109,7 +109,7 @@ Tech debt found.
     expect(parsed.additionalContext).toContain('2 open question');
   });
 
-  test('shows KNOWLEDGE.md entry counts', () => {
+  test('shows KNOWLEDGE.md entry counts', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\nStatus: building\n');
     fs.writeFileSync(path.join(planningDir, 'KNOWLEDGE.md'), `---
 updated: "2026-03-18"
@@ -144,7 +144,7 @@ updated: "2026-03-18"
     expect(parsed.additionalContext).toContain('1 lessons');
   });
 
-  test('no awareness items when none present', () => {
+  test('no awareness items when none present', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\nStatus: building\n');
 
     const output = run();

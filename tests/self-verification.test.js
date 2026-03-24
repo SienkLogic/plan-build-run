@@ -34,7 +34,7 @@ describe('validateSelfCheck', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('warns when executor SUMMARY.md lacks self_check field and self_verification enabled', () => {
+  test('warns when executor SUMMARY.md lacks self_check field and self_verification enabled', async () => {
     const summaryPath = writeSummary(tmpDir, `---
 phase: "08-test-phase"
 plan: "08-01"
@@ -60,7 +60,7 @@ must_haves: []
     expect(warnings[0]).toMatch(/self_check/i);
   });
 
-  test('no warning when self_check field present in SUMMARY.md', () => {
+  test('no warning when self_check field present in SUMMARY.md', async () => {
     const summaryPath = writeSummary(tmpDir, `---
 phase: "08-test-phase"
 plan: "08-01"
@@ -89,7 +89,7 @@ self_check:
     expect(warnings.length).toBe(0);
   });
 
-  test('no warning when self_verification feature is disabled', () => {
+  test('no warning when self_verification feature is disabled', async () => {
     const summaryPath = writeSummary(tmpDir, `---
 phase: "08-test-phase"
 plan: "08-01"
@@ -105,7 +105,7 @@ commits: ["abc1234"]
     expect(warnings.length).toBe(0);
   });
 
-  test('warns when self_check.failed > 0 even after retries', () => {
+  test('warns when self_check.failed > 0 even after retries', async () => {
     const summaryPath = writeSummary(tmpDir, `---
 phase: "08-test-phase"
 plan: "08-01"
@@ -132,7 +132,7 @@ self_check:
     expect(warnings[0]).toMatch(/retries/i);
   });
 
-  test('returns empty array when config is null', () => {
+  test('returns empty array when config is null', async () => {
     const summaryPath = writeSummary(tmpDir, `---
 status: complete
 ---
@@ -141,7 +141,7 @@ status: complete
     expect(warnings).toEqual([]);
   });
 
-  test('returns empty array when config has no features', () => {
+  test('returns empty array when config has no features', async () => {
     const summaryPath = writeSummary(tmpDir, `---
 status: complete
 ---

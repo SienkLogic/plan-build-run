@@ -32,13 +32,13 @@ describe('session-cleanup.js', () => {
     });
   }
 
-  test('exits silently when no .planning directory', () => {
+  test('exits silently when no .planning directory', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     const output = run();
     expect(output).toBe('');
   });
 
-  test('does NOT remove .auto-next file (consumed by auto-continue Stop hook instead)', () => {
+  test('does NOT remove .auto-next file (consumed by auto-continue Stop hook instead)', async () => {
     const filePath = path.join(planningDir, '.auto-next');
     fs.writeFileSync(filePath, '/pbr:execute-phase 3');
 
@@ -48,7 +48,7 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
-  test('removes .active-operation file', () => {
+  test('removes .active-operation file', async () => {
     const filePath = path.join(planningDir, '.active-operation');
     fs.writeFileSync(filePath, 'build');
 
@@ -57,7 +57,7 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(filePath)).toBe(false);
   });
 
-  test('removes .active-skill file', () => {
+  test('removes .active-skill file', async () => {
     const filePath = path.join(planningDir, '.active-skill');
     fs.writeFileSync(filePath, 'plan');
 
@@ -66,7 +66,7 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(filePath)).toBe(false);
   });
 
-  test('removes .context-tracker file', () => {
+  test('removes .context-tracker file', async () => {
     const filePath = path.join(planningDir, '.context-tracker');
     fs.writeFileSync(filePath, '{"chars":500}');
 
@@ -75,7 +75,7 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(filePath)).toBe(false);
   });
 
-  test('removes operation and skill files but preserves .auto-next', () => {
+  test('removes operation and skill files but preserves .auto-next', async () => {
     fs.writeFileSync(path.join(planningDir, '.auto-next'), 'cmd');
     fs.writeFileSync(path.join(planningDir, '.active-operation'), 'op');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'sk');
@@ -87,7 +87,7 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(path.join(planningDir, '.active-skill'))).toBe(false);
   });
 
-  test('logs cleaned decision when files were removed', () => {
+  test('logs cleaned decision when files were removed', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-operation'), 'op');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'sk');
 
@@ -105,7 +105,7 @@ describe('session-cleanup.js', () => {
     expect(entry.removed).not.toContain('.auto-next');
   });
 
-  test('logs nothing decision when no files to remove', () => {
+  test('logs nothing decision when no files to remove', async () => {
     run();
 
     const logPath = getHooksLogPath(planningDir);
@@ -116,7 +116,7 @@ describe('session-cleanup.js', () => {
     expect(entry.removed).toEqual([]);
   });
 
-  test('passes stdin reason to log entry', () => {
+  test('passes stdin reason to log entry', async () => {
     const stdinData = JSON.stringify({ reason: 'user_quit' });
     run(stdinData);
 
@@ -126,13 +126,13 @@ describe('session-cleanup.js', () => {
     expect(entry.reason).toBe('user_quit');
   });
 
-  test('handles invalid JSON stdin gracefully', () => {
+  test('handles invalid JSON stdin gracefully', async () => {
     const output = run('not json at all');
     // Should not crash
     expect(output).toBe('');
   });
 
-  test('handles empty stdin gracefully', () => {
+  test('handles empty stdin gracefully', async () => {
     const output = run('');
     expect(output).toBe('');
   });
@@ -158,25 +158,25 @@ describe('session-cleanup exports', () => {
   });
 
   // tryRemove
-  test('tryRemove returns true when file exists and is deleted', () => {
+  test('tryRemove returns true when file exists and is deleted', async () => {
     const filePath = path.join(tmpDir, 'test-file.txt');
     fs.writeFileSync(filePath, 'content');
     expect(tryRemove(filePath)).toBe(true);
     expect(fs.existsSync(filePath)).toBe(false);
   });
 
-  test('tryRemove returns false when file does not exist', () => {
+  test('tryRemove returns false when file does not exist', async () => {
     const filePath = path.join(tmpDir, 'no-such-file.txt');
     expect(tryRemove(filePath)).toBe(false);
   });
 
   // cleanStaleCheckpoints
-  test('cleanStaleCheckpoints returns empty array when phases dir does not exist', () => {
+  test('cleanStaleCheckpoints returns empty array when phases dir does not exist', async () => {
     const result = cleanStaleCheckpoints(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('cleanStaleCheckpoints skips non-stale manifests', () => {
+  test('cleanStaleCheckpoints skips non-stale manifests', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-init');
     fs.mkdirSync(phaseDir, { recursive: true });
     const manifestPath = path.join(phaseDir, '.checkpoint-manifest.json');
@@ -187,7 +187,7 @@ describe('session-cleanup exports', () => {
     expect(fs.existsSync(manifestPath)).toBe(true);
   });
 
-  test('cleanStaleCheckpoints removes stale manifests (>24h old)', () => {
+  test('cleanStaleCheckpoints removes stale manifests (>24h old)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '02-build');
     fs.mkdirSync(phaseDir, { recursive: true });
     const manifestPath = path.join(phaseDir, '.checkpoint-manifest.json');
@@ -201,7 +201,7 @@ describe('session-cleanup exports', () => {
     expect(fs.existsSync(manifestPath)).toBe(false);
   });
 
-  test('cleanStaleCheckpoints skips phase dirs with no manifest', () => {
+  test('cleanStaleCheckpoints skips phase dirs with no manifest', async () => {
     const phaseDir = path.join(planningDir, 'phases', '03-done');
     fs.mkdirSync(phaseDir, { recursive: true });
     // No .checkpoint-manifest.json
@@ -210,17 +210,17 @@ describe('session-cleanup exports', () => {
   });
 
   // rotateHooksLog
-  test('rotateHooksLog returns false when hooks.jsonl does not exist', () => {
+  test('rotateHooksLog returns false when hooks.jsonl does not exist', async () => {
     expect(rotateHooksLog(planningDir)).toBe(false);
   });
 
-  test('rotateHooksLog returns false when log is under size limit', () => {
+  test('rotateHooksLog returns false when log is under size limit', async () => {
     const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
     fs.writeFileSync(hooksLog, 'small content');
     expect(rotateHooksLog(planningDir)).toBe(false);
   });
 
-  test('rotateHooksLog always returns false (rotation deprecated — daily files used instead)', () => {
+  test('rotateHooksLog always returns false (rotation deprecated — daily files used instead)', async () => {
     const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
     // Even with a large file, rotation no longer occurs
     fs.writeFileSync(hooksLog, 'x'.repeat(201 * 1024));
@@ -231,11 +231,11 @@ describe('session-cleanup exports', () => {
   });
 
   // findOrphanedProgressFiles
-  test('findOrphanedProgressFiles returns empty array when phases dir does not exist', () => {
+  test('findOrphanedProgressFiles returns empty array when phases dir does not exist', async () => {
     expect(findOrphanedProgressFiles(planningDir)).toEqual([]);
   });
 
-  test('findOrphanedProgressFiles finds .PROGRESS-* files', () => {
+  test('findOrphanedProgressFiles finds .PROGRESS-* files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-init');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '.PROGRESS-01-01'), '{}');
@@ -245,7 +245,7 @@ describe('session-cleanup exports', () => {
     expect(result[0]).toContain('.PROGRESS-01-01');
   });
 
-  test('findOrphanedProgressFiles returns empty when no .PROGRESS files', () => {
+  test('findOrphanedProgressFiles returns empty when no .PROGRESS files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-init');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN.md'), '# plan');
@@ -253,7 +253,7 @@ describe('session-cleanup exports', () => {
   });
 
   // writeSessionHistory
-  test('writeSessionHistory creates sessions.jsonl', () => {
+  test('writeSessionHistory creates sessions.jsonl', async () => {
     writeSessionHistory(planningDir, { reason: 'test' });
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
     expect(fs.existsSync(sessionsFile)).toBe(true);
@@ -262,14 +262,14 @@ describe('session-cleanup exports', () => {
     expect(entry.reason).toBe('test');
   });
 
-  test('writeSessionHistory creates logs dir if missing', () => {
+  test('writeSessionHistory creates logs dir if missing', async () => {
     fs.rmSync(path.join(planningDir, 'logs'), { recursive: true, force: true });
     writeSessionHistory(planningDir, {});
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
     expect(fs.existsSync(sessionsFile)).toBe(true);
   });
 
-  test('writeSessionHistory appends multiple sessions', () => {
+  test('writeSessionHistory appends multiple sessions', async () => {
     writeSessionHistory(planningDir, { reason: 'first' });
     writeSessionHistory(planningDir, { reason: 'second' });
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
@@ -279,7 +279,7 @@ describe('session-cleanup exports', () => {
     expect(JSON.parse(lines[1]).reason).toBe('second');
   });
 
-  test('writeSessionHistory caps sessions at 100', () => {
+  test('writeSessionHistory caps sessions at 100', async () => {
     // Write 101 sessions
     for (let i = 0; i < 101; i++) {
       writeSessionHistory(planningDir, { reason: `session-${i}` });
@@ -289,7 +289,7 @@ describe('session-cleanup exports', () => {
     expect(lines.length).toBeLessThanOrEqual(100);
   });
 
-  test('writeSessionHistory reads existing hooks log for session stats', () => {
+  test('writeSessionHistory reads existing hooks log for session stats', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: '2026-01-01T00:00:00Z', event: 'SubagentStart', decision: 'spawned' });
     fs.writeFileSync(hooksLog, entry + '\n');
@@ -299,7 +299,7 @@ describe('session-cleanup exports', () => {
     expect(session.agents_spawned).toBe(1);
   });
 
-  test('writeSessionHistory reads events log for commit count', () => {
+  test('writeSessionHistory reads events log for commit count', async () => {
     const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: '2026-01-01T00:01:00Z', cat: 'workflow', event: 'commit-validated', status: 'allow' });
     fs.writeFileSync(eventsLog, entry + '\n');

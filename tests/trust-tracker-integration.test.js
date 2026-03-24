@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 describe('extractVerificationOutcome', () => {
-  test('returns passed=true when VERIFICATION.md status is passed', () => {
+  test('returns passed=true when VERIFICATION.md status is passed', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -53,7 +53,7 @@ describe('extractVerificationOutcome', () => {
     expect(result.mustHavesTotal).toBe(5);
   });
 
-  test('returns passed=false when VERIFICATION.md status is gaps_found', () => {
+  test('returns passed=false when VERIFICATION.md status is gaps_found', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -69,7 +69,7 @@ describe('extractVerificationOutcome', () => {
     expect(result.passed).toBe(false);
   });
 
-  test('returns null when no VERIFICATION.md exists', () => {
+  test('returns null when no VERIFICATION.md exists', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -80,7 +80,7 @@ describe('extractVerificationOutcome', () => {
     expect(result).toBeNull();
   });
 
-  test('extracts category from STATE.md phase_slug', () => {
+  test('extracts category from STATE.md phase_slug', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -98,7 +98,7 @@ describe('extractVerificationOutcome', () => {
 });
 
 describe('shouldTrackTrust', () => {
-  test('returns true when features.trust_tracking is true', () => {
+  test('returns true when features.trust_tracking is true', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -108,7 +108,7 @@ describe('shouldTrackTrust', () => {
     expect(shouldTrackTrust(planningDir)).toBe(true);
   });
 
-  test('returns false when features.trust_tracking is false', () => {
+  test('returns false when features.trust_tracking is false', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -118,7 +118,7 @@ describe('shouldTrackTrust', () => {
     expect(shouldTrackTrust(planningDir)).toBe(false);
   });
 
-  test('returns true when features.trust_tracking is absent (default true)', () => {
+  test('returns true when features.trust_tracking is absent (default true)', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -128,7 +128,7 @@ describe('shouldTrackTrust', () => {
     expect(shouldTrackTrust(planningDir)).toBe(true);
   });
 
-  test('returns true when no config.json exists (default true)', () => {
+  test('returns true when no config.json exists (default true)', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     expect(shouldTrackTrust(planningDir)).toBe(true);
@@ -136,7 +136,7 @@ describe('shouldTrackTrust', () => {
 });
 
 describe('loadFeatureFlag', () => {
-  test('returns flag value when present', () => {
+  test('returns flag value when present', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -146,7 +146,7 @@ describe('loadFeatureFlag', () => {
     expect(loadFeatureFlag(planningDir, 'trust_tracking')).toBe(false);
   });
 
-  test('returns undefined when flag absent', () => {
+  test('returns undefined when flag absent', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     fs.writeFileSync(
@@ -156,7 +156,7 @@ describe('loadFeatureFlag', () => {
     expect(loadFeatureFlag(planningDir, 'trust_tracking')).toBeUndefined();
   });
 
-  test('returns undefined when no config.json', () => {
+  test('returns undefined when no config.json', async () => {
     const { tmpDir, planningDir } = makeTempDir();
     tmpDirs.push(tmpDir);
     expect(loadFeatureFlag(planningDir, 'trust_tracking')).toBeUndefined();

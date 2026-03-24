@@ -72,7 +72,7 @@ function makeTestPlanningDir(phaseSlug, plans) {
 describe('buildPreview()', () => {
 
   // ── T1-a: return shape ──────────────────────────────────────────────────────
-  test('a: returns object with required top-level keys', () => {
+  test('a: returns object with required top-level keys', async () => {
     const tmpDir = makeTestPlanningDir('01-simple', [
       {
         filename: 'PLAN-01.md',
@@ -91,7 +91,7 @@ describe('buildPreview()', () => {
   });
 
   // ── T1-b: wave structure ────────────────────────────────────────────────────
-  test('b: phase with 2 plans in wave 1 and 1 in wave 2 returns correct waves array', () => {
+  test('b: phase with 2 plans in wave 1 and 1 in wave 2 returns correct waves array', async () => {
     const tmpDir = makeTestPlanningDir('02-waves', [
       {
         filename: 'PLAN-01.md',
@@ -120,7 +120,7 @@ describe('buildPreview()', () => {
   });
 
   // ── T1-c: files_affected deduplication ─────────────────────────────────────
-  test('c: files_affected is a deduplicated sorted array of all files_modified', () => {
+  test('c: files_affected is a deduplicated sorted array of all files_modified', async () => {
     const tmpDir = makeTestPlanningDir('03-files', [
       {
         filename: 'PLAN-01.md',
@@ -179,7 +179,7 @@ describe('buildPreview()', () => {
   });
 
   // ── T1-d: agent_count from task tags ───────────────────────────────────────
-  test('d: agent_count equals total task count across all plans', () => {
+  test('d: agent_count equals total task count across all plans', async () => {
     const tmpDir = makeTestPlanningDir('04-agents', [
       {
         filename: 'PLAN-01.md',
@@ -197,7 +197,7 @@ describe('buildPreview()', () => {
   });
 
   // ── T1-e: critical_path ─────────────────────────────────────────────────────
-  test('e: critical_path is first plan ID from each wave in order', () => {
+  test('e: critical_path is first plan ID from each wave in order', async () => {
     const tmpDir = makeTestPlanningDir('05-crit', [
       {
         filename: 'PLAN-01.md',
@@ -240,7 +240,7 @@ describe('buildPreview()', () => {
   });
 
   // ── T1-g: nonexistent phase ─────────────────────────────────────────────────
-  test('g: nonexistent phase slug returns error object', () => {
+  test('g: nonexistent phase slug returns error object', async () => {
     const tmpDir = makeTestPlanningDir('07-exists', []);
     const result = buildPreview('does-not-exist-xyz', {}, tmpDir, PLUGIN_ROOT);
     expect(result).toHaveProperty('error');
@@ -248,7 +248,7 @@ describe('buildPreview()', () => {
   });
 
   // ── T1-h: zero PLAN files ───────────────────────────────────────────────────
-  test('h: phase with zero PLAN files returns empty result', () => {
+  test('h: phase with zero PLAN files returns empty result', async () => {
     const tmpDir = makeTestPlanningDir('08-empty', []);
     // phaseDir already created by makeTestPlanningDir but with no plans
     const result = buildPreview('empty', {}, tmpDir, PLUGIN_ROOT);

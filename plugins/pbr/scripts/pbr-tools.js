@@ -435,19 +435,19 @@ async function main() {
 
   try {
     if (command === 'state') {
-      handleState(args, ctx);
+      await handleState(args, ctx);
     } else if (command === 'state-bundle') {
       handleStateBundle(args, ctx);
     } else if (command === 'config' || command === 'validate') {
-      handleConfig(args, ctx);
+      await handleConfig(args, ctx);
     } else if (command === 'roadmap') {
-      handleRoadmap(args, ctx);
+      await handleRoadmap(args, ctx);
     } else if (command === 'phase') {
-      handlePhase(args, ctx);
+      await handlePhase(args, ctx);
     } else if (command === 'compound') {
-      handleCompound(args, ctx);
+      await handleCompound(args, ctx);
     } else if (command === 'init') {
-      handleInit(args, ctx);
+      await handleInit(args, ctx);
     } else if (['plan-index', 'frontmatter', 'must-haves', 'phase-info', 'milestone-stats'].includes(command)) {
       handlePhaseDirect(args, ctx);
     } else if (command === 'verify') {

@@ -54,7 +54,7 @@ describe('checkPreResearch', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns null when progress < 70%', () => {
+  test('returns null when progress < 70%', async () => {
     writeState(tmpDir, { current_phase: 1, total_phases: 3, progress_percent: 50 });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: false },
@@ -65,7 +65,7 @@ describe('checkPreResearch', () => {
     expect(result).toBeNull();
   });
 
-  test('returns advisory when progress >= 70% and next phase exists', () => {
+  test('returns advisory when progress >= 70% and next phase exists', async () => {
     writeState(tmpDir, { current_phase: 2, total_phases: 4, progress_percent: 75 });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: true },
@@ -80,7 +80,7 @@ describe('checkPreResearch', () => {
     expect(result.command).toBe('/pbr:explore 3');
   });
 
-  test('returns null when signal file already exists (idempotent)', () => {
+  test('returns null when signal file already exists (idempotent)', async () => {
     writeState(tmpDir, { current_phase: 2, total_phases: 4, progress_percent: 80 });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: true },
@@ -94,7 +94,7 @@ describe('checkPreResearch', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when no next phase exists (last phase)', () => {
+  test('returns null when no next phase exists (last phase)', async () => {
     writeState(tmpDir, { current_phase: 3, total_phases: 3, progress_percent: 90 });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: true },
@@ -105,7 +105,7 @@ describe('checkPreResearch', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when feature disabled in config', () => {
+  test('returns null when feature disabled in config', async () => {
     writeState(tmpDir, { current_phase: 1, total_phases: 3, progress_percent: 80 });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: false },
@@ -116,7 +116,7 @@ describe('checkPreResearch', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when status is verified (phase done)', () => {
+  test('returns null when status is verified (phase done)', async () => {
     writeState(tmpDir, { current_phase: 2, total_phases: 3, progress_percent: 100, status: 'verified' });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: true },
@@ -127,7 +127,7 @@ describe('checkPreResearch', () => {
     expect(result).toBeNull();
   });
 
-  test('writes signal file on successful trigger', () => {
+  test('writes signal file on successful trigger', async () => {
     writeState(tmpDir, { current_phase: 1, total_phases: 3, progress_percent: 70 });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: false },
@@ -142,7 +142,7 @@ describe('checkPreResearch', () => {
     expect(fs.existsSync(signalPath)).toBe(true);
   });
 
-  test('returns null when progress is exactly 100% and status is verified', () => {
+  test('returns null when progress is exactly 100% and status is verified', async () => {
     writeState(tmpDir, { current_phase: 1, total_phases: 2, progress_percent: 100, status: 'verified' });
     writeRoadmap(tmpDir, [
       { num: 1, name: 'Foundation', completed: true },

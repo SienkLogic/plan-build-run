@@ -23,7 +23,7 @@ const healthPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib'
 
 describe('health-zero-friction', () => {
   describe('checkZeroFrictionHealth', () => {
-    test('reports zero_friction_quick as healthy when enabled in config', () => {
+    test('reports zero_friction_quick as healthy when enabled in config', async () => {
       const { checkZeroFrictionHealth } = require(healthPath);
       const config = { features: { zero_friction_quick: true } };
       const result = checkZeroFrictionHealth(config);
@@ -31,7 +31,7 @@ describe('health-zero-friction', () => {
       expect(result.status).toBe('healthy');
     });
 
-    test('reports zero_friction_quick as disabled when toggled off', () => {
+    test('reports zero_friction_quick as disabled when toggled off', async () => {
       const { checkZeroFrictionHealth } = require(healthPath);
       const config = { features: { zero_friction_quick: false } };
       const result = checkZeroFrictionHealth(config);
@@ -39,7 +39,7 @@ describe('health-zero-friction', () => {
       expect(result.status).toBe('disabled');
     });
 
-    test('reports healthy when feature flag is undefined (default true)', () => {
+    test('reports healthy when feature flag is undefined (default true)', async () => {
       const { checkZeroFrictionHealth } = require(healthPath);
       const config = { features: {} };
       const result = checkZeroFrictionHealth(config);
@@ -49,7 +49,7 @@ describe('health-zero-friction', () => {
   });
 
   describe('checkPostHocHealth', () => {
-    test('reports post_hoc_artifacts as healthy when post-hoc.cjs module loads', () => {
+    test('reports post_hoc_artifacts as healthy when post-hoc.cjs module loads', async () => {
       const { checkPostHocHealth } = require(healthPath);
       const config = { features: { post_hoc_artifacts: true } };
       const result = checkPostHocHealth(config);
@@ -57,7 +57,7 @@ describe('health-zero-friction', () => {
       expect(result.status).toBe('healthy');
     });
 
-    test('reports post_hoc_artifacts as disabled when toggled off', () => {
+    test('reports post_hoc_artifacts as disabled when toggled off', async () => {
       const { checkPostHocHealth } = require(healthPath);
       const config = { features: { post_hoc_artifacts: false } };
       const result = checkPostHocHealth(config);
@@ -65,7 +65,7 @@ describe('health-zero-friction', () => {
       expect(result.status).toBe('disabled');
     });
 
-    test('returns detail string describing status', () => {
+    test('returns detail string describing status', async () => {
       const { checkPostHocHealth } = require(healthPath);
       const config = { features: { post_hoc_artifacts: true } };
       const result = checkPostHocHealth(config);
@@ -76,7 +76,7 @@ describe('health-zero-friction', () => {
   });
 
   describe('getZeroFrictionHealthReport', () => {
-    test('returns array with both feature checks', () => {
+    test('returns array with both feature checks', async () => {
       const { getZeroFrictionHealthReport } = require(healthPath);
       const config = { features: { zero_friction_quick: true, post_hoc_artifacts: true } };
       const report = getZeroFrictionHealthReport(config);

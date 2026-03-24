@@ -14,7 +14,7 @@ describe('clean-changelog getVersionTags', () => {
     jest.resetAllMocks();
   });
 
-  test('filters out non-semver tags', () => {
+  test('filters out non-semver tags', async () => {
     execSync.mockReturnValue(
       'plan-build-run-v2.12.1\nplan-build-run-v9.0\nplan-build-run-v2.11.0\nplan-build-run-v11.0\n'
     );
@@ -22,7 +22,7 @@ describe('clean-changelog getVersionTags', () => {
     expect(tags).toEqual(['plan-build-run-v2.12.1', 'plan-build-run-v2.11.0']);
   });
 
-  test('excludes tags like plan-build-run-v9.0 and plan-build-run-v11.0', () => {
+  test('excludes tags like plan-build-run-v9.0 and plan-build-run-v11.0', async () => {
     execSync.mockReturnValue(
       'plan-build-run-v9.0\nplan-build-run-v11.0\n'
     );
@@ -30,7 +30,7 @@ describe('clean-changelog getVersionTags', () => {
     expect(tags).toEqual([]);
   });
 
-  test('includes valid semver tags like plan-build-run-v2.12.1 and plan-build-run-v0.1.0', () => {
+  test('includes valid semver tags like plan-build-run-v2.12.1 and plan-build-run-v0.1.0', async () => {
     execSync.mockReturnValue(
       'plan-build-run-v2.12.1\nplan-build-run-v0.1.0\nplan-build-run-v1.0.0\n'
     );
@@ -42,7 +42,7 @@ describe('clean-changelog getVersionTags', () => {
     ]);
   });
 
-  test('returns empty array when git command fails', () => {
+  test('returns empty array when git command fails', async () => {
     execSync.mockImplementation(() => { throw new Error('git not found'); });
     const tags = getVersionTags();
     expect(tags).toEqual([]);
@@ -50,13 +50,13 @@ describe('clean-changelog getVersionTags', () => {
 });
 
 describe('SEMVER_TAG regex', () => {
-  test('matches valid semver tags', () => {
+  test('matches valid semver tags', async () => {
     expect(SEMVER_TAG.test('plan-build-run-v2.12.1')).toBe(true);
     expect(SEMVER_TAG.test('plan-build-run-v0.1.0')).toBe(true);
     expect(SEMVER_TAG.test('plan-build-run-v10.20.30')).toBe(true);
   });
 
-  test('rejects non-semver tags', () => {
+  test('rejects non-semver tags', async () => {
     expect(SEMVER_TAG.test('plan-build-run-v9.0')).toBe(false);
     expect(SEMVER_TAG.test('plan-build-run-v11.0')).toBe(false);
     expect(SEMVER_TAG.test('plan-build-run-v1')).toBe(false);

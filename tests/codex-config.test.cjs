@@ -28,7 +28,7 @@ const {
 // ─── getCodexSkillAdapterHeader ─────────────────────────────────────────────────
 
 describe('getCodexSkillAdapterHeader', () => {
-  test('contains all three sections', () => {
+  test('contains all three sections', async () => {
     const result = getCodexSkillAdapterHeader('pbr-execute-phase');
     assert.ok(result.includes('<codex_skill_adapter>'), 'has opening tag');
     assert.ok(result.includes('</codex_skill_adapter>'), 'has closing tag');
@@ -37,13 +37,13 @@ describe('getCodexSkillAdapterHeader', () => {
     assert.ok(result.includes('## C. Task() → spawn_agent'), 'has section C');
   });
 
-  test('includes correct invocation syntax', () => {
+  test('includes correct invocation syntax', async () => {
     const result = getCodexSkillAdapterHeader('pbr-plan-phase');
     assert.ok(result.includes('`$pbr-plan-phase`'), 'has $skillName invocation');
     assert.ok(result.includes('{{PBR_ARGS}}'), 'has PBR_ARGS variable');
   });
 
-  test('section B maps AskUserQuestion parameters', () => {
+  test('section B maps AskUserQuestion parameters', async () => {
     const result = getCodexSkillAdapterHeader('pbr-discuss-phase');
     assert.ok(result.includes('request_user_input'), 'maps to request_user_input');
     assert.ok(result.includes('header'), 'maps header parameter');
@@ -54,7 +54,7 @@ describe('getCodexSkillAdapterHeader', () => {
     assert.ok(result.includes('Execute mode'), 'documents Execute mode fallback');
   });
 
-  test('section C maps Task to spawn_agent', () => {
+  test('section C maps Task to spawn_agent', async () => {
     const result = getCodexSkillAdapterHeader('pbr-execute-phase');
     assert.ok(result.includes('spawn_agent'), 'maps to spawn_agent');
     assert.ok(result.includes('agent_type'), 'maps subagent_type to agent_type');
@@ -68,7 +68,7 @@ describe('getCodexSkillAdapterHeader', () => {
 // ─── convertClaudeAgentToCodexAgent ─────────────────────────────────────────────
 
 describe('convertClaudeAgentToCodexAgent', () => {
-  test('adds codex_agent_role header and cleans frontmatter', () => {
+  test('adds codex_agent_role header and cleans frontmatter', async () => {
     const input = `---
 name: pbr-executor
 description: Executes PBR plans with atomic commits
@@ -103,7 +103,7 @@ You are a PBR plan executor.
     assert.ok(result.includes('<role>'), 'body content preserved');
   });
 
-  test('converts slash commands in body', () => {
+  test('converts slash commands in body', async () => {
     const input = `---
 name: pbr-test
 description: Test agent
@@ -117,7 +117,7 @@ Run /pbr:execute-phase to proceed.`;
     assert.ok(!result.includes('/pbr:execute-phase'), 'original slash command removed');
   });
 
-  test('handles content without frontmatter', () => {
+  test('handles content without frontmatter', async () => {
     const input = 'Just some content without frontmatter.';
     const result = convertClaudeAgentToCodexAgent(input);
     assert.strictEqual(result, input, 'returns input unchanged');
@@ -136,12 +136,12 @@ color: yellow
 
 <role>You are an executor.</role>`;
 
-  test('sets workspace-write for executor', () => {
+  test('sets workspace-write for executor', async () => {
     const result = generateCodexAgentToml('pbr-executor', sampleAgent);
     assert.ok(result.includes('sandbox_mode = "workspace-write"'), 'has workspace-write');
   });
 
-  test('sets read-only for plan-checker', () => {
+  test('sets read-only for plan-checker', async () => {
     const checker = `---
 name: pbr-plan-checker
 description: Checks plans
@@ -153,14 +153,14 @@ tools: Read, Grep, Glob
     assert.ok(result.includes('sandbox_mode = "read-only"'), 'has read-only');
   });
 
-  test('includes developer_instructions from body', () => {
+  test('includes developer_instructions from body', async () => {
     const result = generateCodexAgentToml('pbr-executor', sampleAgent);
     assert.ok(result.includes('developer_instructions = """'), 'has triple-quoted instructions');
     assert.ok(result.includes('<role>You are an executor.</role>'), 'body content in instructions');
     assert.ok(result.includes('"""'), 'has closing triple quotes');
   });
 
-  test('defaults unknown agents to read-only', () => {
+  test('defaults unknown agents to read-only', async () => {
     const result = generateCodexAgentToml('pbr-unknown', sampleAgent);
     assert.ok(result.includes('sandbox_mode = "read-only"'), 'defaults to read-only');
   });
@@ -169,12 +169,12 @@ tools: Read, Grep, Glob
 // ─── CODEX_AGENT_SANDBOX mapping ────────────────────────────────────────────────
 
 describe('CODEX_AGENT_SANDBOX', () => {
-  test('has all 14 agents mapped', () => {
+  test('has all 14 agents mapped', async () => {
     const agentNames = Object.keys(CODEX_AGENT_SANDBOX);
     assert.strictEqual(agentNames.length, 14, 'has 14 agents');
   });
 
-  test('workspace-write agents have write tools', () => {
+  test('workspace-write agents have write tools', async () => {
     const writeAgents = [
       'pbr-codebase-mapper', 'pbr-debugger', 'pbr-dev-sync',
       'pbr-executor', 'pbr-general', 'pbr-planner',
@@ -186,7 +186,7 @@ describe('CODEX_AGENT_SANDBOX', () => {
     }
   });
 
-  test('read-only agents have no write tools', () => {
+  test('read-only agents have no write tools', async () => {
     const readOnlyAgents = ['pbr-audit', 'pbr-integration-checker', 'pbr-nyquist-auditor', 'pbr-plan-checker'];
     for (const name of readOnlyAgents) {
       assert.strictEqual(CODEX_AGENT_SANDBOX[name], 'read-only', `${name} is read-only`);
@@ -202,26 +202,26 @@ describe('generateCodexConfigBlock', () => {
     { name: 'pbr-planner', description: 'Creates plans' },
   ];
 
-  test('starts with PBR marker', () => {
+  test('starts with PBR marker', async () => {
     const result = generateCodexConfigBlock(agents);
     assert.ok(result.startsWith(PBR_CODEX_MARKER), 'starts with marker');
   });
 
-  test('includes feature flags', () => {
+  test('includes feature flags', async () => {
     const result = generateCodexConfigBlock(agents);
     assert.ok(result.includes('[features]'), 'has features table');
     assert.ok(result.includes('multi_agent = true'), 'has multi_agent');
     assert.ok(result.includes('default_mode_request_user_input = true'), 'has request_user_input');
   });
 
-  test('includes agents table with limits', () => {
+  test('includes agents table with limits', async () => {
     const result = generateCodexConfigBlock(agents);
     assert.ok(result.includes('[agents]'), 'has agents table');
     assert.ok(result.includes('max_threads = 4'), 'has max_threads');
     assert.ok(result.includes('max_depth = 2'), 'has max_depth');
   });
 
-  test('includes per-agent sections', () => {
+  test('includes per-agent sections', async () => {
     const result = generateCodexConfigBlock(agents);
     assert.ok(result.includes('[agents.pbr-executor]'), 'has executor section');
     assert.ok(result.includes('[agents.pbr-planner]'), 'has planner section');
@@ -233,13 +233,13 @@ describe('generateCodexConfigBlock', () => {
 // ─── stripPbrFromCodexConfig ────────────────────────────────────────────────────
 
 describe('stripPbrFromCodexConfig', () => {
-  test('returns null for PBR-only config', () => {
+  test('returns null for PBR-only config', async () => {
     const content = `${PBR_CODEX_MARKER}\n[features]\nmulti_agent = true\n`;
     const result = stripPbrFromCodexConfig(content);
     assert.strictEqual(result, null, 'returns null when PBR-only');
   });
 
-  test('preserves user content before marker', () => {
+  test('preserves user content before marker', async () => {
     const content = `[model]\nname = "o3"\n\n${PBR_CODEX_MARKER}\n[features]\nmulti_agent = true\n`;
     const result = stripPbrFromCodexConfig(content);
     assert.ok(result.includes('[model]'), 'preserves user section');
@@ -248,7 +248,7 @@ describe('stripPbrFromCodexConfig', () => {
     assert.ok(!result.includes(PBR_CODEX_MARKER), 'removes marker');
   });
 
-  test('strips injected feature keys without marker', () => {
+  test('strips injected feature keys without marker', async () => {
     const content = `[features]\nmulti_agent = true\ndefault_mode_request_user_input = true\nother_feature = false\n`;
     const result = stripPbrFromCodexConfig(content);
     assert.ok(!result.includes('multi_agent'), 'removes multi_agent');
@@ -256,14 +256,14 @@ describe('stripPbrFromCodexConfig', () => {
     assert.ok(result.includes('other_feature = false'), 'preserves user features');
   });
 
-  test('removes empty [features] section', () => {
+  test('removes empty [features] section', async () => {
     const content = `[features]\nmulti_agent = true\n[model]\nname = "o3"\n`;
     const result = stripPbrFromCodexConfig(content);
     assert.ok(!result.includes('[features]'), 'removes empty features section');
     assert.ok(result.includes('[model]'), 'preserves other sections');
   });
 
-  test('strips injected keys above marker on uninstall', () => {
+  test('strips injected keys above marker on uninstall', async () => {
     // Case 3 install injects keys into [features] AND appends marker block
     const content = `[model]\nname = "o3"\n\n[features]\nmulti_agent = true\ndefault_mode_request_user_input = true\nsome_custom_flag = true\n\n${PBR_CODEX_MARKER}\n[agents]\nmax_threads = 4\n`;
     const result = stripPbrFromCodexConfig(content);
@@ -274,7 +274,7 @@ describe('stripPbrFromCodexConfig', () => {
     assert.ok(!result.includes(PBR_CODEX_MARKER), 'strips marker');
   });
 
-  test('removes [agents.pbr-*] sections', () => {
+  test('removes [agents.pbr-*] sections', async () => {
     const content = `[agents.pbr-executor]\ndescription = "test"\nconfig_file = "agents/pbr-executor.toml"\n\n[agents.custom-agent]\ndescription = "user agent"\n`;
     const result = stripPbrFromCodexConfig(content);
     assert.ok(!result.includes('[agents.pbr-executor]'), 'removes PBR agent section');
@@ -299,7 +299,7 @@ describe('mergeCodexConfig', () => {
     { name: 'pbr-executor', description: 'Executes plans' },
   ]);
 
-  test('case 1: creates new config.toml', () => {
+  test('case 1: creates new config.toml', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     mergeCodexConfig(configPath, sampleBlock);
 
@@ -310,7 +310,7 @@ describe('mergeCodexConfig', () => {
     assert.ok(content.includes('[agents.pbr-executor]'), 'has agent');
   });
 
-  test('case 2: replaces existing PBR block', () => {
+  test('case 2: replaces existing PBR block', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     const userContent = '[model]\nname = "o3"\n';
     fs.writeFileSync(configPath, userContent + '\n' + sampleBlock + '\n');
@@ -331,7 +331,7 @@ describe('mergeCodexConfig', () => {
     assert.strictEqual(markerCount, 1, 'exactly one marker');
   });
 
-  test('case 3: appends to config without PBR marker', () => {
+  test('case 3: appends to config without PBR marker', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     fs.writeFileSync(configPath, '[model]\nname = "o3"\n');
 
@@ -343,7 +343,7 @@ describe('mergeCodexConfig', () => {
     assert.ok(content.includes('multi_agent = true'), 'has features');
   });
 
-  test('case 3 with existing [features]: injects keys', () => {
+  test('case 3 with existing [features]: injects keys', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     fs.writeFileSync(configPath, '[features]\nother_feature = true\n\n[model]\nname = "o3"\n');
 
@@ -356,7 +356,7 @@ describe('mergeCodexConfig', () => {
     assert.ok(content.includes(PBR_CODEX_MARKER), 'adds marker for agents block');
   });
 
-  test('idempotent: re-merge produces same result', () => {
+  test('idempotent: re-merge produces same result', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     mergeCodexConfig(configPath, sampleBlock);
     const first = fs.readFileSync(configPath, 'utf8');
@@ -367,7 +367,7 @@ describe('mergeCodexConfig', () => {
     assert.strictEqual(first, second, 'idempotent merge');
   });
 
-  test('case 2 after case 3 with existing [features]: no duplicate sections', () => {
+  test('case 2 after case 3 with existing [features]: no duplicate sections', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     fs.writeFileSync(configPath, '[features]\nother_feature = true\n\n[model]\nname = "o3"\n');
     mergeCodexConfig(configPath, sampleBlock);
@@ -384,7 +384,7 @@ describe('mergeCodexConfig', () => {
     assert.ok(content.includes('[agents.pbr-executor]'), 'has agent');
   });
 
-  test('case 2 re-injects missing feature keys', () => {
+  test('case 2 re-injects missing feature keys', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     const manualContent = '[features]\nother_feature = true\n\n' + PBR_CODEX_MARKER + '\n[agents]\nmax_threads = 4\n';
     fs.writeFileSync(configPath, manualContent);
@@ -397,7 +397,7 @@ describe('mergeCodexConfig', () => {
     assert.ok(content.includes('other_feature = true'), 'preserves user feature');
   });
 
-  test('case 2 strips leaked [agents] from before content', () => {
+  test('case 2 strips leaked [agents] from before content', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     const brokenContent = [
       '[features]',
@@ -429,7 +429,7 @@ describe('mergeCodexConfig', () => {
     assert.ok(content.includes('[agents.pbr-executor]'), 'has agent from fresh block');
   });
 
-  test('case 2 idempotent after case 3 with existing [features]', () => {
+  test('case 2 idempotent after case 3 with existing [features]', async () => {
     const configPath = path.join(tmpDir, 'config.toml');
     fs.writeFileSync(configPath, '[features]\nother_feature = true\n');
     mergeCodexConfig(configPath, sampleBlock);

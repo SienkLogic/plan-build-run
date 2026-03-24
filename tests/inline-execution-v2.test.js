@@ -59,7 +59,7 @@ function makeConfig(overrides = {}) {
 }
 
 describe('shouldInlineExecution v2 - feature toggle', () => {
-  test('returns inline:false with reason "feature disabled" when features.inline_simple_tasks is false', () => {
+  test('returns inline:false with reason "feature disabled" when features.inline_simple_tasks is false', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['file1.js'] }
@@ -70,7 +70,7 @@ describe('shouldInlineExecution v2 - feature toggle', () => {
     expect(result.reason).toBe('feature disabled');
   });
 
-  test('allows inline when features.inline_simple_tasks is true', () => {
+  test('allows inline when features.inline_simple_tasks is true', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['file1.js'] }
@@ -80,7 +80,7 @@ describe('shouldInlineExecution v2 - feature toggle', () => {
     expect(result.inline).toBe(true);
   });
 
-  test('allows inline when features.inline_simple_tasks is undefined (default)', () => {
+  test('allows inline when features.inline_simple_tasks is undefined (default)', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['file1.js'] }
@@ -92,7 +92,7 @@ describe('shouldInlineExecution v2 - feature toggle', () => {
 });
 
 describe('shouldInlineExecution v2 - file count check', () => {
-  test('returns inline:false when file count exceeds inline_max_files', () => {
+  test('returns inline:false when file count exceeds inline_max_files', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['a.js', 'b.js', 'c.js', 'd.js', 'e.js', 'f.js'] }
@@ -103,7 +103,7 @@ describe('shouldInlineExecution v2 - file count check', () => {
     expect(result.reason).toMatch(/file count 6 exceeds max 5/);
   });
 
-  test('allows inline when file count is within inline_max_files', () => {
+  test('allows inline when file count is within inline_max_files', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['a.js', 'b.js', 'c.js'] }
@@ -113,7 +113,7 @@ describe('shouldInlineExecution v2 - file count check', () => {
     expect(result.inline).toBe(true);
   });
 
-  test('uses default inline_max_files=5 when not specified', () => {
+  test('uses default inline_max_files=5 when not specified', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['a.js', 'b.js', 'c.js', 'd.js', 'e.js', 'f.js'] }
@@ -126,7 +126,7 @@ describe('shouldInlineExecution v2 - file count check', () => {
 });
 
 describe('shouldInlineExecution v2 - line estimation check', () => {
-  test('returns inline:false when estimated lines exceed inline_max_lines', () => {
+  test('returns inline:false when estimated lines exceed inline_max_lines', async () => {
     // 3 medium tasks = 3 * 80 = 240 estimated lines
     const _planPath = createTempPlan(
       [
@@ -156,7 +156,7 @@ describe('shouldInlineExecution v2 - line estimation check', () => {
     expect(result.reason).toMatch(/estimated lines 60 exceeds max 50/);
   });
 
-  test('allows inline when estimated lines are within max', () => {
+  test('allows inline when estimated lines are within max', async () => {
     // 1 simple task = 20 lines, max 50 -> should pass
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
@@ -167,7 +167,7 @@ describe('shouldInlineExecution v2 - line estimation check', () => {
     expect(result.inline).toBe(true);
   });
 
-  test('uses default inline_max_lines=50 when not specified', () => {
+  test('uses default inline_max_lines=50 when not specified', async () => {
     // 3 simple tasks = 60 lines, default max 50 -> should block
     const planPath = createTempPlan(
       [
@@ -185,7 +185,7 @@ describe('shouldInlineExecution v2 - line estimation check', () => {
 });
 
 describe('shouldInlineExecution v2 - enriched return', () => {
-  test('returns fileCount and estimatedLines on success', () => {
+  test('returns fileCount and estimatedLines on success', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['a.js', 'b.js'] }
@@ -200,7 +200,7 @@ describe('shouldInlineExecution v2 - enriched return', () => {
 });
 
 describe('shouldInlineExecution v2 - backward compatibility', () => {
-  test('old config with only workflow.inline_execution works unchanged', () => {
+  test('old config with only workflow.inline_execution works unchanged', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['a.js'] }
@@ -210,7 +210,7 @@ describe('shouldInlineExecution v2 - backward compatibility', () => {
     expect(result.inline).toBe(true);
   });
 
-  test('old config without features key still works', () => {
+  test('old config without features key still works', async () => {
     const planPath = createTempPlan(
       [{ id: 'T1', complexity: 'simple', name: 'Simple task' }],
       { files_modified: ['a.js'] }
@@ -222,7 +222,7 @@ describe('shouldInlineExecution v2 - backward compatibility', () => {
 });
 
 describe('parsePlanFrontmatter', () => {
-  test('extracts files_modified correctly', () => {
+  test('extracts files_modified correctly', async () => {
     const content = `---
 phase: "01"
 plan: "01-01"
@@ -237,7 +237,7 @@ Some body content`;
     expect(fm.files_modified).toEqual(['src/index.js', 'src/utils.js', 'tests/index.test.js']);
   });
 
-  test('returns empty array when no files_modified', () => {
+  test('returns empty array when no files_modified', async () => {
     const content = `---
 phase: "01"
 plan: "01-01"
@@ -248,7 +248,7 @@ Some body content`;
     expect(fm.files_modified).toEqual([]);
   });
 
-  test('handles content without frontmatter', () => {
+  test('handles content without frontmatter', async () => {
     const content = 'No frontmatter here';
     const fm = parsePlanFrontmatter(content);
     expect(fm.files_modified).toEqual([]);

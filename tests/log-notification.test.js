@@ -22,12 +22,12 @@ describe('log-notification.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handles missing data gracefully', () => {
+    test('handles missing data gracefully', async () => {
       const result = handleHttp({});
       expect(result).toBeNull();
     });
 
-    test('handles empty object data', () => {
+    test('handles empty object data', async () => {
       const result = handleHttp({ data: {} });
       expect(result).toBeNull();
     });
@@ -42,7 +42,7 @@ describe('log-notification.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handles long message without error', () => {
+    test('handles long message without error', async () => {
       const longMessage = 'x'.repeat(500);
       const result = handleHttp({
         data: {
@@ -54,7 +54,7 @@ describe('log-notification.js', () => {
       expect(result).toBeNull();
     });
 
-    test('handles null agent_id', () => {
+    test('handles null agent_id', async () => {
       const result = handleHttp({
         data: {
           notification_type: 'system',
@@ -66,7 +66,7 @@ describe('log-notification.js', () => {
   });
 
   describe('hook execution', () => {
-    test('exits 0 with valid notification data', () => {
+    test('exits 0 with valid notification data', async () => {
       const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, {
         notification_type: 'agent_complete',
@@ -77,28 +77,28 @@ describe('log-notification.js', () => {
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 with empty input', () => {
+    test('exits 0 with empty input', async () => {
       const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, {});
       expect(result.exitCode).toBe(0);
       cleanupTmp(tmpDir);
     });
 
-    test('exits 0 when .planning directory does not exist', () => {
+    test('exits 0 when .planning directory does not exist', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ln-noplan-'));
       const result = runScript(tmpDir, { notification_type: 'test' });
       expect(result.exitCode).toBe(0);
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('exits 0 with malformed JSON input', () => {
+    test('exits 0 with malformed JSON input', async () => {
       const { tmpDir } = createTmpPlanning();
       const result = _run('not json', { cwd: tmpDir });
       expect(result.exitCode).toBe(0);
       cleanupTmp(tmpDir);
     });
 
-    test('writes to hooks.jsonl log file', () => {
+    test('writes to hooks.jsonl log file', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
       runScript(tmpDir, {
         notification_type: 'agent_complete',
@@ -119,7 +119,7 @@ describe('log-notification.js', () => {
   });
 
   describe('notification throttle in autonomous mode', () => {
-    test('suppresses routine notifications after max_per_window in autonomous mode', () => {
+    test('suppresses routine notifications after max_per_window in autonomous mode', async () => {
       const state = createThrottleState();
       const key = 'notification:agent_complete';
       const opts = { isAutonomous: true, isCritical: false, windowMs: 1000, maxPerWindow: 2 };
@@ -133,7 +133,7 @@ describe('log-notification.js', () => {
       expect(shouldThrottle(state, key, opts)).toBe(true);
     });
 
-    test('critical messages are never throttled even in autonomous mode', () => {
+    test('critical messages are never throttled even in autonomous mode', async () => {
       const state = createThrottleState();
       const key = 'notification:error';
       const opts = { isAutonomous: true, isCritical: true, windowMs: 1000, maxPerWindow: 2 };
@@ -144,14 +144,14 @@ describe('log-notification.js', () => {
       }
     });
 
-    test('isCriticalMessage detects CRITICAL keyword', () => {
+    test('isCriticalMessage detects CRITICAL keyword', async () => {
       expect(isCriticalMessage('CRITICAL: database connection lost')).toBe(true);
       expect(isCriticalMessage('error in module X')).toBe(true);
       expect(isCriticalMessage('Task completed successfully')).toBe(false);
       expect(isCriticalMessage('Agent finished work')).toBe(false);
     });
 
-    test('interactive mode (non-autonomous) is never throttled', () => {
+    test('interactive mode (non-autonomous) is never throttled', async () => {
       const state = createThrottleState();
       const key = 'notification:agent_complete';
       const opts = { isAutonomous: false, isCritical: false, windowMs: 1000, maxPerWindow: 1 };
@@ -162,7 +162,7 @@ describe('log-notification.js', () => {
       }
     });
 
-    test('hook script throttles in autonomous mode via process execution', () => {
+    test('hook script throttles in autonomous mode via process execution', async () => {
       const { tmpDir, planningDir } = createTmpPlanning();
 
       // Write autonomous config with aggressive throttle settings

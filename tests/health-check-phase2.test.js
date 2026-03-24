@@ -53,7 +53,7 @@ function runHealth(config) {
 }
 
 describe('Phase 2 health check — inline_simple_tasks', () => {
-  test('reports enabled when toggle true and workflow props valid', () => {
+  test('reports enabled when toggle true and workflow props valid', async () => {
     const result = runHealth({
       features: { inline_simple_tasks: true },
       workflow: { inline_max_files: 5, inline_max_lines: 50 }
@@ -65,7 +65,7 @@ describe('Phase 2 health check — inline_simple_tasks', () => {
     });
   });
 
-  test('reports disabled when toggle false', () => {
+  test('reports disabled when toggle false', async () => {
     const result = runHealth({
       features: { inline_simple_tasks: false },
       workflow: {}
@@ -77,7 +77,7 @@ describe('Phase 2 health check — inline_simple_tasks', () => {
     });
   });
 
-  test('reports degraded when enabled but inline_max_files/inline_max_lines missing', () => {
+  test('reports degraded when enabled but inline_max_files/inline_max_lines missing', async () => {
     const result = runHealth({
       features: { inline_simple_tasks: true },
       workflow: {}
@@ -91,7 +91,7 @@ describe('Phase 2 health check — inline_simple_tasks', () => {
 });
 
 describe('Phase 2 health check — rich_agent_prompts', () => {
-  test('reports enabled when toggle true', () => {
+  test('reports enabled when toggle true', async () => {
     const result = runHealth({
       features: { rich_agent_prompts: true },
       workflow: {}
@@ -103,7 +103,7 @@ describe('Phase 2 health check — rich_agent_prompts', () => {
     });
   });
 
-  test('reports disabled when toggle false', () => {
+  test('reports disabled when toggle false', async () => {
     const result = runHealth({
       features: { rich_agent_prompts: false },
       workflow: {}
@@ -117,7 +117,7 @@ describe('Phase 2 health check — rich_agent_prompts', () => {
 });
 
 describe('Phase 2 health check — multi_phase_awareness', () => {
-  test('reports enabled when toggle true and max_phases_in_context set', () => {
+  test('reports enabled when toggle true and max_phases_in_context set', async () => {
     const result = runHealth({
       features: { multi_phase_awareness: true },
       workflow: { max_phases_in_context: 3 }
@@ -129,7 +129,7 @@ describe('Phase 2 health check — multi_phase_awareness', () => {
     });
   });
 
-  test('reports degraded when enabled but max_phases_in_context missing', () => {
+  test('reports degraded when enabled but max_phases_in_context missing', async () => {
     const result = runHealth({
       features: { multi_phase_awareness: true },
       workflow: {}
@@ -143,7 +143,7 @@ describe('Phase 2 health check — multi_phase_awareness', () => {
 });
 
 describe('Phase 2 health check — all features combined', () => {
-  test('all 3 features report status simultaneously', () => {
+  test('all 3 features report status simultaneously', async () => {
     const result = runHealth({
       features: {
         inline_simple_tasks: true,

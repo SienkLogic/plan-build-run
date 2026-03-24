@@ -47,6 +47,22 @@ describe('pid-lock', () => {
       expect(content.pid).toBe(process.pid);
     });
 
+    it('returns acquired: false when lockfile write fails', () => {
+      const origWrite = fs.writeFileSync;
+      fs.writeFileSync = (p, ...args) => {
+        if (p.endsWith('.hook-server.pid')) throw Object.assign(new Error('EROFS'), { code: 'EROFS' });
+        return origWrite.call(fs, p, ...args);
+      };
+      try {
+        const result = acquireLock(tmpDir, 19836);
+        expect(result.acquired).toBe(false);
+        expect(result.reason).toBe('write-error');
+        expect(result.error).toMatch(/EROFS/);
+      } finally {
+        fs.writeFileSync = origWrite;
+      }
+    });
+
     it('returns acquired: false when server is already running', () => {
       // Write lockfile with current process PID (alive)
       const lockPath = path.join(tmpDir, '.hook-server.pid');

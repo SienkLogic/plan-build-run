@@ -26,7 +26,7 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
   const { getScaledThreshold } = require('../plugins/pbr/scripts/suggest-compact');
   const { configClearCache } = require('../plugins/pbr/scripts/pbr-tools');
 
-  test('threshold at 1M tokens with budget_pct=25 is higher than at 200k', () => {
+  test('threshold at 1M tokens with budget_pct=25 is higher than at 200k', async () => {
     // Write config with 1M tokens, budget_pct=25
     configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
@@ -48,7 +48,7 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
     expect(threshold1M).toBeGreaterThan(threshold200k);
   });
 
-  test('threshold at 1M tokens with budget_pct=35 is proportionally higher than budget_pct=25', () => {
+  test('threshold at 1M tokens with budget_pct=35 is proportionally higher than budget_pct=25', async () => {
     configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 1000000,
@@ -70,7 +70,7 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
     expect(ratio).toBeLessThanOrEqual(1.5);
   });
 
-  test('default budget_pct=25 preserves existing behavior at 200k tokens', () => {
+  test('default budget_pct=25 preserves existing behavior at 200k tokens', async () => {
     configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 200000
@@ -84,7 +84,7 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
 describe('isSkipRagEligible', () => {
   const { isSkipRagEligible } = require('../plugins/pbr/scripts/context-quality');
 
-  test('returns eligible when skip_rag=true and project is small', () => {
+  test('returns eligible when skip_rag=true and project is small', async () => {
     // Initialize git repo in tmpDir
     const { execSync } = require('child_process');
     execSync('git init', { cwd: tmpDir, stdio: 'pipe' });
@@ -107,7 +107,7 @@ describe('isSkipRagEligible', () => {
     expect(result.line_count).toBeLessThan(50000);
   });
 
-  test('returns not eligible when skip_rag=false', () => {
+  test('returns not eligible when skip_rag=false', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       features: { skip_rag: false }
     }));
@@ -117,7 +117,7 @@ describe('isSkipRagEligible', () => {
     expect(result.reason).toBe('disabled');
   });
 
-  test('returns not eligible when project exceeds max lines', () => {
+  test('returns not eligible when project exceeds max lines', async () => {
     const { execSync } = require('child_process');
     execSync('git init', { cwd: tmpDir, stdio: 'pipe' });
     execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'pipe' });
@@ -143,7 +143,7 @@ describe('isSkipRagEligible', () => {
 describe('track-context-budget quality scoring integration', () => {
   const { processEvent } = require('../plugins/pbr/scripts/track-context-budget');
 
-  test('processEvent calls quality scoring when feature is enabled', () => {
+  test('processEvent calls quality scoring when feature is enabled', async () => {
     // Write config with quality scoring enabled and ledger enabled
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       features: { context_quality_scoring: true },

@@ -39,7 +39,7 @@ describe('config-ensure-section command', () => {
     cleanup(tmpDir);
   });
 
-  test('creates config.json with expected structure and types', () => {
+  test('creates config.json with expected structure and types', async () => {
     const result = runPbrTools('config-ensure-section', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -63,7 +63,7 @@ describe('config-ensure-section command', () => {
     assert.ok('search_gitignored' in config, 'search_gitignored should exist');
   });
 
-  test('is idempotent — returns already_exists on second call', () => {
+  test('is idempotent — returns already_exists on second call', async () => {
     const first = runPbrTools('config-ensure-section', tmpDir);
     assert.ok(first.success, `First call failed: ${first.error}`);
     const firstOutput = JSON.parse(first.output);
@@ -78,7 +78,7 @@ describe('config-ensure-section command', () => {
 
   // NOTE: This test touches ~/.pbr/ on the real filesystem. It uses save/restore
   // try/finally and skips if the file already exists to avoid corrupting user config.
-  test('detects Brave Search from file-based key', () => {
+  test('detects Brave Search from file-based key', async () => {
     const homedir = os.homedir();
     const pbrDir = path.join(homedir, '.gsd');
     const braveKeyFile = path.join(pbrDir, 'brave_api_key');
@@ -112,7 +112,7 @@ describe('config-ensure-section command', () => {
 
   // NOTE: This test touches ~/.pbr/ on the real filesystem. It uses save/restore
   // try/finally and skips if the file already exists to avoid corrupting user config.
-  test('merges user defaults from defaults.json', () => {
+  test('merges user defaults from defaults.json', async () => {
     const homedir = os.homedir();
     const pbrDir = path.join(homedir, '.gsd');
     const defaultsFile = path.join(pbrDir, 'defaults.json');
@@ -155,7 +155,7 @@ describe('config-ensure-section command', () => {
 
   // NOTE: This test touches ~/.pbr/ on the real filesystem. It uses save/restore
   // try/finally and skips if the file already exists to avoid corrupting user config.
-  test('merges nested workflow keys from defaults.json preserving unset keys', () => {
+  test('merges nested workflow keys from defaults.json preserving unset keys', async () => {
     const homedir = os.homedir();
     const pbrDir = path.join(homedir, '.gsd');
     const defaultsFile = path.join(pbrDir, 'defaults.json');
@@ -209,7 +209,7 @@ describe('config-set command', () => {
     cleanup(tmpDir);
   });
 
-  test('sets a top-level string value', () => {
+  test('sets a top-level string value', async () => {
     const result = runPbrTools('config-set model_profile quality', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -222,7 +222,7 @@ describe('config-set command', () => {
     assert.strictEqual(config.model_profile, 'quality');
   });
 
-  test('coerces true to boolean', () => {
+  test('coerces true to boolean', async () => {
     const result = runPbrTools('config-set commit_docs true', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -231,7 +231,7 @@ describe('config-set command', () => {
     assert.strictEqual(typeof config.commit_docs, 'boolean');
   });
 
-  test('coerces false to boolean', () => {
+  test('coerces false to boolean', async () => {
     const result = runPbrTools('config-set commit_docs false', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -240,7 +240,7 @@ describe('config-set command', () => {
     assert.strictEqual(typeof config.commit_docs, 'boolean');
   });
 
-  test('coerces numeric strings to numbers', () => {
+  test('coerces numeric strings to numbers', async () => {
     const result = runPbrTools('config-set some_number 42', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -249,7 +249,7 @@ describe('config-set command', () => {
     assert.strictEqual(typeof config.some_number, 'number');
   });
 
-  test('preserves plain strings', () => {
+  test('preserves plain strings', async () => {
     const result = runPbrTools('config-set some_string hello', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -258,7 +258,7 @@ describe('config-set command', () => {
     assert.strictEqual(typeof config.some_string, 'string');
   });
 
-  test('sets nested values via dot-notation', () => {
+  test('sets nested values via dot-notation', async () => {
     const result = runPbrTools('config-set workflow.research false', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -266,7 +266,7 @@ describe('config-set command', () => {
     assert.strictEqual(config.workflow.research, false);
   });
 
-  test('auto-creates nested objects for deep dot-notation', () => {
+  test('auto-creates nested objects for deep dot-notation', async () => {
     // Start with empty config
     writeConfig(tmpDir, {});
 
@@ -279,7 +279,7 @@ describe('config-set command', () => {
     assert.strictEqual(typeof config.a.b, 'object');
   });
 
-  test('errors when no key path provided', () => {
+  test('errors when no key path provided', async () => {
     const result = runPbrTools('config-set', tmpDir);
     assert.strictEqual(result.success, false);
   });
@@ -300,7 +300,7 @@ describe('config-get command', () => {
     cleanup(tmpDir);
   });
 
-  test('gets a top-level value', () => {
+  test('gets a top-level value', async () => {
     const result = runPbrTools('config-get model_profile', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -308,7 +308,7 @@ describe('config-get command', () => {
     assert.strictEqual(output, 'balanced');
   });
 
-  test('gets a nested value via dot-notation', () => {
+  test('gets a nested value via dot-notation', async () => {
     const result = runPbrTools('config-get workflow.research', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -316,7 +316,7 @@ describe('config-get command', () => {
     assert.strictEqual(output, true);
   });
 
-  test('errors for nonexistent key', () => {
+  test('errors for nonexistent key', async () => {
     const result = runPbrTools('config-get nonexistent_key', tmpDir);
     assert.strictEqual(result.success, false);
     assert.ok(
@@ -325,7 +325,7 @@ describe('config-get command', () => {
     );
   });
 
-  test('errors for deeply nested nonexistent key', () => {
+  test('errors for deeply nested nonexistent key', async () => {
     const result = runPbrTools('config-get workflow.nonexistent', tmpDir);
     assert.strictEqual(result.success, false);
     assert.ok(
@@ -334,7 +334,7 @@ describe('config-get command', () => {
     );
   });
 
-  test('errors when config.json does not exist', () => {
+  test('errors when config.json does not exist', async () => {
     const emptyTmpDir = createTempProject();
     try {
       const result = runPbrTools('config-get model_profile', emptyTmpDir);
@@ -348,7 +348,7 @@ describe('config-get command', () => {
     }
   });
 
-  test('errors when no key path provided', () => {
+  test('errors when no key path provided', async () => {
     const result = runPbrTools('config-get', tmpDir);
     assert.strictEqual(result.success, false);
   });

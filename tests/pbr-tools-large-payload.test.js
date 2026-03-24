@@ -34,7 +34,7 @@ describe('output() @file: escape hatch (core.js)', () => {
     }
   });
 
-  test('small payload writes JSON inline (not @file:)', () => {
+  test('small payload writes JSON inline (not @file:)', async () => {
     const data = { hello: 'world', count: 42 };
     output(data);
 
@@ -46,7 +46,7 @@ describe('output() @file: escape hatch (core.js)', () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  test('large payload (>8KB) writes to tmpfile and emits @file: path', () => {
+  test('large payload (>8KB) writes to tmpfile and emits @file: path', async () => {
     // Create a payload whose JSON stringification exceeds 8192 chars
     const largeString = 'x'.repeat(10000);
     const data = { payload: largeString };
@@ -70,7 +70,7 @@ describe('output() @file: escape hatch (core.js)', () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  test('payload exactly at 8192 chars writes inline (boundary: equal is NOT over)', () => {
+  test('payload exactly at 8192 chars writes inline (boundary: equal is NOT over)', async () => {
     // JSON.stringify({ value: "..." }) length must be exactly 8192
     const probe = JSON.stringify({ value: '' }, null, 2); // '{\n  "value": ""\n}' = 18 chars
     const overhead = probe.length; // 18
@@ -94,7 +94,7 @@ describe('output() @file: escape hatch (core.js)', () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  test('payload one byte over (8193 chars) writes to tmpfile', () => {
+  test('payload one byte over (8193 chars) writes to tmpfile', async () => {
     // Build a JSON string that is exactly 8193 chars
     const probe = JSON.stringify({ value: '' }, null, 2); // 18 chars overhead
     const overhead = probe.length;

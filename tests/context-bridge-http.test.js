@@ -15,14 +15,14 @@ describe('context-bridge.js handleHttp parity', () => {
   let tmpDir;
   let planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cb-http-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -46,21 +46,21 @@ describe('context-bridge.js handleHttp parity', () => {
 
   // --- Null / silent cases ---
 
-  test('HTTP returns null when planningDir does not exist', () => {
+  test('HTTP returns null when planningDir does not exist', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     const reqBody = { event: 'PostToolUse', tool: 'Write', data: {}, planningDir };
     const result = handleHttp(reqBody, {});
     expect(result).toBeNull();
   });
 
-  test('HTTP returns null for PEAK tier (same as CLI producing empty output)', () => {
+  test('HTTP returns null for PEAK tier (same as CLI producing empty output)', async () => {
     const cliOut = runCLI({ context_percent: 10 });
     const httpOut = runHTTP({ context_percent: 10 });
     expect(cliOut).toBe('');
     expect(httpOut).toBeNull();
   });
 
-  test('HTTP returns null for GOOD tier', () => {
+  test('HTTP returns null for GOOD tier', async () => {
     const cliOut = runCLI({ context_percent: 40 });
     const httpOut = runHTTP({ context_percent: 40 });
     expect(cliOut).toBe('');
@@ -69,7 +69,7 @@ describe('context-bridge.js handleHttp parity', () => {
 
   // --- Warning parity ---
 
-  test('HTTP and CLI both warn for DEGRADING tier', () => {
+  test('HTTP and CLI both warn for DEGRADING tier', async () => {
     const cliOut = runCLI({ context_percent: 55 });
     const cliParsed = JSON.parse(cliOut);
 
@@ -87,7 +87,7 @@ describe('context-bridge.js handleHttp parity', () => {
     expect(httpOut.additionalContext).toContain('55%');
   });
 
-  test('HTTP and CLI both warn for POOR tier', () => {
+  test('HTTP and CLI both warn for POOR tier', async () => {
     const cliOut = runCLI({ context_percent: 75 });
     const cliParsed = JSON.parse(cliOut);
 
@@ -101,7 +101,7 @@ describe('context-bridge.js handleHttp parity', () => {
     expect(httpOut.additionalContext).toContain('POOR');
   });
 
-  test('HTTP and CLI both warn for CRITICAL tier with STOP', () => {
+  test('HTTP and CLI both warn for CRITICAL tier with STOP', async () => {
     const cliOut = runCLI({ context_percent: 90 });
     const cliParsed = JSON.parse(cliOut);
 
@@ -120,7 +120,7 @@ describe('context-bridge.js handleHttp parity', () => {
 
   // --- Debounce parity ---
 
-  test('HTTP suppresses repeated same-tier warnings (debounce)', () => {
+  test('HTTP suppresses repeated same-tier warnings (debounce)', async () => {
     // First call: escalation to DEGRADING — should warn
     const r1 = runHTTP({ context_percent: 55 });
     expect(r1).not.toBeNull();
@@ -138,7 +138,7 @@ describe('context-bridge.js handleHttp parity', () => {
     expect(r6.additionalContext).toContain('DEGRADING');
   });
 
-  test('HTTP bypasses debounce on tier escalation', () => {
+  test('HTTP bypasses debounce on tier escalation', async () => {
     // Escalate to DEGRADING
     const r1 = runHTTP({ context_percent: 55 });
     expect(r1).not.toBeNull();
@@ -151,7 +151,7 @@ describe('context-bridge.js handleHttp parity', () => {
 
   // --- Bridge file is updated in HTTP mode ---
 
-  test('HTTP updates bridge file after call', () => {
+  test('HTTP updates bridge file after call', async () => {
     runHTTP({ context_percent: 40 });
     const bridgePath = path.join(planningDir, '.context-budget.json');
     expect(fs.existsSync(bridgePath)).toBe(true);
@@ -160,7 +160,7 @@ describe('context-bridge.js handleHttp parity', () => {
     expect(bridge.estimated_percent).toBe(40);
   });
 
-  test('HTTP increments tool_calls across multiple calls', () => {
+  test('HTTP increments tool_calls across multiple calls', async () => {
     runHTTP({});
     runHTTP({});
     runHTTP({});
@@ -171,7 +171,7 @@ describe('context-bridge.js handleHttp parity', () => {
 
   // --- handleHttp does not call process.exit ---
 
-  test('handleHttp does not call process.exit', () => {
+  test('handleHttp does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called');
     });
@@ -185,20 +185,20 @@ describe('context-bridge.js handleHttp parity', () => {
 
   // --- handleHttp return shape ---
 
-  test('handleHttp returns object with additionalContext string when warning fires', () => {
+  test('handleHttp returns object with additionalContext string when warning fires', async () => {
     const result = runHTTP({ context_percent: 55 });
     expect(result).toHaveProperty('additionalContext');
     expect(typeof result.additionalContext).toBe('string');
   });
 
-  test('handleHttp returns null (not undefined) when no warning', () => {
+  test('handleHttp returns null (not undefined) when no warning', async () => {
     const result = runHTTP({ context_percent: 10 });
     expect(result).toBeNull();
   });
 
   // --- heuristic fallback ---
 
-  test('HTTP uses heuristic estimation when no context_percent provided', () => {
+  test('HTTP uses heuristic estimation when no context_percent provided', async () => {
     const trackerPath = path.join(planningDir, '.context-tracker');
     // 480000 chars / 800000 = 60% → DEGRADING
     fs.writeFileSync(trackerPath, JSON.stringify({ total_chars: 480000, reads: 50, files: [] }));

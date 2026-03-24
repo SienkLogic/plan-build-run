@@ -24,36 +24,36 @@ afterEach(() => {
 });
 
 describe('checkBoundary', () => {
-  test('returns null when no file_path', () => {
+  test('returns null when no file_path', async () => {
     expect(checkBoundary({ tool_input: {} })).toBeNull();
   });
 
-  test('returns null when file_path is empty string', () => {
+  test('returns null when file_path is empty string', async () => {
     expect(checkBoundary({ tool_input: { file_path: '' } })).toBeNull();
   });
 
-  test('returns null for non-phase files', () => {
+  test('returns null for non-phase files', async () => {
     expect(checkBoundary({ tool_input: { file_path: path.join(tmpDir, 'src', 'index.ts') } })).toBeNull();
   });
 
-  test('returns null when no STATE.md', () => {
+  test('returns null when no STATE.md', async () => {
     const filePath = path.join(planningDir, 'phases', '03-api', 'PLAN.md');
     expect(checkBoundary({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('returns null when STATE.md has no phase match', () => {
+  test('returns null when STATE.md has no phase match', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'No phase info');
     const filePath = path.join(planningDir, 'phases', '03-api', 'PLAN.md');
     expect(checkBoundary({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('returns null for same-phase writes', () => {
+  test('returns null for same-phase writes', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
     const filePath = path.join(planningDir, 'phases', '02-auth', 'PLAN.md');
     expect(checkBoundary({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('returns warning for cross-phase writes (default config)', () => {
+  test('returns warning for cross-phase writes (default config)', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
     const filePath = path.join(planningDir, 'phases', '04-dashboard', 'PLAN.md');
     const result = checkBoundary({ tool_input: { file_path: filePath } });
@@ -63,7 +63,7 @@ describe('checkBoundary', () => {
     expect(result.output.additionalContext).toContain('current phase is 2');
   });
 
-  test('returns block for cross-phase writes when enforcement is on', () => {
+  test('returns block for cross-phase writes when enforcement is on', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ safety: { enforce_phase_boundaries: true } }));
@@ -75,7 +75,7 @@ describe('checkBoundary', () => {
     expect(result.output.reason).toContain('phase 4');
   });
 
-  test('handles backslash paths (Windows)', () => {
+  test('handles backslash paths (Windows)', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const filePath = tmpDir + '\\.planning\\phases\\03-api\\PLAN.md';
     const result = checkBoundary({ tool_input: { file_path: filePath } });
@@ -83,13 +83,13 @@ describe('checkBoundary', () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test('returns null for phase path without numeric prefix', () => {
+  test('returns null for phase path without numeric prefix', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const filePath = path.join(planningDir, 'phases', 'no-number', 'PLAN.md');
     expect(checkBoundary({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
-  test('uses path field when file_path is absent', () => {
+  test('uses path field when file_path is absent', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const filePath = path.join(planningDir, 'phases', '03-api', 'PLAN.md');
     const result = checkBoundary({ tool_input: { path: filePath } });
@@ -98,12 +98,12 @@ describe('checkBoundary', () => {
 });
 
 describe('getEnforceSetting (additional)', () => {
-  test('returns false for invalid JSON config', () => {
+  test('returns false for invalid JSON config', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'not json');
     expect(getEnforceSetting(planningDir)).toBe(false);
   });
 
-  test('returns false when safety exists but no enforce_phase_boundaries', () => {
+  test('returns false when safety exists but no enforce_phase_boundaries', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ safety: { other_setting: true } }));
     expect(getEnforceSetting(planningDir)).toBe(false);

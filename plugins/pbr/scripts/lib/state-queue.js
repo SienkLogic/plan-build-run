@@ -87,7 +87,7 @@ function stateEnqueueBatch(fields, planningDir) {
  * @param {string} planningDir - Path to .planning/ directory
  * @returns {{ success: boolean, processed?: number, fields?: string[], error?: string }}
  */
-function stateDrain(planningDir) {
+async function stateDrain(planningDir) {
   const queueDir = path.join(planningDir, STATE_QUEUE_DIR);
 
   // If no queue dir or empty, nothing to do
@@ -122,7 +122,7 @@ function stateDrain(planningDir) {
   const statePath = path.join(planningDir, 'STATE.md');
   const appliedFields = [];
 
-  const result = lockedFileUpdate(statePath, (content) => {
+  const result = await lockedFileUpdate(statePath, (content) => {
     let updated = content;
 
     for (const entry of entries) {

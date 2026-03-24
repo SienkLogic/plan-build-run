@@ -18,45 +18,45 @@ afterEach(() => {
 });
 
 describe('generateQuickSlug', () => {
-  test('converts text to kebab-case slug', () => {
+  test('converts text to kebab-case slug', async () => {
     expect(generateQuickSlug('Fix the auth bug')).toBe('fix-auth-bug');
   });
 
-  test('strips stop words', () => {
+  test('strips stop words', async () => {
     const slug = generateQuickSlug('add a new feature to the login flow');
     expect(slug).not.toContain('-a-');
     expect(slug).not.toContain('-the-');
   });
 
-  test('returns "task" for empty input', () => {
+  test('returns "task" for empty input', async () => {
     expect(generateQuickSlug('')).toBe('task');
     expect(generateQuickSlug(null)).toBe('task');
     expect(generateQuickSlug(undefined)).toBe('task');
   });
 
-  test('returns "task" for only stop words', () => {
+  test('returns "task" for only stop words', async () => {
     expect(generateQuickSlug('the a an')).toBe('task');
   });
 
-  test('limits to first 5 meaningful words', () => {
+  test('limits to first 5 meaningful words', async () => {
     const slug = generateQuickSlug('alpha bravo charlie delta echo foxtrot golf');
     const words = slug.split('-');
     expect(words.length).toBeLessThanOrEqual(5);
   });
 
-  test('trims at last hyphen if over 50 chars', () => {
+  test('trims at last hyphen if over 50 chars', async () => {
     const long = 'superlongword1 superlongword2 superlongword3 superlongword4 superlongword5';
     const slug = generateQuickSlug(long);
     expect(slug.length).toBeLessThanOrEqual(50);
   });
 
-  test('strips special characters', () => {
+  test('strips special characters', async () => {
     expect(generateQuickSlug('fix: bug #123!')).toBe('fix-bug-123');
   });
 });
 
 describe('quickInit', () => {
-  test('creates directory and PLAN.md', () => {
+  test('creates directory and PLAN.md', async () => {
     const result = quickInit('Fix the login bug', planningDir);
     expect(result.error).toBeUndefined();
     expect(result.number).toBe('001');
@@ -73,7 +73,7 @@ describe('quickInit', () => {
     expect(content).toContain('Fix the login bug');
   });
 
-  test('sequential numbering increments', () => {
+  test('sequential numbering increments', async () => {
     const r1 = quickInit('First task', planningDir);
     expect(r1.number).toBe('001');
 
@@ -81,22 +81,22 @@ describe('quickInit', () => {
     expect(r2.number).toBe('002');
   });
 
-  test('returns error for empty description', () => {
+  test('returns error for empty description', async () => {
     const result = quickInit('', planningDir);
     expect(result.error).toBe('Description required');
   });
 
-  test('returns error for null description', () => {
+  test('returns error for null description', async () => {
     const result = quickInit(null, planningDir);
     expect(result.error).toBe('Description required');
   });
 
-  test('returns error when .planning dir does not exist', () => {
+  test('returns error when .planning dir does not exist', async () => {
     const result = quickInit('Fix bug', path.join(tmpDir, 'nonexistent'));
     expect(result.error).toContain('.planning/');
   });
 
-  test('result contains expected fields', () => {
+  test('result contains expected fields', async () => {
     const result = quickInit('Test task', planningDir);
     expect(result).toHaveProperty('number');
     expect(result).toHaveProperty('slug');

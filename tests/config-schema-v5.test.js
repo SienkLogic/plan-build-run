@@ -17,21 +17,21 @@ describe('Config Schema v5 — Phase 1 feature properties', () => {
   });
 
   describe('Feature toggles in features.properties', () => {
-    test('enhanced_session_start is a boolean with default true', () => {
+    test('enhanced_session_start is a boolean with default true', async () => {
       const prop = schema.properties.features.properties.enhanced_session_start;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(true);
     });
 
-    test('context_quality_scoring is a boolean with default true', () => {
+    test('context_quality_scoring is a boolean with default true', async () => {
       const prop = schema.properties.features.properties.context_quality_scoring;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(true);
     });
 
-    test('skip_rag is a boolean with default false', () => {
+    test('skip_rag is a boolean with default false', async () => {
       const prop = schema.properties.features.properties.skip_rag;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('boolean');
@@ -60,7 +60,7 @@ describe('Config Schema v5 — Phase 1 feature properties', () => {
   });
 
   describe('Schema copy consistency', () => {
-    test('plugins/pbr/scripts/config-schema.json and plan-build-run/bin/config-schema.json are identical', () => {
+    test('plugins/pbr/scripts/config-schema.json and plan-build-run/bin/config-schema.json are identical', async () => {
       const pluginRaw = fs.readFileSync(SCHEMA_PLUGIN, 'utf-8');
       const binRaw = fs.readFileSync(SCHEMA_BIN, 'utf-8');
       const pluginParsed = JSON.parse(pluginRaw);
@@ -81,21 +81,21 @@ describe('Config Schema v5 — Trust tracking and confidence calibration toggles
       const schema = require(schemaPath);
       const features = schema.properties.features.properties;
 
-      test('has trust_tracking boolean toggle', () => {
+      test('has trust_tracking boolean toggle', async () => {
         expect(features.trust_tracking).toBeDefined();
         expect(features.trust_tracking.type).toBe('boolean');
       });
 
-      test('trust_tracking defaults to true', () => {
+      test('trust_tracking defaults to true', async () => {
         expect(features.trust_tracking.default).toBe(true);
       });
 
-      test('has confidence_calibration boolean toggle', () => {
+      test('has confidence_calibration boolean toggle', async () => {
         expect(features.confidence_calibration).toBeDefined();
         expect(features.confidence_calibration.type).toBe('boolean');
       });
 
-      test('confidence_calibration defaults to true', () => {
+      test('confidence_calibration defaults to true', async () => {
         expect(features.confidence_calibration.default).toBe(true);
       });
     });
@@ -113,31 +113,31 @@ describe('Config Schema v5 — Phase 11 spec-driven development toggles', () => 
       const schema = require(schemaPath);
       const features = schema.properties.features.properties;
 
-      test('machine_executable_plans is boolean with default false', () => {
+      test('machine_executable_plans is boolean with default false', async () => {
         expect(features.machine_executable_plans).toBeDefined();
         expect(features.machine_executable_plans.type).toBe('boolean');
         expect(features.machine_executable_plans.default).toBe(false);
       });
 
-      test('spec_diffing is boolean with default true', () => {
+      test('spec_diffing is boolean with default true', async () => {
         expect(features.spec_diffing).toBeDefined();
         expect(features.spec_diffing.type).toBe('boolean');
         expect(features.spec_diffing.default).toBe(true);
       });
 
-      test('reverse_spec is boolean with default false', () => {
+      test('reverse_spec is boolean with default false', async () => {
         expect(features.reverse_spec).toBeDefined();
         expect(features.reverse_spec.type).toBe('boolean');
         expect(features.reverse_spec.default).toBe(false);
       });
 
-      test('predictive_impact is boolean with default true', () => {
+      test('predictive_impact is boolean with default true', async () => {
         expect(features.predictive_impact).toBeDefined();
         expect(features.predictive_impact.type).toBe('boolean');
         expect(features.predictive_impact.default).toBe(true);
       });
 
-      test('all 4 Phase 11 toggles exist in schema', () => {
+      test('all 4 Phase 11 toggles exist in schema', async () => {
         const phase11 = ['machine_executable_plans', 'spec_diffing', 'reverse_spec', 'predictive_impact'];
         for (const toggle of phase11) {
           expect(features[toggle]).toBeDefined();

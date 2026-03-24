@@ -72,7 +72,7 @@ describe('check-subagent-output.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
@@ -135,11 +135,11 @@ describe('check-subagent-output.js handleHttp', () => {
 describe('log-tool-failure.js handleHttp', () => {
   const mod = require('../plugins/pbr/scripts/log-tool-failure');
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns additionalContext for Bash failure', () => {
+  test('returns additionalContext for Bash failure', async () => {
     const result = mod.handleHttp({
       data: { tool_name: 'Bash', error: 'Permission denied', is_interrupt: false }
     });
@@ -148,7 +148,7 @@ describe('log-tool-failure.js handleHttp', () => {
     expect(result.additionalContext).toMatch(/Bash|failed/i);
   });
 
-  test('returns advisory context for Write tool failures', () => {
+  test('returns advisory context for Write tool failures', async () => {
     const result = mod.handleHttp({
       data: { tool_name: 'Write', error: 'ENOENT', is_interrupt: false }
     });
@@ -157,19 +157,19 @@ describe('log-tool-failure.js handleHttp', () => {
     expect(result.additionalContext).toMatch(/Write failed/i);
   });
 
-  test('returns null when Bash failure is an interrupt', () => {
+  test('returns null when Bash failure is an interrupt', async () => {
     const result = mod.handleHttp({
       data: { tool_name: 'Bash', error: 'interrupted', is_interrupt: true }
     });
     expect(result).toBeNull();
   });
 
-  test('handles empty data gracefully', () => {
+  test('handles empty data gracefully', async () => {
     const result = mod.handleHttp({ data: {} });
     expect(result).toBeNull();
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ data: { tool_name: 'Bash', error: 'oops', is_interrupt: false } });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -195,11 +195,11 @@ describe('log-subagent.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('SubagentStart writes .active-agent file', () => {
+  test('SubagentStart writes .active-agent file', async () => {
     mod.handleHttp({
       event: 'SubagentStart',
       data: { agent_type: 'pbr:executor', agent_id: 'agent-1', description: 'test' },
@@ -210,7 +210,7 @@ describe('log-subagent.js handleHttp', () => {
     expect(fs.readFileSync(activeAgentPath, 'utf8')).toBe('pbr:executor');
   });
 
-  test('SubagentStop removes .active-agent file', () => {
+  test('SubagentStop removes .active-agent file', async () => {
     // First write it
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
 
@@ -222,7 +222,7 @@ describe('log-subagent.js handleHttp', () => {
     expect(fs.existsSync(path.join(planningDir, '.active-agent'))).toBe(false);
   });
 
-  test('SubagentStop returns null', () => {
+  test('SubagentStop returns null', async () => {
     const result = mod.handleHttp({
       event: 'SubagentStop',
       data: { agent_type: 'pbr:executor' },
@@ -231,7 +231,7 @@ describe('log-subagent.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('unknown event returns null', () => {
+  test('unknown event returns null', async () => {
     const result = mod.handleHttp({
       event: 'UnknownEvent',
       data: {},
@@ -240,7 +240,7 @@ describe('log-subagent.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ event: 'SubagentStart', data: { agent_type: 'pbr:planner' }, planningDir });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -266,11 +266,11 @@ describe('event-handler.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns null for non-executor agents', () => {
+  test('returns null for non-executor agents', async () => {
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:planner' },
       planningDir
@@ -278,7 +278,7 @@ describe('event-handler.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('returns additionalContext and writes .auto-verify signal for executor', () => {
+  test('returns additionalContext and writes .auto-verify signal for executor', async () => {
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:executor' },
       planningDir
@@ -293,7 +293,7 @@ describe('event-handler.js handleHttp', () => {
     expect(typeof signal.phase).toBe('number');
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:executor' },
       planningDir: '/nonexistent/path'
@@ -301,7 +301,7 @@ describe('event-handler.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when config disables auto-verification', () => {
+  test('returns null when config disables auto-verification', async () => {
     // Overwrite config to disable goal_verification
     fs.writeFileSync(
       path.join(planningDir, 'config.json'),
@@ -314,7 +314,7 @@ describe('event-handler.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when depth is quick', () => {
+  test('returns null when depth is quick', async () => {
     fs.writeFileSync(
       path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'quick' })
@@ -326,7 +326,7 @@ describe('event-handler.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('includes error hint when executor output mentions errors', () => {
+  test('includes error hint when executor output mentions errors', async () => {
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:executor', last_assistant_message: 'Build failed with an error in step 3' },
       planningDir
@@ -335,7 +335,7 @@ describe('event-handler.js handleHttp', () => {
     expect(result.additionalContext).toMatch(/error/i);
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ data: { agent_type: 'pbr:planner' }, planningDir });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -361,11 +361,11 @@ describe('task-completed.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns null for generic agent completion', () => {
+  test('returns null for generic agent completion', async () => {
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:planner', agent_id: 'a1', duration_ms: 500 },
       planningDir
@@ -373,7 +373,7 @@ describe('task-completed.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('returns halt object when verifier finds gaps_found', () => {
+  test('returns halt object when verifier finds gaps_found', async () => {
     // Write VERIFICATION.md with gaps_found status
     const phaseDir = path.join(planningDir, 'phases', '03-auth');
     fs.writeFileSync(
@@ -391,7 +391,7 @@ describe('task-completed.js handleHttp', () => {
     expect(result.stopReason).toMatch(/gaps_found/);
   });
 
-  test('returns halt when executor produces no SUMMARY.md', () => {
+  test('returns halt when executor produces no SUMMARY.md', async () => {
     // Phase dir exists but no SUMMARY.md (already the default fixture state)
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:executor', agent_id: 'e1' },
@@ -402,7 +402,7 @@ describe('task-completed.js handleHttp', () => {
     expect(result.stopReason).toMatch(/SUMMARY/i);
   });
 
-  test('returns null for executor when SUMMARY.md exists', () => {
+  test('returns null for executor when SUMMARY.md exists', async () => {
     const phaseDir = path.join(planningDir, 'phases', '03-auth');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), '# Summary\n');
 
@@ -413,7 +413,7 @@ describe('task-completed.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     const result = mod.handleHttp({
       data: { agent_type: 'pbr:executor' },
       planningDir: '/nonexistent/path'
@@ -421,7 +421,7 @@ describe('task-completed.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({
       data: { agent_type: 'pbr:planner' },
@@ -450,21 +450,21 @@ describe('instructions-loaded.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     const result = mod.handleHttp({ data: {}, planningDir: '/nonexistent/path' });
     expect(result).toBeNull();
   });
 
-  test('returns null on initial load (no .session.json)', () => {
+  test('returns null on initial load (no .session.json)', async () => {
     const result = mod.handleHttp({ data: {}, planningDir });
     expect(result).toBeNull();
   });
 
-  test('returns additionalContext on mid-session reload (session.json present)', () => {
+  test('returns additionalContext on mid-session reload (session.json present)', async () => {
     fs.writeFileSync(
       path.join(planningDir, '.session.json'),
       JSON.stringify({ sessionStart: new Date().toISOString() })
@@ -475,13 +475,13 @@ describe('instructions-loaded.js handleHttp', () => {
     expect(result.additionalContext).toMatch(/reloaded mid-session/i);
   });
 
-  test('returns null if session.json exists but has no sessionStart', () => {
+  test('returns null if session.json exists but has no sessionStart', async () => {
     fs.writeFileSync(path.join(planningDir, '.session.json'), JSON.stringify({ foo: 'bar' }));
     const result = mod.handleHttp({ data: {}, planningDir });
     expect(result).toBeNull();
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ data: {}, planningDir });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -507,38 +507,38 @@ describe('context-budget-check.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns null when planningDir does not exist', () => {
-    const result = mod.handleHttp({ planningDir: '/nonexistent/path' });
+  test('returns null when planningDir does not exist', async () => {
+    const result = await mod.handleHttp({ planningDir: '/nonexistent/path' });
     expect(result).toBeNull();
   });
 
-  test('returns null when STATE.md does not exist', () => {
+  test('returns null when STATE.md does not exist', async () => {
     fs.rmSync(path.join(planningDir, 'STATE.md'), { force: true });
-    const result = mod.handleHttp({ planningDir });
+    const result = await mod.handleHttp({ planningDir });
     expect(result).toBeNull();
   });
 
-  test('returns additionalContext with recovery info when STATE.md exists', () => {
-    const result = mod.handleHttp({ planningDir });
+  test('returns additionalContext with recovery info when STATE.md exists', async () => {
+    const result = await mod.handleHttp({ planningDir });
     // Recovery context should be returned since STATE.md exists
     expect(result).not.toBeNull();
     expect(typeof result.additionalContext).toBe('string');
     expect(result.additionalContext).toMatch(/Post-Compaction Recovery|PBR WORKFLOW/i);
   });
 
-  test('updates STATE.md with Session Continuity section', () => {
-    mod.handleHttp({ planningDir });
+  test('updates STATE.md with Session Continuity section', async () => {
+    await mod.handleHttp({ planningDir });
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     expect(stateContent).toMatch(/## Session Continuity/);
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
-    mod.handleHttp({ planningDir });
+    await mod.handleHttp({ planningDir });
     expect(exitSpy).not.toHaveBeenCalled();
     exitSpy.mockRestore();
   });
@@ -562,22 +562,22 @@ describe('check-config-change.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     const result = mod.handleHttp({ planningDir: '/nonexistent/path' });
     expect(result).toBeNull();
   });
 
-  test('returns null when config.json does not exist', () => {
+  test('returns null when config.json does not exist', async () => {
     fs.rmSync(path.join(planningDir, 'config.json'), { force: true });
     const result = mod.handleHttp({ planningDir });
     expect(result).toBeNull();
   });
 
-  test('returns additionalContext with warnings for invalid config', () => {
+  test('returns additionalContext with warnings for invalid config', async () => {
     fs.writeFileSync(
       path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'standard' }) // missing required keys
@@ -588,7 +588,7 @@ describe('check-config-change.js handleHttp', () => {
     expect(result.additionalContext).toMatch(/Config validation/i);
   });
 
-  test('returns null for valid config', () => {
+  test('returns null for valid config', async () => {
     fs.writeFileSync(
       path.join(planningDir, 'config.json'),
       JSON.stringify({
@@ -603,7 +603,7 @@ describe('check-config-change.js handleHttp', () => {
     expect(result).toBeNull();
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ planningDir });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -629,33 +629,33 @@ describe('session-cleanup.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     const result = mod.handleHttp({ data: {}, planningDir: '/nonexistent/path' });
     expect(result).toBeNull();
   });
 
-  test('returns null (cleanup is fire-and-forget)', () => {
+  test('returns null (cleanup is fire-and-forget)', async () => {
     const result = mod.handleHttp({ data: { reason: 'session_end' }, planningDir });
     expect(result).toBeNull();
   });
 
-  test('removes .active-skill if present', () => {
+  test('removes .active-skill if present', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     mod.handleHttp({ data: {}, planningDir });
     expect(fs.existsSync(path.join(planningDir, '.active-skill'))).toBe(false);
   });
 
-  test('removes .session.json if present', () => {
+  test('removes .session.json if present', async () => {
     fs.writeFileSync(path.join(planningDir, '.session.json'), '{}');
     mod.handleHttp({ data: {}, planningDir });
     expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ data: {}, planningDir });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -690,11 +690,11 @@ describe('worktree-create.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns additionalContext when parent has no .planning/', () => {
+  test('returns additionalContext when parent has no .planning/', async () => {
     const result = mod.handleHttp({
       data: { worktree_path: worktreeDir, project_root: '/nonexistent/parent' }
     });
@@ -702,7 +702,7 @@ describe('worktree-create.js handleHttp', () => {
     expect(result.additionalContext).toContain('no parent');
   });
 
-  test('initializes .planning/ in worktree and returns additionalContext', () => {
+  test('initializes .planning/ in worktree and returns additionalContext', async () => {
     const result = mod.handleHttp({
       data: { worktree_path: worktreeDir, project_root: parentDir }
     });
@@ -713,7 +713,7 @@ describe('worktree-create.js handleHttp', () => {
     expect(fs.existsSync(path.join(worktreeDir, '.planning', 'config.json'))).toBe(true);
   });
 
-  test('returns additionalContext when worktree .planning/ already exists', () => {
+  test('returns additionalContext when worktree .planning/ already exists', async () => {
     fs.mkdirSync(path.join(worktreeDir, '.planning'), { recursive: true });
     const result = mod.handleHttp({
       data: { worktree_path: worktreeDir, project_root: parentDir }
@@ -722,7 +722,7 @@ describe('worktree-create.js handleHttp', () => {
     expect(result.additionalContext).toContain('already initialized');
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ data: { worktree_path: worktreeDir, project_root: parentDir } });
     expect(exitSpy).not.toHaveBeenCalled();
@@ -749,16 +749,16 @@ describe('worktree-remove.js handleHttp', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('exports handleHttp as a function', () => {
+  test('exports handleHttp as a function', async () => {
     expect(typeof mod.handleHttp).toBe('function');
   });
 
-  test('returns empty object when no .planning/ in worktree', () => {
+  test('returns empty object when no .planning/ in worktree', async () => {
     const result = mod.handleHttp({ data: { worktree_path: worktreeDir } });
     expect(result).toEqual({});
   });
 
-  test('returns empty object when STATE.md has no parent: marker (not a worktree)', () => {
+  test('returns empty object when STATE.md has no parent: marker (not a worktree)', async () => {
     const planningDir = path.join(worktreeDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# STATE\n## Current Position\nstatus: building\n');
@@ -766,7 +766,7 @@ describe('worktree-remove.js handleHttp', () => {
     expect(result).toEqual({});
   });
 
-  test('cleans session files when STATE.md has parent: marker', () => {
+  test('cleans session files when STATE.md has parent: marker', async () => {
     const planningDir = path.join(worktreeDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# STATE\nparent: /some/parent\n');
@@ -779,7 +779,7 @@ describe('worktree-remove.js handleHttp', () => {
     expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
   });
 
-  test('does not call process.exit', () => {
+  test('does not call process.exit', async () => {
     const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
     mod.handleHttp({ data: { worktree_path: worktreeDir } });
     expect(exitSpy).not.toHaveBeenCalled();

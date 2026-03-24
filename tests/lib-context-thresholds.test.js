@@ -24,13 +24,13 @@ describe('Threshold scaling at 200k and 1M', () => {
   describe('context-bridge getCharDenominator', () => {
     const { getCharDenominator } = require('../plugins/pbr/scripts/context-bridge.js');
 
-    test('returns 800000 at 200k (no config)', () => {
+    test('returns 800000 at 200k (no config)', async () => {
       const { tmp, pd } = makeTmpDir();
       expect(getCharDenominator(pd)).toBe(800000);
       cleanup(tmp);
     });
 
-    test('returns 4000000 at 1M', () => {
+    test('returns 4000000 at 1M', async () => {
       const { tmp, pd } = makeTmpDir();
       writeConfig(pd, 1000000);
       expect(getCharDenominator(pd)).toBe(4000000);
@@ -41,7 +41,7 @@ describe('Threshold scaling at 200k and 1M', () => {
   describe('lib/context getHeuristicThresholds', () => {
     const { getHeuristicThresholds } = require('../plugins/pbr/scripts/lib/context.js');
 
-    test('returns base thresholds at 200k (no config)', () => {
+    test('returns base thresholds at 200k (no config)', async () => {
       const { tmp, pd } = makeTmpDir();
       const t = getHeuristicThresholds(pd);
       expect(t.proceed).toBe(30000);
@@ -49,7 +49,7 @@ describe('Threshold scaling at 200k and 1M', () => {
       cleanup(tmp);
     });
 
-    test('returns 5x thresholds at 1M', () => {
+    test('returns 5x thresholds at 1M', async () => {
       const { tmp, pd } = makeTmpDir();
       writeConfig(pd, 1000000);
       const t = getHeuristicThresholds(pd);
@@ -62,7 +62,7 @@ describe('Threshold scaling at 200k and 1M', () => {
   describe('track-context-budget getScaledMilestones', () => {
     const { getScaledMilestones } = require('../plugins/pbr/scripts/track-context-budget.js');
 
-    test('returns base milestones at 200k (no config)', () => {
+    test('returns base milestones at 200k (no config)', async () => {
       const { tmp, pd } = makeTmpDir();
       const m = getScaledMilestones(pd);
       expect(m.charMilestone).toBe(50000);
@@ -70,7 +70,7 @@ describe('Threshold scaling at 200k and 1M', () => {
       cleanup(tmp);
     });
 
-    test('returns 5x milestones at 1M', () => {
+    test('returns 5x milestones at 1M', async () => {
       const { tmp, pd } = makeTmpDir();
       writeConfig(pd, 1000000);
       const m = getScaledMilestones(pd);
@@ -83,24 +83,24 @@ describe('Threshold scaling at 200k and 1M', () => {
   describe('context-bridge adaptive thresholds', () => {
     const { getAdaptiveThresholds, getEffectiveThresholds } = require('../plugins/pbr/scripts/context-bridge.js');
 
-    test('adaptive thresholds at 200k match base', () => {
+    test('adaptive thresholds at 200k match base', async () => {
       const t = getAdaptiveThresholds(200000);
       expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
     });
 
-    test('adaptive thresholds at 1M match target', () => {
+    test('adaptive thresholds at 1M match target', async () => {
       const t = getAdaptiveThresholds(1000000);
       expect(t).toEqual({ degrading: 60, poor: 75, critical: 85 });
     });
 
-    test('getEffectiveThresholds defaults to linear (base)', () => {
+    test('getEffectiveThresholds defaults to linear (base)', async () => {
       const { tmp, pd } = makeTmpDir();
       const t = getEffectiveThresholds(pd);
       expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
       cleanup(tmp);
     });
 
-    test('getEffectiveThresholds returns adaptive at 1M when configured', () => {
+    test('getEffectiveThresholds returns adaptive at 1M when configured', async () => {
       const { tmp, pd } = makeTmpDir();
       fs.writeFileSync(path.join(pd, 'config.json'), JSON.stringify({
         context_window_tokens: 1000000,
@@ -118,20 +118,20 @@ describe('Threshold scaling at 200k and 1M', () => {
   describe('suggest-compact getScaledThreshold', () => {
     const { getScaledThreshold } = require('../plugins/pbr/scripts/suggest-compact.js');
 
-    test('returns 50 at 200k (no config)', () => {
+    test('returns 50 at 200k (no config)', async () => {
       const { tmp, pd } = makeTmpDir();
       expect(getScaledThreshold(pd)).toBe(50);
       cleanup(tmp);
     });
 
-    test('returns 250 at 1M', () => {
+    test('returns 250 at 1M', async () => {
       const { tmp, pd } = makeTmpDir();
       writeConfig(pd, 1000000);
       expect(getScaledThreshold(pd)).toBe(250);
       cleanup(tmp);
     });
 
-    test('explicit hooks.compactThreshold overrides scaling (tested via getThreshold)', () => {
+    test('explicit hooks.compactThreshold overrides scaling (tested via getThreshold)', async () => {
       const { getThreshold } = require('../plugins/pbr/scripts/suggest-compact.js');
       const { tmp, pd } = makeTmpDir();
       writeConfig(pd, 1000000);

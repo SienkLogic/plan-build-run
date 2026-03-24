@@ -19,7 +19,7 @@ describe('roadmap get-phase command', () => {
     cleanup(tmpDir);
   });
 
-  test('extracts phase section from ROADMAP.md', () => {
+  test('extracts phase section from ROADMAP.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0
@@ -48,7 +48,7 @@ Some description here.
     assert.strictEqual(output.goal, 'Set up project infrastructure', 'goal extracted');
   });
 
-  test('returns not found for missing phase', () => {
+  test('returns not found for missing phase', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0
@@ -65,7 +65,7 @@ Some description here.
     assert.strictEqual(output.found, false, 'phase should not be found');
   });
 
-  test('handles decimal phase numbers', () => {
+  test('handles decimal phase numbers', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -87,7 +87,7 @@ Some description here.
     assert.strictEqual(output.goal, 'Emergency fix', 'goal extracted');
   });
 
-  test('extracts full section content', () => {
+  test('extracts full section content', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -114,7 +114,7 @@ This phase covers:
     assert.ok(!output.section.includes('Phase 2'), 'section does not include next phase');
   });
 
-  test('handles missing ROADMAP.md gracefully', () => {
+  test('handles missing ROADMAP.md gracefully', async () => {
     const result = runPbrTools('roadmap get-phase 1', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -123,7 +123,7 @@ This phase covers:
     assert.strictEqual(output.error, 'ROADMAP.md not found', 'should explain why');
   });
 
-  test('accepts ## phase headers (two hashes)', () => {
+  test('accepts ## phase headers (two hashes)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0
@@ -146,7 +146,7 @@ This phase covers:
     assert.strictEqual(output.goal, 'Set up project infrastructure', 'goal extracted');
   });
 
-  test('detects malformed ROADMAP with summary list but no detail sections', () => {
+  test('detects malformed ROADMAP with summary list but no detail sections', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0
@@ -184,7 +184,7 @@ describe('roadmap analyze command', () => {
     cleanup(tmpDir);
   });
 
-  test('missing ROADMAP.md returns error', () => {
+  test('missing ROADMAP.md returns error', async () => {
     const result = runPbrTools('roadmap analyze', tmpDir);
     assert.ok(result.success, `Command should succeed: ${result.error}`);
 
@@ -192,7 +192,7 @@ describe('roadmap analyze command', () => {
     assert.strictEqual(output.error, 'ROADMAP.md not found');
   });
 
-  test('parses phases with goals and disk status', () => {
+  test('parses phases with goals and disk status', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap v1.0
@@ -233,7 +233,7 @@ describe('roadmap analyze command', () => {
     assert.strictEqual(output.current_phase, '2', 'current phase is 2');
   });
 
-  test('extracts goals and dependencies', () => {
+  test('extracts goals and dependencies', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -274,7 +274,7 @@ describe('roadmap analyze disk status variants', () => {
     cleanup(tmpDir);
   });
 
-  test('returns researched status for phase dir with only RESEARCH.md', () => {
+  test('returns researched status for phase dir with only RESEARCH.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -296,7 +296,7 @@ describe('roadmap analyze disk status variants', () => {
     assert.strictEqual(output.phases[0].has_research, true, 'has_research should be true');
   });
 
-  test('returns discussed status for phase dir with only CONTEXT.md', () => {
+  test('returns discussed status for phase dir with only CONTEXT.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -318,7 +318,7 @@ describe('roadmap analyze disk status variants', () => {
     assert.strictEqual(output.phases[0].has_context, true, 'has_context should be true');
   });
 
-  test('returns empty status for phase dir with no recognized files', () => {
+  test('returns empty status for phase dir with no recognized files', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -354,7 +354,7 @@ describe('roadmap analyze milestone extraction', () => {
     cleanup(tmpDir);
   });
 
-  test('extracts milestone headings and version numbers', () => {
+  test('extracts milestone headings and version numbers', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -399,7 +399,7 @@ describe('roadmap analyze missing phase details', () => {
     cleanup(tmpDir);
   });
 
-  test('detects checklist-only phases missing detail sections', () => {
+  test('detects checklist-only phases missing detail sections', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -421,7 +421,7 @@ describe('roadmap analyze missing phase details', () => {
     assert.ok(!output.missing_phase_details.includes('2'), 'phase 2 should not be in missing details');
   });
 
-  test('returns null when all checklist phases have detail sections', () => {
+  test('returns null when all checklist phases have detail sections', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -460,7 +460,7 @@ describe('roadmap get-phase success criteria', () => {
     cleanup(tmpDir);
   });
 
-  test('extracts success_criteria array from phase section', () => {
+  test('extracts success_criteria array from phase section', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -489,7 +489,7 @@ describe('roadmap get-phase success criteria', () => {
     assert.ok(output.success_criteria[2].includes('Third criterion'), 'third criterion matches');
   });
 
-  test('returns empty array when no success criteria present', () => {
+  test('returns empty array when no success criteria present', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -524,13 +524,13 @@ describe('roadmap update-plan-progress command', () => {
     cleanup(tmpDir);
   });
 
-  test('missing phase number returns error', () => {
+  test('missing phase number returns error', async () => {
     const result = runPbrTools('roadmap update-plan-progress', tmpDir);
     assert.strictEqual(result.success, false, 'should fail without phase number');
     assert.ok(result.error.includes('phase number required'), 'error should mention phase number required');
   });
 
-  test('nonexistent phase returns error', () => {
+  test('nonexistent phase returns error', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -545,7 +545,7 @@ describe('roadmap update-plan-progress command', () => {
     assert.ok(result.error.includes('not found'), 'error should mention not found');
   });
 
-  test('no plans found returns updated false', () => {
+  test('no plans found returns updated false', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -569,7 +569,7 @@ describe('roadmap update-plan-progress command', () => {
     assert.strictEqual(output.plan_count, 0, 'plan_count should be 0');
   });
 
-  test('updates progress for partial completion', () => {
+  test('updates progress for partial completion', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -608,7 +608,7 @@ describe('roadmap update-plan-progress command', () => {
     assert.ok(roadmapContent.includes('1/2'), 'roadmap should contain updated plan count');
   });
 
-  test('updates progress and checks checkbox on completion', () => {
+  test('updates progress and checks checkbox on completion', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -648,7 +648,7 @@ describe('roadmap update-plan-progress command', () => {
     assert.ok(roadmapContent.includes('1/1'), 'roadmap should contain updated plan count');
   });
 
-  test('missing ROADMAP.md returns updated false', () => {
+  test('missing ROADMAP.md returns updated false', async () => {
     // Create phase dir with plans and summaries but NO ROADMAP.md
     const p1 = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(p1, { recursive: true });
@@ -679,7 +679,7 @@ describe('roadmap analyze with GSD-aligned format', () => {
     cleanup(tmpDir);
   });
 
-  test('extracts requirements and success_criteria from phases', () => {
+  test('extracts requirements and success_criteria from phases', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap: Test Project
@@ -712,7 +712,7 @@ describe('roadmap analyze with GSD-aligned format', () => {
     assert.strictEqual(output.phases[1].requirements, 'REQ-F-003', 'phase 2 requirements');
   });
 
-  test('details-wrapped completed milestone does not break parsing', () => {
+  test('details-wrapped completed milestone does not break parsing', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -755,7 +755,7 @@ describe('roadmap analyze with GSD-aligned format', () => {
     assert.strictEqual(phase2.requirements, 'REQ-002', 'active phase requirements extracted');
   });
 
-  test('update-plan-progress works with Milestone column in progress table', () => {
+  test('update-plan-progress works with Milestone column in progress table', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap
@@ -793,7 +793,7 @@ describe('roadmap analyze with GSD-aligned format', () => {
     assert.ok(roadmap.includes('1/2'), 'roadmap should contain updated plan count');
   });
 
-  test('update-plan-progress works without Milestone column (backward compat)', () => {
+  test('update-plan-progress works without Milestone column (backward compat)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap

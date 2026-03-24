@@ -64,7 +64,7 @@ function filterLegitimateUses(lines) {
 }
 
 describe('Agent resume parameter audit', () => {
-  test('no deprecated resume parameter in skill files', () => {
+  test('no deprecated resume parameter in skill files', async () => {
     const skillDir = path.join('plugins', 'pbr', 'skills');
     const mdMatches = grepResume(skillDir, '*.md');
     const tmplMatches = grepResume(skillDir, '*.tmpl');
@@ -78,7 +78,7 @@ describe('Agent resume parameter audit', () => {
     expect(filtered).toEqual([]);
   });
 
-  test('no deprecated resume parameter in agent files', () => {
+  test('no deprecated resume parameter in agent files', async () => {
     const agentDir = path.join('plugins', 'pbr', 'agents');
     const matches = grepResume(agentDir, '*.md');
     const filtered = filterLegitimateUses(matches);
@@ -90,7 +90,7 @@ describe('Agent resume parameter audit', () => {
     expect(filtered).toEqual([]);
   });
 
-  test('no deprecated resume parameter in hook scripts', () => {
+  test('no deprecated resume parameter in hook scripts', async () => {
     const scriptsDir = path.join('plugins', 'pbr', 'scripts');
     const matches = grepResume(scriptsDir, '*.js');
     const filtered = filterLegitimateUses(matches);

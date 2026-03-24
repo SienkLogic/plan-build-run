@@ -855,11 +855,14 @@ function atomicWrite(filePath, content) {
  * @param {object} opts - Options: { retries: 3, retryDelayMs: 100, timeoutMs: 5000 }
  * @returns {object} { success, content?, error? }
  */
-function lockedFileUpdate(filePath, updateFn, opts = {}) {
+async function lockedFileUpdate(filePath, updateFn, opts = {}) {
   const retries = opts.retries || 10;
   const retryDelayMs = opts.retryDelayMs || 50;
   const timeoutMs = opts.timeoutMs || 10000;
   const lockPath = filePath + '.lock';
+
+  // Async sleep helper — does NOT block the event loop
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   let lockFd = null;
   let lockAcquired = false;
@@ -867,15 +870,16 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
   try {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        lockFd = fs.openSync(lockPath, 'wx');
+        lockFd = await fs.promises.open(lockPath, 'wx');
         lockAcquired = true;
         break;
       } catch (e) { // intentionally silent: lock contention is expected
         if (e.code === 'EEXIST') {
+          // Check for stale lock
           try {
-            const stats = fs.statSync(lockPath);
+            const stats = await fs.promises.stat(lockPath);
             if (Date.now() - stats.mtimeMs > timeoutMs) {
-              fs.unlinkSync(lockPath);
+              try { await fs.promises.unlink(lockPath); } catch (_unlinkErr) { /* best effort */ }
               continue;
             }
           } catch (_statErr) { // intentionally silent: lock stat failed
@@ -886,12 +890,7 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
             const baseWait = retryDelayMs * Math.pow(2, attempt);
             const jitter = Math.floor(Math.random() * retryDelayMs);
             const waitMs = Math.min(baseWait + jitter, 2000);
-            try {
-              Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
-            } catch (_atomicsErr) { // intentionally silent: Atomics fallback
-              const end = Date.now() + waitMs;
-              while (Date.now() < end) { /* last-resort fallback */ }
-            }
+            await sleep(waitMs);
             continue;
           }
           // Last retry exhausted — break to fall through to last-resort write
@@ -907,8 +906,8 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
     }
 
     if (lockAcquired) {
-      fs.writeSync(lockFd, `${process.pid}`);
-      fs.closeSync(lockFd);
+      await lockFd.write(`${process.pid}`);
+      await lockFd.close();
       lockFd = null;
     }
 
@@ -930,10 +929,12 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
     return { success: false, error: e.message };
   } finally {
     try {
-      if (lockFd !== null) fs.closeSync(lockFd);
+      if (lockFd !== null) {
+        try { await lockFd.close(); } catch (_e) { /* intentionally silent */ }
+      }
     } catch (_e) { /* intentionally silent: fd close in finally */ }
     if (lockAcquired) {
-      try { fs.unlinkSync(lockPath); } catch (_e) { /* intentionally silent: lock cleanup in finally block */ }
+      try { await fs.promises.unlink(lockPath); } catch (_e) { /* intentionally silent: lock cleanup in finally block */ }
     }
   }
 }

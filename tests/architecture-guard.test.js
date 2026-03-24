@@ -55,27 +55,27 @@ const {
 
 describe('architecture-guard.js', () => {
   describe('checkCjsLib', () => {
-    test('detects missing module.exports in lib/*.cjs files', () => {
+    test('detects missing module.exports in lib/*.cjs files', async () => {
       const content = "'use strict';\nfunction helper() {}\n// exports missing";
       const result = checkCjsLib('plan-build-run/bin/lib/my-util.cjs', content);
       expect(result).toBeTruthy();
       expect(result).toMatch(/module\.exports/i);
     });
 
-    test('detects missing use strict in lib/*.cjs files', () => {
+    test('detects missing use strict in lib/*.cjs files', async () => {
       const content = 'function helper() {}\nmodule.exports = { helper };';
       const result = checkCjsLib('plan-build-run/bin/lib/my-util.cjs', content);
       expect(result).toBeTruthy();
       expect(result).toMatch(/use strict/i);
     });
 
-    test('returns null for conforming lib/*.cjs files', () => {
+    test('returns null for conforming lib/*.cjs files', async () => {
       const content = "'use strict';\nfunction helper() {}\nmodule.exports = { helper };";
       const result = checkCjsLib('plan-build-run/bin/lib/my-util.cjs', content);
       expect(result).toBeNull();
     });
 
-    test('returns null for non-lib files', () => {
+    test('returns null for non-lib files', async () => {
       const content = 'function x() {}'; // missing both
       const result = checkCjsLib('src/utils.js', content);
       expect(result).toBeNull(); // not a lib/*.cjs path
@@ -83,27 +83,27 @@ describe('architecture-guard.js', () => {
   });
 
   describe('checkHookScript', () => {
-    test('detects hook script missing logHook import', () => {
+    test('detects hook script missing logHook import', async () => {
       const content = "const fs = require('fs');\nprocess.stdin.on('data', () => {});";
       const result = checkHookScript('plugins/pbr/scripts/my-hook.js', content);
       expect(result).toBeTruthy();
       expect(result).toMatch(/logHook|hook-logger/i);
     });
 
-    test('detects hook script missing stdin read', () => {
+    test('detects hook script missing stdin read', async () => {
       const content = "const { logHook } = require('./hook-logger');\n// no stdin";
       const result = checkHookScript('plugins/pbr/scripts/my-hook.js', content);
       expect(result).toBeTruthy();
       expect(result).toMatch(/stdin/i);
     });
 
-    test('returns null for conforming hook scripts', () => {
+    test('returns null for conforming hook scripts', async () => {
       const content = "const { logHook } = require('./hook-logger');\nprocess.stdin.on('data', (c) => {});";
       const result = checkHookScript('plugins/pbr/scripts/my-hook.js', content);
       expect(result).toBeNull();
     });
 
-    test('returns null for non-hook-script paths', () => {
+    test('returns null for non-hook-script paths', async () => {
       const content = 'function x() {}'; // missing both
       const result = checkHookScript('src/something.js', content);
       expect(result).toBeNull(); // not a plugins/pbr/scripts path
@@ -118,20 +118,20 @@ describe('architecture-guard.js', () => {
       expect(result).toMatch(/name|description/i);
     });
 
-    test('detects agent .md file missing tools list', () => {
+    test('detects agent .md file missing tools list', async () => {
       const content = '---\nname: my-agent\ndescription: "Test agent"\n---\nBody.';
       const result = checkAgentDef('plugins/pbr/agents/my-agent.md', content);
       expect(result).toBeTruthy();
       expect(result).toMatch(/tools/i);
     });
 
-    test('returns null for conforming agent definition', () => {
+    test('returns null for conforming agent definition', async () => {
       const content = '---\nname: my-agent\ndescription: "Test"\ntools:\n  - Read\n---\nBody.';
       const result = checkAgentDef('plugins/pbr/agents/my-agent.md', content);
       expect(result).toBeNull();
     });
 
-    test('returns null for non-agent paths', () => {
+    test('returns null for non-agent paths', async () => {
       const content = 'no frontmatter';
       const result = checkAgentDef('docs/README.md', content);
       expect(result).toBeNull(); // not a plugins/pbr/agents path
@@ -146,13 +146,13 @@ describe('architecture-guard.js', () => {
       expect(result).toMatch(/name|description/i);
     });
 
-    test('returns null for conforming skill definition', () => {
+    test('returns null for conforming skill definition', async () => {
       const content = '---\nname: my-skill\ndescription: "Does stuff"\n---\nBody.';
       const result = checkSkillDef('plugins/pbr/skills/my-skill/SKILL.md', content);
       expect(result).toBeNull();
     });
 
-    test('returns null for non-skill paths', () => {
+    test('returns null for non-skill paths', async () => {
       const content = 'no frontmatter';
       const result = checkSkillDef('docs/README.md', content);
       expect(result).toBeNull();
@@ -160,7 +160,7 @@ describe('architecture-guard.js', () => {
   });
 
   describe('runGuard', () => {
-    test('returns null for files matching established patterns', () => {
+    test('returns null for files matching established patterns', async () => {
       const { tmp, planningDir } = makeTempProject();
       try {
         writeFile(tmp, 'plugins/pbr/scripts/good-hook.js',
@@ -173,7 +173,7 @@ describe('architecture-guard.js', () => {
       }
     });
 
-    test('skips check when features.architecture_guard is disabled', () => {
+    test('skips check when features.architecture_guard is disabled', async () => {
       const { tmp, planningDir } = makeTempProject({ guardEnabled: false });
       try {
         // File that would normally fail
@@ -185,7 +185,7 @@ describe('architecture-guard.js', () => {
       }
     });
 
-    test('returns additionalContext with violation description when pattern violated', () => {
+    test('returns additionalContext with violation description when pattern violated', async () => {
       const { tmp, planningDir } = makeTempProject();
       try {
         // CJS lib missing both 'use strict' and module.exports
@@ -199,7 +199,7 @@ describe('architecture-guard.js', () => {
       }
     });
 
-    test('logs violations to daily hooks log with architecture_guard event type', () => {
+    test('logs violations to daily hooks log with architecture_guard event type', async () => {
       const savedCwd = process.cwd();
       const { tmp, planningDir } = makeTempProject();
       clearRootCache();

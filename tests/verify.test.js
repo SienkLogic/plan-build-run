@@ -47,13 +47,13 @@ function getOutput() {
 }
 
 describe('cmdVerifySummary', () => {
-  test('reports failure when summary does not exist', () => {
+  test('reports failure when summary does not exist', async () => {
     try { cmdVerifySummary(tmpDir, '.planning/phases/01-foundation/SUMMARY.md', 2, true); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('failed');
   });
 
-  test('reports success for valid summary', () => {
+  test('reports success for valid summary', async () => {
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'SUMMARY.md');
     fs.writeFileSync(summaryPath, '---\nphase: 01\nplan: 01\n---\n# Summary\n\n## Self-Check: PASSED\n\nAll checks passed.\n');
     try { cmdVerifySummary(tmpDir, '.planning/phases/01-foundation/SUMMARY.md', 2, true); } catch (_e) { /* exit */ }
@@ -61,7 +61,7 @@ describe('cmdVerifySummary', () => {
     expect(out).toContain('passed');
   });
 
-  test('detects failed self-check', () => {
+  test('detects failed self-check', async () => {
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'SUMMARY.md');
     fs.writeFileSync(summaryPath, '---\nphase: 01\n---\n# Summary\n\n## Self-Check\nFailed: missing files\n');
     try { cmdVerifySummary(tmpDir, '.planning/phases/01-foundation/SUMMARY.md', 2, false); } catch (_e) { /* exit */ }
@@ -71,7 +71,7 @@ describe('cmdVerifySummary', () => {
 });
 
 describe('cmdVerifyPlanStructure', () => {
-  test('reports errors for plan missing required fields', () => {
+  test('reports errors for plan missing required fields', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     fs.writeFileSync(planPath, '---\nphase: 01\n---\n# Plan\n');
     try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
@@ -79,7 +79,7 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out).toContain('Missing');
   });
 
-  test('warns when task missing verify/done/files', () => {
+  test('warns when task missing verify/done/files', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 1\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="code"><name>T1</name><action>Do it</action></task>');
     try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
@@ -88,7 +88,7 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out).toContain('done');
   });
 
-  test('errors when task missing name', () => {
+  test('errors when task missing name', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 1\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="code"><action>Do it</action></task>');
     try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
@@ -96,7 +96,7 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out).toContain('name');
   });
 
-  test('warns on wave > 1 with empty depends_on', () => {
+  test('warns on wave > 1 with empty depends_on', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 2\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="code"><name>T1</name><action>Do</action><verify>Check</verify><done>Done</done></task>');
     try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
@@ -104,7 +104,7 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out).toContain('Wave');
   });
 
-  test('errors on checkpoint tasks with autonomous true', () => {
+  test('errors on checkpoint tasks with autonomous true', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 1\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="checkpoint"><name>Review</name><action>Check</action></task>');
     try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
@@ -112,7 +112,7 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out).toContain('checkpoint');
   });
 
-  test('validates complete plan structure', () => {
+  test('validates complete plan structure', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     const content = [
       '---',
@@ -142,7 +142,7 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out.length).toBeGreaterThan(0);
   });
 
-  test('handles missing file', () => {
+  test('handles missing file', async () => {
     try { cmdVerifyPlanStructure(tmpDir, 'nonexistent.md', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('not found');
@@ -150,7 +150,7 @@ describe('cmdVerifyPlanStructure', () => {
 });
 
 describe('cmdVerifyPhaseCompleteness', () => {
-  test('checks phase completeness with plans and summaries', () => {
+  test('checks phase completeness with plans and summaries', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\nphase: 01\nplan: 01\n---\n');
     fs.writeFileSync(path.join(phaseDir, '01-01-SUMMARY.md'), '---\nstatus: complete\n---\n');
@@ -159,7 +159,7 @@ describe('cmdVerifyPhaseCompleteness', () => {
     expect(out).toContain('complete');
   });
 
-  test('reports incomplete plans', () => {
+  test('reports incomplete plans', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\n---\n');
     // No corresponding SUMMARY
@@ -168,7 +168,7 @@ describe('cmdVerifyPhaseCompleteness', () => {
     expect(out).toContain('01-01');
   });
 
-  test('reports orphan summaries', () => {
+  test('reports orphan summaries', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
     fs.writeFileSync(path.join(phaseDir, '01-02-SUMMARY.md'), '---\n---\n');
     // No corresponding PLAN
@@ -179,7 +179,7 @@ describe('cmdVerifyPhaseCompleteness', () => {
 });
 
 describe('cmdVerifyReferences', () => {
-  test('verifies references in phase directory', () => {
+  test('verifies references in phase directory', async () => {
     try { cmdVerifyReferences(tmpDir, '1', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -187,7 +187,7 @@ describe('cmdVerifyReferences', () => {
 });
 
 describe('cmdVerifyCommits', () => {
-  test('checks commit references', () => {
+  test('checks commit references', async () => {
     try { cmdVerifyCommits(tmpDir, '1', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -195,7 +195,7 @@ describe('cmdVerifyCommits', () => {
 });
 
 describe('cmdVerifyArtifacts', () => {
-  test('checks artifact references', () => {
+  test('checks artifact references', async () => {
     try { cmdVerifyArtifacts(tmpDir, '1', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -203,7 +203,7 @@ describe('cmdVerifyArtifacts', () => {
 });
 
 describe('cmdVerifyKeyLinks', () => {
-  test('checks key link references', () => {
+  test('checks key link references', async () => {
     try { cmdVerifyKeyLinks(tmpDir, '1', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -211,7 +211,7 @@ describe('cmdVerifyKeyLinks', () => {
 });
 
 describe('cmdValidateConsistency', () => {
-  test('validates planning consistency', () => {
+  test('validates planning consistency', async () => {
     try { cmdValidateConsistency(tmpDir, false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -219,7 +219,7 @@ describe('cmdValidateConsistency', () => {
 });
 
 describe('cmdValidateHealth', () => {
-  test('validates project health', () => {
+  test('validates project health', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', mode: 'interactive' }));
     try { cmdValidateHealth(tmpDir, false); } catch (_e) { /* exit */ }
@@ -227,7 +227,7 @@ describe('cmdValidateHealth', () => {
     expect(out.length).toBeGreaterThan(0);
   });
 
-  test('handles missing config.json', () => {
+  test('handles missing config.json', async () => {
     try { cmdValidateHealth(tmpDir, false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
@@ -235,7 +235,7 @@ describe('cmdValidateHealth', () => {
 });
 
 describe('cmdValidateHealth - Phase 14 feature checks', () => {
-  test('health check reports regression_prevention status', () => {
+  test('health check reports regression_prevention status', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         depth: 'standard',
@@ -246,7 +246,7 @@ describe('cmdValidateHealth - Phase 14 feature checks', () => {
     expect(out).toMatch(/regression_prevention/i);
   });
 
-  test('health check reports security_scanning status', () => {
+  test('health check reports security_scanning status', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         depth: 'standard',

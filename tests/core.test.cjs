@@ -52,7 +52,7 @@ describe('loadConfig', () => {
     );
   }
 
-  test('returns defaults when config.json is missing', () => {
+  test('returns defaults when config.json is missing', async () => {
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.model_profile, 'balanced');
     assert.strictEqual(config.commit_docs, true);
@@ -63,38 +63,38 @@ describe('loadConfig', () => {
     assert.strictEqual(config.nyquist_validation, true);
   });
 
-  test('reads model_profile from config.json', () => {
+  test('reads model_profile from config.json', async () => {
     writeConfig({ model_profile: 'quality' });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.model_profile, 'quality');
   });
 
-  test('reads nested config keys', () => {
+  test('reads nested config keys', async () => {
     writeConfig({ planning: { commit_docs: false } });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.commit_docs, false);
   });
 
-  test('reads branching_strategy from git section', () => {
+  test('reads branching_strategy from git section', async () => {
     writeConfig({ git: { branching_strategy: 'per-phase' } });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.branching_strategy, 'per-phase');
   });
 
   // Bug: loadConfig previously omitted model_overrides from return value
-  test('returns model_overrides when present (REG-01)', () => {
+  test('returns model_overrides when present (REG-01)', async () => {
     writeConfig({ model_overrides: { 'pbr-executor': 'opus' } });
     const config = loadConfig(tmpDir);
     assert.deepStrictEqual(config.model_overrides, { 'pbr-executor': 'opus' });
   });
 
-  test('returns model_overrides as null when not in config', () => {
+  test('returns model_overrides as null when not in config', async () => {
     writeConfig({ model_profile: 'balanced' });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.model_overrides, null);
   });
 
-  test('returns defaults when config.json contains invalid JSON', () => {
+  test('returns defaults when config.json contains invalid JSON', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'config.json'),
       'not valid json {{{{'
@@ -104,19 +104,19 @@ describe('loadConfig', () => {
     assert.strictEqual(config.commit_docs, true);
   });
 
-  test('handles parallelization as boolean', () => {
+  test('handles parallelization as boolean', async () => {
     writeConfig({ parallelization: false });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.parallelization, false);
   });
 
-  test('handles parallelization as object with enabled field', () => {
+  test('handles parallelization as object with enabled field', async () => {
     writeConfig({ parallelization: { enabled: false } });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.parallelization, false);
   });
 
-  test('prefers top-level keys over nested keys', () => {
+  test('prefers top-level keys over nested keys', async () => {
     writeConfig({ commit_docs: false, planning: { commit_docs: true } });
     const config = loadConfig(tmpDir);
     assert.strictEqual(config.commit_docs, false);
@@ -145,7 +145,7 @@ describe('resolveModelInternal', () => {
   }
 
   describe('model profile structural validation', () => {
-    test('all known agents resolve to a valid string for each profile', () => {
+    test('all known agents resolve to a valid string for each profile', async () => {
       const knownAgents = ['pbr-planner', 'pbr-executor', 'pbr-phase-researcher', 'pbr-codebase-mapper'];
       const profiles = ['quality', 'balanced', 'budget'];
       const validValues = ['inherit', 'sonnet', 'haiku', 'opus'];
@@ -164,7 +164,7 @@ describe('resolveModelInternal', () => {
   });
 
   describe('override precedence', () => {
-    test('per-agent override takes precedence over profile', () => {
+    test('per-agent override takes precedence over profile', async () => {
       writeConfig({
         model_profile: 'balanced',
         model_overrides: { 'pbr-executor': 'haiku' },
@@ -172,14 +172,14 @@ describe('resolveModelInternal', () => {
       assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-executor'), 'haiku');
     });
 
-    test('opus override resolves to inherit', () => {
+    test('opus override resolves to inherit', async () => {
       writeConfig({
         model_overrides: { 'pbr-executor': 'opus' },
       });
       assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-executor'), 'inherit');
     });
 
-    test('agents not in override fall back to profile', () => {
+    test('agents not in override fall back to profile', async () => {
       writeConfig({
         model_profile: 'quality',
         model_overrides: { 'pbr-executor': 'haiku' },
@@ -190,12 +190,12 @@ describe('resolveModelInternal', () => {
   });
 
   describe('edge cases', () => {
-    test('returns sonnet for unknown agent type', () => {
+    test('returns sonnet for unknown agent type', async () => {
       writeConfig({ model_profile: 'balanced' });
       assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-nonexistent'), 'sonnet');
     });
 
-    test('defaults to balanced profile when model_profile missing', () => {
+    test('defaults to balanced profile when model_profile missing', async () => {
       writeConfig({});
       // balanced profile, pbr-planner -> opus -> inherit
       assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-planner'), 'inherit');
@@ -206,11 +206,11 @@ describe('resolveModelInternal', () => {
 // ─── escapeRegex ───────────────────────────────────────────────────────────────
 
 describe('escapeRegex', () => {
-  test('escapes dots', () => {
+  test('escapes dots', async () => {
     assert.strictEqual(escapeRegex('file.txt'), 'file\\.txt');
   });
 
-  test('escapes all special regex characters', () => {
+  test('escapes all special regex characters', async () => {
     const input = '1.0 (alpha) [test] {ok} $100 ^start end$ a+b a*b a?b pipe|or back\\slash';
     const result = escapeRegex(input);
     // Verify each special char is escaped
@@ -230,11 +230,11 @@ describe('escapeRegex', () => {
     assert.ok(result.includes('\\\\'));
   });
 
-  test('handles empty string', () => {
+  test('handles empty string', async () => {
     assert.strictEqual(escapeRegex(''), '');
   });
 
-  test('returns plain string unchanged', () => {
+  test('returns plain string unchanged', async () => {
     assert.strictEqual(escapeRegex('hello'), 'hello');
   });
 });
@@ -242,23 +242,23 @@ describe('escapeRegex', () => {
 // ─── generateSlugInternal ──────────────────────────────────────────────────────
 
 describe('generateSlugInternal', () => {
-  test('converts text to lowercase kebab-case', () => {
+  test('converts text to lowercase kebab-case', async () => {
     assert.strictEqual(generateSlugInternal('Hello World'), 'hello-world');
   });
 
-  test('removes special characters', () => {
+  test('removes special characters', async () => {
     assert.strictEqual(generateSlugInternal('core.cjs Tests!'), 'core-cjs-tests');
   });
 
-  test('trims leading and trailing hyphens', () => {
+  test('trims leading and trailing hyphens', async () => {
     assert.strictEqual(generateSlugInternal('---hello---'), 'hello');
   });
 
-  test('returns null for null input', () => {
+  test('returns null for null input', async () => {
     assert.strictEqual(generateSlugInternal(null), null);
   });
 
-  test('returns null for empty string', () => {
+  test('returns null for empty string', async () => {
     assert.strictEqual(generateSlugInternal(''), null);
   });
 });
@@ -266,27 +266,27 @@ describe('generateSlugInternal', () => {
 // ─── normalizePhaseName ────────────────────────────────────────────────────────
 
 describe('normalizePhaseName', () => {
-  test('pads single digit', () => {
+  test('pads single digit', async () => {
     assert.strictEqual(normalizePhaseName('1'), '01');
   });
 
-  test('preserves double digit', () => {
+  test('preserves double digit', async () => {
     assert.strictEqual(normalizePhaseName('12'), '12');
   });
 
-  test('handles letter suffix', () => {
+  test('handles letter suffix', async () => {
     assert.strictEqual(normalizePhaseName('1A'), '01A');
   });
 
-  test('handles decimal phases', () => {
+  test('handles decimal phases', async () => {
     assert.strictEqual(normalizePhaseName('2.1'), '02.1');
   });
 
-  test('handles multi-level decimals', () => {
+  test('handles multi-level decimals', async () => {
     assert.strictEqual(normalizePhaseName('1.2.3'), '01.2.3');
   });
 
-  test('returns non-matching input unchanged', () => {
+  test('returns non-matching input unchanged', async () => {
     assert.strictEqual(normalizePhaseName('abc'), 'abc');
   });
 });
@@ -294,27 +294,27 @@ describe('normalizePhaseName', () => {
 // ─── comparePhaseNum ───────────────────────────────────────────────────────────
 
 describe('comparePhaseNum', () => {
-  test('sorts integer phases numerically', () => {
+  test('sorts integer phases numerically', async () => {
     assert.ok(comparePhaseNum('1', '2') < 0);
     assert.ok(comparePhaseNum('10', '2') > 0);
   });
 
-  test('sorts letter suffixes', () => {
+  test('sorts letter suffixes', async () => {
     assert.ok(comparePhaseNum('12', '12A') < 0);
     assert.ok(comparePhaseNum('12A', '12B') < 0);
   });
 
-  test('sorts decimal phases', () => {
+  test('sorts decimal phases', async () => {
     assert.ok(comparePhaseNum('2', '2.1') < 0);
     assert.ok(comparePhaseNum('2.1', '2.2') < 0);
   });
 
-  test('handles multi-level decimals', () => {
+  test('handles multi-level decimals', async () => {
     assert.ok(comparePhaseNum('1.1', '1.1.2') < 0);
     assert.ok(comparePhaseNum('1.1.2', '1.2') < 0);
   });
 
-  test('returns 0 for equal phases', () => {
+  test('returns 0 for equal phases', async () => {
     assert.strictEqual(comparePhaseNum('1', '1'), 0);
     assert.strictEqual(comparePhaseNum('2.1', '2.1'), 0);
   });
@@ -333,13 +333,13 @@ describe('safeReadFile', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('reads existing file', () => {
+  test('reads existing file', async () => {
     const filePath = path.join(tmpDir, 'test.txt');
     fs.writeFileSync(filePath, 'hello world');
     assert.strictEqual(safeReadFile(filePath), 'hello world');
   });
 
-  test('returns null for missing file', () => {
+  test('returns null for missing file', async () => {
     assert.strictEqual(safeReadFile('/nonexistent/path/file.txt'), null);
   });
 });
@@ -358,15 +358,15 @@ describe('pathExistsInternal', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns true for existing path', () => {
+  test('returns true for existing path', async () => {
     assert.strictEqual(pathExistsInternal(tmpDir, '.planning'), true);
   });
 
-  test('returns false for non-existing path', () => {
+  test('returns false for non-existing path', async () => {
     assert.strictEqual(pathExistsInternal(tmpDir, 'nonexistent'), false);
   });
 
-  test('handles absolute paths', () => {
+  test('handles absolute paths', async () => {
     assert.strictEqual(pathExistsInternal(tmpDir, tmpDir), true);
   });
 });
@@ -385,7 +385,7 @@ describe('getMilestoneInfo', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('extracts version and name from roadmap', () => {
+  test('extracts version and name from roadmap', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\n## Roadmap v1.2: My Cool Project\n\nSome content'
@@ -395,13 +395,13 @@ describe('getMilestoneInfo', () => {
     assert.strictEqual(info.name, 'My Cool Project');
   });
 
-  test('returns defaults when roadmap missing', () => {
+  test('returns defaults when roadmap missing', async () => {
     const info = getMilestoneInfo(tmpDir);
     assert.strictEqual(info.version, 'v1.0');
     assert.strictEqual(info.name, 'milestone');
   });
 
-  test('returns active milestone when shipped milestone is collapsed in details block', () => {
+  test('returns active milestone when shipped milestone is collapsed in details block', async () => {
     const roadmap = [
       '# Milestones',
       '',
@@ -431,7 +431,7 @@ describe('getMilestoneInfo', () => {
     assert.strictEqual(info.name, 'Dashboard Overhaul');
   });
 
-  test('returns active milestone when multiple shipped milestones exist in details blocks', () => {
+  test('returns active milestone when multiple shipped milestones exist in details blocks', async () => {
     const roadmap = [
       '# Milestones',
       '',
@@ -465,7 +465,7 @@ describe('getMilestoneInfo', () => {
     assert.strictEqual(info.name, 'Performance Tuning');
   });
 
-  test('returns defaults when roadmap has no heading matches', () => {
+  test('returns defaults when roadmap has no heading matches', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\nSome content without version headings'
@@ -492,7 +492,7 @@ describe('searchPhaseInDir', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('finds phase directory by normalized prefix', () => {
+  test('finds phase directory by normalized prefix', async () => {
     fs.mkdirSync(path.join(phasesDir, '01-foundation'));
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
     assert.strictEqual(result.found, true);
@@ -500,7 +500,7 @@ describe('searchPhaseInDir', () => {
     assert.strictEqual(result.phase_name, 'foundation');
   });
 
-  test('returns plans and summaries', () => {
+  test('returns plans and summaries', async () => {
     const phaseDir = path.join(phasesDir, '01-foundation');
     fs.mkdirSync(phaseDir);
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan');
@@ -511,7 +511,7 @@ describe('searchPhaseInDir', () => {
     assert.strictEqual(result.incomplete_plans.length, 0);
   });
 
-  test('identifies incomplete plans', () => {
+  test('identifies incomplete plans', async () => {
     const phaseDir = path.join(phasesDir, '01-foundation');
     fs.mkdirSync(phaseDir);
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan 1');
@@ -522,7 +522,7 @@ describe('searchPhaseInDir', () => {
     assert.ok(result.incomplete_plans.includes('01-02-PLAN.md'));
   });
 
-  test('detects research and context files', () => {
+  test('detects research and context files', async () => {
     const phaseDir = path.join(phasesDir, '01-foundation');
     fs.mkdirSync(phaseDir);
     fs.writeFileSync(path.join(phaseDir, '01-RESEARCH.md'), '# Research');
@@ -532,13 +532,13 @@ describe('searchPhaseInDir', () => {
     assert.strictEqual(result.has_context, true);
   });
 
-  test('returns null when phase not found', () => {
+  test('returns null when phase not found', async () => {
     fs.mkdirSync(path.join(phasesDir, '01-foundation'));
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '99');
     assert.strictEqual(result, null);
   });
 
-  test('generates phase_slug from directory name', () => {
+  test('generates phase_slug from directory name', async () => {
     fs.mkdirSync(path.join(phasesDir, '01-core-cjs-tests'));
     const result = searchPhaseInDir(phasesDir, '.planning/phases', '01');
     assert.strictEqual(result.phase_slug, 'core-cjs-tests');
@@ -559,24 +559,24 @@ describe('findPhaseInternal', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('finds phase in current phases directory', () => {
+  test('finds phase in current phases directory', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '01-foundation'));
     const result = findPhaseInternal(tmpDir, '1');
     assert.strictEqual(result.found, true);
     assert.strictEqual(result.phase_number, '01');
   });
 
-  test('returns null for non-existent phase', () => {
+  test('returns null for non-existent phase', async () => {
     const result = findPhaseInternal(tmpDir, '99');
     assert.strictEqual(result, null);
   });
 
-  test('returns null for null phase', () => {
+  test('returns null for null phase', async () => {
     const result = findPhaseInternal(tmpDir, null);
     assert.strictEqual(result, null);
   });
 
-  test('searches archived milestones when not in current', () => {
+  test('searches archived milestones when not in current', async () => {
     // Create archived milestone structure (no current phase match)
     const archiveDir = path.join(tmpDir, '.planning', 'milestones', 'v1.0-phases', '01-foundation');
     fs.mkdirSync(archiveDir, { recursive: true });
@@ -601,7 +601,7 @@ describe('getRoadmapPhaseInternal', () => {
   });
 
   // Bug: getRoadmapPhaseInternal was missing from module.exports
-  test('is exported from core.cjs (REG-02)', () => {
+  test('is exported from core.cjs (REG-02)', async () => {
     assert.strictEqual(typeof getRoadmapPhaseInternal, 'function');
     // Also verify it works with a real roadmap (note: goal regex expects **Goal:** with colon inside bold)
     fs.writeFileSync(
@@ -614,7 +614,7 @@ describe('getRoadmapPhaseInternal', () => {
     assert.strictEqual(result.goal, 'Build the base');
   });
 
-  test('extracts phase name and goal from roadmap', () => {
+  test('extracts phase name and goal from roadmap', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 2: API Layer\n**Goal:** Create REST endpoints\n**Depends on**: Phase 1\n'
@@ -624,7 +624,7 @@ describe('getRoadmapPhaseInternal', () => {
     assert.strictEqual(result.goal, 'Create REST endpoints');
   });
 
-  test('returns null goal when Goal uses colon-outside-bold format', () => {
+  test('returns null goal when Goal uses colon-outside-bold format', async () => {
     // Actual ROADMAP.md uses **Goal**: (colon outside bold) which the regex does not match
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -636,12 +636,12 @@ describe('getRoadmapPhaseInternal', () => {
     assert.strictEqual(result.goal, null);
   });
 
-  test('returns null when roadmap missing', () => {
+  test('returns null when roadmap missing', async () => {
     const result = getRoadmapPhaseInternal(tmpDir, '1');
     assert.strictEqual(result, null);
   });
 
-  test('returns null when phase not in roadmap', () => {
+  test('returns null when phase not in roadmap', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 1: Foundation\n**Goal**: Build the base\n'
@@ -650,12 +650,12 @@ describe('getRoadmapPhaseInternal', () => {
     assert.strictEqual(result, null);
   });
 
-  test('returns null for null phase number', () => {
+  test('returns null for null phase number', async () => {
     const result = getRoadmapPhaseInternal(tmpDir, null);
     assert.strictEqual(result, null);
   });
 
-  test('extracts full section text', () => {
+  test('extracts full section text', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 1: Foundation\n**Goal**: Build the base\n**Requirements**: TEST-01\nSome details here\n\n### Phase 2: API\n**Goal**: REST\n'
@@ -682,7 +682,7 @@ describe('getMilestonePhaseFilter', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('filters directories to only current milestone phases', () => {
+  test('filters directories to only current milestone phases', async () => {
     // ROADMAP lists only phases 5-7
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -720,14 +720,14 @@ describe('getMilestonePhaseFilter', () => {
     assert.strictEqual(filter('04-phase-4'), false);
   });
 
-  test('returns pass-all filter when ROADMAP.md is missing', () => {
+  test('returns pass-all filter when ROADMAP.md is missing', async () => {
     const filter = getMilestonePhaseFilter(tmpDir);
 
     assert.strictEqual(filter('01-foundation'), true);
     assert.strictEqual(filter('99-anything'), true);
   });
 
-  test('returns pass-all filter when ROADMAP has no phase headings', () => {
+  test('returns pass-all filter when ROADMAP has no phase headings', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\nSome content without phases.\n'
@@ -739,7 +739,7 @@ describe('getMilestonePhaseFilter', () => {
     assert.strictEqual(filter('05-api'), true);
   });
 
-  test('handles letter-suffix phases (e.g. 3A)', () => {
+  test('handles letter-suffix phases (e.g. 3A)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 3A: Sub-feature\n**Goal:** Sub work\n'
@@ -752,7 +752,7 @@ describe('getMilestonePhaseFilter', () => {
     assert.strictEqual(filter('04-other'), false);
   });
 
-  test('handles decimal phases (e.g. 5.1)', () => {
+  test('handles decimal phases (e.g. 5.1)', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 5: Main\n**Goal:** Main work\n\n### Phase 5.1: Patch\n**Goal:** Patch work\n'
@@ -765,7 +765,7 @@ describe('getMilestonePhaseFilter', () => {
     assert.strictEqual(filter('04-other'), false);
   });
 
-  test('returns false for non-phase directory names', () => {
+  test('returns false for non-phase directory names', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 1: Init\n**Goal:** Start\n'
@@ -777,7 +777,7 @@ describe('getMilestonePhaseFilter', () => {
     assert.strictEqual(filter('.gitkeep'), false);
   });
 
-  test('phaseCount reflects ROADMAP phase count', () => {
+  test('phaseCount reflects ROADMAP phase count', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '### Phase 5: Auth\n### Phase 6: Dashboard\n### Phase 7: Polish\n'
@@ -787,12 +787,12 @@ describe('getMilestonePhaseFilter', () => {
     assert.strictEqual(filter.phaseCount, 3);
   });
 
-  test('phaseCount is 0 when ROADMAP is missing', () => {
+  test('phaseCount is 0 when ROADMAP is missing', async () => {
     const filter = getMilestonePhaseFilter(tmpDir);
     assert.strictEqual(filter.phaseCount, 0);
   });
 
-  test('phaseCount is 0 when ROADMAP has no phase headings', () => {
+  test('phaseCount is 0 when ROADMAP has no phase headings', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\nSome content.\n'

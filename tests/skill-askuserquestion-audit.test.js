@@ -67,11 +67,11 @@ describe('AskUserQuestion skill audit', () => {
   // - dashboard, help, note, pause: no interactive decision points
   const EXCLUDED_SKILLS = ['dashboard', 'fast', 'help', 'milestone-summary', 'note', 'pause', 'stats'];
 
-  test('found expected number of skills (46)', () => {
+  test('found expected number of skills (46)', async () => {
     expect(skillDirs.length).toBe(46);
   });
 
-  test('excluded skills do not have AskUserQuestion in allowed-tools', () => {
+  test('excluded skills do not have AskUserQuestion in allowed-tools', async () => {
     for (const skillName of EXCLUDED_SKILLS) {
       const skillPath = path.join(SKILLS_DIR, skillName, 'SKILL.md');
       if (!fs.existsSync(skillPath)) continue;
@@ -81,7 +81,7 @@ describe('AskUserQuestion skill audit', () => {
     }
   });
 
-  test('non-excluded skills have AskUserQuestion in allowed-tools', () => {
+  test('non-excluded skills have AskUserQuestion in allowed-tools', async () => {
     const missing = [];
     for (const skillName of skillDirs) {
       if (EXCLUDED_SKILLS.includes(skillName)) continue;
@@ -96,7 +96,7 @@ describe('AskUserQuestion skill audit', () => {
     expect(missing).toEqual([]);
   });
 
-  test('no plain-text gate patterns remain (Type approved/continue)', () => {
+  test('no plain-text gate patterns remain (Type approved/continue)', async () => {
     const violations = [];
     // Patterns that indicate unconverted gate checks
     const plainTextGates = [
@@ -142,7 +142,7 @@ describe('AskUserQuestion skill audit', () => {
     }
   });
 
-  test('pattern references in skills match actual patterns in gate-prompts.md', () => {
+  test('pattern references in skills match actual patterns in gate-prompts.md', async () => {
     const unknownRefs = [];
 
     for (const skillName of skillDirs) {

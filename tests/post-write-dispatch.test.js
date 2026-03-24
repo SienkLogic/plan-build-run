@@ -17,7 +17,7 @@ function cleanup(tmpDir) {
 }
 
 describe('post-write-dispatch.js', () => {
-  test('exits 0 silently for non-target files', () => {
+  test('exits 0 silently for non-target files', async () => {
     const { tmpDir } = makeTmpDir();
     const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'app.ts') });
     expect(result.exitCode).toBe(0);
@@ -25,14 +25,14 @@ describe('post-write-dispatch.js', () => {
     cleanup(tmpDir);
   });
 
-  test('exits 0 with empty tool_input', () => {
+  test('exits 0 with empty tool_input', async () => {
     const { tmpDir } = makeTmpDir();
     const result = runScript(tmpDir, {});
     expect(result.exitCode).toBe(0);
     cleanup(tmpDir);
   });
 
-  test('validates PLAN.md and reports errors', () => {
+  test('validates PLAN.md and reports errors', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const phaseDir = path.join(planningDir, 'phases', '01-init');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -48,7 +48,7 @@ describe('post-write-dispatch.js', () => {
     cleanup(tmpDir);
   });
 
-  test('validates valid PLAN.md without errors', () => {
+  test('validates valid PLAN.md without errors', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const phaseDir = path.join(planningDir, 'phases', '01-init');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -87,7 +87,7 @@ must_haves:
     cleanup(tmpDir);
   });
 
-  test('checks roadmap sync for STATE.md writes - blocks on regression', () => {
+  test('checks roadmap sync for STATE.md writes - blocks on regression', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '**Phase**: 03\n**Status**: built');
@@ -103,7 +103,7 @@ must_haves:
     cleanup(tmpDir);
   });
 
-  test('passes when STATE.md and ROADMAP.md are in sync', () => {
+  test('passes when STATE.md and ROADMAP.md are in sync', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, '---\nversion: 2\ncurrent_phase: 3\nphase_slug: "test"\nstatus: "built"\n---\n**Phase**: 03\n**Status**: built');
@@ -116,7 +116,7 @@ must_haves:
     cleanup(tmpDir);
   });
 
-  test('SUMMARY write triggers both checkPlanWrite and checkStateSync (dual-trigger)', () => {
+  test('SUMMARY write triggers both checkPlanWrite and checkStateSync (dual-trigger)', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const phaseDir = path.join(planningDir, 'phases', '02-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -159,7 +159,7 @@ deferred: []
     cleanup(tmpDir);
   });
 
-  test('STATE.md write triggers checkStateWrite frontmatter validation', () => {
+  test('STATE.md write triggers checkStateWrite frontmatter validation', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const statePath = path.join(planningDir, 'STATE.md');
 
@@ -179,7 +179,7 @@ deferred: []
     cleanup(tmpDir);
   });
 
-  test('validates ROADMAP.md writes and reports warnings', () => {
+  test('validates ROADMAP.md writes and reports warnings', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const roadmapPath = path.join(planningDir, 'ROADMAP.md');
     // Write a ROADMAP.md missing required structure
@@ -191,7 +191,7 @@ deferred: []
     cleanup(tmpDir);
   });
 
-  test('non-ROADMAP writes skip ROADMAP validation', () => {
+  test('non-ROADMAP writes skip ROADMAP validation', async () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const otherPath = path.join(planningDir, 'NOTES.md');
     fs.writeFileSync(otherPath, '# Notes');
@@ -201,7 +201,7 @@ deferred: []
     cleanup(tmpDir);
   });
 
-  test('ROADMAP.md outside .planning/ is not validated by roadmap check', () => {
+  test('ROADMAP.md outside .planning/ is not validated by roadmap check', async () => {
     const { tmpDir } = makeTmpDir();
     const roadmapPath = path.join(tmpDir, 'ROADMAP.md');
     fs.writeFileSync(roadmapPath, '# Roadmap\nSome content');
@@ -213,7 +213,7 @@ deferred: []
   });
 
   describe('cross-platform path handling', () => {
-    test('Windows-style backslash path triggers plan validation', () => {
+    test('Windows-style backslash path triggers plan validation', async () => {
       // On Linux/macOS, backslashes are literal filename characters, not path separators.
       // The dispatch script normalizes paths but the resolved file won't exist on non-Windows.
       if (process.platform !== 'win32') return;
@@ -235,7 +235,7 @@ deferred: []
       cleanup(tmpDir);
     });
 
-    test('ROADMAP.md with forward slashes triggers roadmap validation', () => {
+    test('ROADMAP.md with forward slashes triggers roadmap validation', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const roadmapPath = path.join(planningDir, 'ROADMAP.md');
       fs.writeFileSync(roadmapPath, '# Roadmap\nNo phase table here');
@@ -245,7 +245,7 @@ deferred: []
       cleanup(tmpDir);
     });
 
-    test('ROADMAP.md with backslash path triggers roadmap validation', () => {
+    test('ROADMAP.md with backslash path triggers roadmap validation', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const roadmapPath = path.join(planningDir, 'ROADMAP.md');
       fs.writeFileSync(roadmapPath, '# Roadmap\nNo phase table here');
@@ -255,7 +255,7 @@ deferred: []
       cleanup(tmpDir);
     });
 
-    test('CONTEXT.md with backslash path is handled by normalization', () => {
+    test('CONTEXT.md with backslash path is handled by normalization', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const contextPath = path.join(planningDir, 'CONTEXT.md');
       fs.writeFileSync(contextPath, '# Context\nSome content');
@@ -268,7 +268,7 @@ deferred: []
   });
 
   describe('missing .planning/ directory', () => {
-    test('exits 0 silently when .planning/ does not exist', () => {
+    test('exits 0 silently when .planning/ does not exist', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-powd-noplan-'));
       // No .planning/ subdirectory created
       const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'app.ts') });
@@ -279,7 +279,7 @@ deferred: []
   });
 
   describe('independent dispatch checks (RH-21)', () => {
-    test('SUMMARY.md with validation warnings still triggers checkStateSync', () => {
+    test('SUMMARY.md with validation warnings still triggers checkStateSync', async () => {
       // This tests that checkPlanWrite returning a result does NOT short-circuit
       // checkStateSync — both checks run independently and results are merged.
       const { tmpDir, planningDir } = makeTmpDir();
@@ -326,7 +326,7 @@ provides: ["setup done"]
       cleanup(tmpDir);
     });
 
-    test('one check error does not prevent other checks from running', () => {
+    test('one check error does not prevent other checks from running', async () => {
       // This tests that if an individual check throws, the remaining checks still run.
       // We simulate this by providing a STATE.md that triggers checkSync to throw
       // but also providing a valid SUMMARY path that should still trigger checkStateSync.
@@ -368,7 +368,7 @@ deferred: []
       cleanup(tmpDir);
     });
 
-    test('multiple check results are merged into combined additionalContext', () => {
+    test('multiple check results are merged into combined additionalContext', async () => {
       // When multiple checks produce output, results should be merged (newline-separated)
       // not just the first result returned.
       const { tmpDir, planningDir } = makeTmpDir();
@@ -395,7 +395,7 @@ deferred: []
   });
 
   describe('SUMMARY.md validation dispatch', () => {
-    test('SUMMARY.md missing required frontmatter fields triggers warning', () => {
+    test('SUMMARY.md missing required frontmatter fields triggers warning', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '03-api');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -420,7 +420,7 @@ provides: ["api done"]
       cleanup(tmpDir);
     });
 
-    test('valid SUMMARY.md with all required fields passes cleanly', () => {
+    test('valid SUMMARY.md with all required fields passes cleanly', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '03-api');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -446,7 +446,7 @@ deferred: []
       cleanup(tmpDir);
     });
 
-    test('SUMMARY.md with empty requires array passes validation', () => {
+    test('SUMMARY.md with empty requires array passes validation', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '03-api');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -471,7 +471,7 @@ deferred: []
   });
 
   describe('VERIFICATION.md validation dispatch', () => {
-    test('VERIFICATION.md missing frontmatter triggers warning', () => {
+    test('VERIFICATION.md missing frontmatter triggers warning', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '01-init');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -487,7 +487,7 @@ deferred: []
       cleanup(tmpDir);
     });
 
-    test('valid VERIFICATION.md passes without warnings', () => {
+    test('valid VERIFICATION.md passes without warnings', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '01-init');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -509,7 +509,7 @@ All must-haves verified.
   });
 
   describe('STATE.md validation and sync dispatch', () => {
-    test('STATE.md with invalid frontmatter produces warning', () => {
+    test('STATE.md with invalid frontmatter produces warning', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const statePath = path.join(planningDir, 'STATE.md');
       // Missing current_phase in frontmatter
@@ -523,7 +523,7 @@ All must-haves verified.
       cleanup(tmpDir);
     });
 
-    test('STATE.md triggers both checkSync and checkStateWrite validators', () => {
+    test('STATE.md triggers both checkSync and checkStateWrite validators', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const statePath = path.join(planningDir, 'STATE.md');
       // STATE without frontmatter (triggers checkStateWrite) and with
@@ -541,7 +541,7 @@ All must-haves verified.
       cleanup(tmpDir);
     });
 
-    test('STATE.md with Windows line endings is handled', () => {
+    test('STATE.md with Windows line endings is handled', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const statePath = path.join(planningDir, 'STATE.md');
       fs.writeFileSync(statePath, '---\r\nversion: 2\r\ncurrent_phase: 1\r\nphase_slug: "init"\r\nstatus: "planning"\r\n---\r\n**Phase**: 01\r\n');
@@ -552,7 +552,7 @@ All must-haves verified.
   });
 
   describe('error resilience', () => {
-    test('file_path with spaces does not crash dispatch', () => {
+    test('file_path with spaces does not crash dispatch', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '01-my phase');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -563,7 +563,7 @@ All must-haves verified.
       cleanup(tmpDir);
     });
 
-    test('file_path with unicode characters does not crash dispatch', () => {
+    test('file_path with unicode characters does not crash dispatch', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const unicodePath = path.join(planningDir, 'notes-\u00e9\u00e0.md');
       fs.writeFileSync(unicodePath, '# Unicode file');
@@ -572,21 +572,21 @@ All must-haves verified.
       cleanup(tmpDir);
     });
 
-    test('missing file_path in tool_input does not crash', () => {
+    test('missing file_path in tool_input does not crash', async () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, { content: 'some content but no path' });
       expect(result.exitCode).toBe(0);
       cleanup(tmpDir);
     });
 
-    test('empty stdin JSON object does not crash', () => {
+    test('empty stdin JSON object does not crash', async () => {
       const { tmpDir } = makeTmpDir();
       const result = _run({}, { cwd: tmpDir });
       expect(result.exitCode).toBe(0);
       cleanup(tmpDir);
     });
 
-    test('dispatch continues when checkPlanWrite would error on missing file', () => {
+    test('dispatch continues when checkPlanWrite would error on missing file', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phaseDir = path.join(planningDir, 'phases', '05-test');
       fs.mkdirSync(phaseDir, { recursive: true });
@@ -599,7 +599,7 @@ All must-haves verified.
     });
   });
 
-  test('handles malformed JSON gracefully', () => {
+  test('handles malformed JSON gracefully', async () => {
     const { tmpDir } = makeTmpDir();
     try {
       const result = execSync(`node "${SCRIPT}"`, {

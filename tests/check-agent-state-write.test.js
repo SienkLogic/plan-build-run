@@ -25,7 +25,7 @@ describe('check-agent-state-write.js', () => {
     tmpDir = null;
   });
 
-  test('blocks STATE.md write when active agent is pbr:executor', () => {
+  test('blocks STATE.md write when active agent is pbr:executor', async () => {
     let planningDir;
     ({ tmpDir, planningDir } = makeTmpDir());
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
@@ -40,7 +40,7 @@ describe('check-agent-state-write.js', () => {
     expect(result.output.reason).toContain('pbr:executor');
   });
 
-  test('blocks STATE.md write when active agent is pbr:verifier', () => {
+  test('blocks STATE.md write when active agent is pbr:verifier', async () => {
     let planningDir;
     ({ tmpDir, planningDir } = makeTmpDir());
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:verifier');
@@ -54,7 +54,7 @@ describe('check-agent-state-write.js', () => {
     expect(result.output.decision).toBe('block');
   });
 
-  test('allows STATE.md write when active agent is pbr:general', () => {
+  test('allows STATE.md write when active agent is pbr:general', async () => {
     let planningDir;
     ({ tmpDir, planningDir } = makeTmpDir());
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:general');
@@ -66,7 +66,7 @@ describe('check-agent-state-write.js', () => {
     expect(result).toBeNull();
   });
 
-  test('allows STATE.md write when no .active-agent file', () => {
+  test('allows STATE.md write when no .active-agent file', async () => {
     ({ tmpDir } = makeTmpDir());
     process.chdir(tmpDir);
 
@@ -76,7 +76,7 @@ describe('check-agent-state-write.js', () => {
     expect(result).toBeNull();
   });
 
-  test('allows non-STATE.md write with active agent', () => {
+  test('allows non-STATE.md write with active agent', async () => {
     let planningDir;
     ({ tmpDir, planningDir } = makeTmpDir());
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
@@ -88,7 +88,7 @@ describe('check-agent-state-write.js', () => {
     expect(result).toBeNull();
   });
 
-  test('detects STATE.md with Windows backslash paths', () => {
+  test('detects STATE.md with Windows backslash paths', async () => {
     let planningDir;
     ({ tmpDir, planningDir } = makeTmpDir());
     fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
@@ -101,7 +101,7 @@ describe('check-agent-state-write.js', () => {
     expect(result.exitCode).toBe(2);
   });
 
-  test('BLOCKED_AGENTS contains all expected agents', () => {
+  test('BLOCKED_AGENTS contains all expected agents', async () => {
     expect(BLOCKED_AGENTS).toContain('pbr:executor');
     expect(BLOCKED_AGENTS).toContain('pbr:planner');
     expect(BLOCKED_AGENTS).toContain('pbr:verifier');
@@ -110,7 +110,7 @@ describe('check-agent-state-write.js', () => {
     expect(BLOCKED_AGENTS).not.toContain('pbr:general');
   });
 
-  test('returns null for empty tool_input', () => {
+  test('returns null for empty tool_input', async () => {
     const result = checkAgentStateWrite({ tool_input: {} });
     expect(result).toBeNull();
   });

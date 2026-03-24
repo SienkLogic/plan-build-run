@@ -11,21 +11,21 @@ describe('Phase 2 config schema properties', () => {
   });
 
   describe('feature toggles', () => {
-    test('inline_simple_tasks is boolean with default true', () => {
+    test('inline_simple_tasks is boolean with default true', async () => {
       const prop = schema.properties.features.properties.inline_simple_tasks;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(true);
     });
 
-    test('rich_agent_prompts is boolean with default true', () => {
+    test('rich_agent_prompts is boolean with default true', async () => {
       const prop = schema.properties.features.properties.rich_agent_prompts;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('boolean');
       expect(prop.default).toBe(true);
     });
 
-    test('multi_phase_awareness is boolean with default true', () => {
+    test('multi_phase_awareness is boolean with default true', async () => {
       const prop = schema.properties.features.properties.multi_phase_awareness;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('boolean');
@@ -63,7 +63,7 @@ describe('Phase 2 config schema properties', () => {
   });
 
   describe('schema consistency', () => {
-    test('both config-schema.json copies are identical', () => {
+    test('both config-schema.json copies are identical', async () => {
       const pluginSchema = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json'));
       const binSchema = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json'));
       expect(JSON.stringify(pluginSchema)).toBe(JSON.stringify(binSchema));

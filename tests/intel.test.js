@@ -81,7 +81,7 @@ afterEach(() => {
 // ─── Config gate ─────────────────────────────────────────────────────────────
 
 describe('Config gate', () => {
-  test('all functions return disabled when intel.enabled is false', () => {
+  test('all functions return disabled when intel.enabled is false', async () => {
     const { planningDir, cleanup } = createTempProject({ intel: { enabled: false } });
 
     try {
@@ -96,7 +96,7 @@ describe('Config gate', () => {
     }
   });
 
-  test('isIntelEnabled returns true when no config exists', () => {
+  test('isIntelEnabled returns true when no config exists', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-intel-noconfig-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -108,7 +108,7 @@ describe('Config gate', () => {
     }
   });
 
-  test('isIntelEnabled returns true when intel key is absent', () => {
+  test('isIntelEnabled returns true when intel key is absent', async () => {
     const { planningDir, cleanup } = createTempProject({});
     // Remove the intel key by writing config without it
     fs.writeFileSync(
@@ -128,7 +128,7 @@ describe('Config gate', () => {
 // ─── intelQuery ──────────────────────────────────────────────────────────────
 
 describe('intelQuery', () => {
-  test('finds matches in files.json entries', () => {
+  test('finds matches in files.json entries', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     writeIntelFile(intelDir, 'files.json', {
@@ -151,7 +151,7 @@ describe('intelQuery', () => {
     }
   });
 
-  test('finds matches in apis.json entries', () => {
+  test('finds matches in apis.json entries', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     writeIntelFile(intelDir, 'apis.json', {
@@ -170,7 +170,7 @@ describe('intelQuery', () => {
     }
   });
 
-  test('finds matches in arch.md text', () => {
+  test('finds matches in arch.md text', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     fs.writeFileSync(
@@ -191,7 +191,7 @@ describe('intelQuery', () => {
     }
   });
 
-  test('returns empty matches for nonexistent term', () => {
+  test('returns empty matches for nonexistent term', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     writeIntelFile(intelDir, 'files.json', {
@@ -207,7 +207,7 @@ describe('intelQuery', () => {
     }
   });
 
-  test('search is case-insensitive', () => {
+  test('search is case-insensitive', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     writeIntelFile(intelDir, 'files.json', {
@@ -226,7 +226,7 @@ describe('intelQuery', () => {
 // ─── intelStatus ─────────────────────────────────────────────────────────────
 
 describe('intelStatus', () => {
-  test('reports exists/missing correctly for partial intel files', () => {
+  test('reports exists/missing correctly for partial intel files', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     // Create only 2 of the 5 intel files
@@ -245,7 +245,7 @@ describe('intelStatus', () => {
     }
   });
 
-  test('reports stale: true for files older than 24 hours', () => {
+  test('reports stale: true for files older than 24 hours', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     const twentyFiveHoursAgo = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
@@ -259,7 +259,7 @@ describe('intelStatus', () => {
     }
   });
 
-  test('reports stale: false for recently updated files', () => {
+  test('reports stale: false for recently updated files', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
@@ -273,7 +273,7 @@ describe('intelStatus', () => {
     }
   });
 
-  test('overall_stale is true when any file is missing', () => {
+  test('overall_stale is true when any file is missing', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     // Only create one file
@@ -292,7 +292,7 @@ describe('intelStatus', () => {
 // ─── intelDiff ───────────────────────────────────────────────────────────────
 
 describe('intelDiff', () => {
-  test('returns no_baseline when no snapshot exists', () => {
+  test('returns no_baseline when no snapshot exists', async () => {
     const { planningDir, cleanup } = createTempProject();
 
     try {
@@ -303,7 +303,7 @@ describe('intelDiff', () => {
     }
   });
 
-  test('detects changed files after snapshot', () => {
+  test('detects changed files after snapshot', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     // Create a file, take snapshot, modify file
@@ -321,7 +321,7 @@ describe('intelDiff', () => {
     }
   });
 
-  test('detects added files after snapshot', () => {
+  test('detects added files after snapshot', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     // Take snapshot with only files.json
@@ -339,7 +339,7 @@ describe('intelDiff', () => {
     }
   });
 
-  test('detects removed files after snapshot', () => {
+  test('detects removed files after snapshot', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     // Create files, take snapshot, remove one
@@ -362,7 +362,7 @@ describe('intelDiff', () => {
 // ─── saveRefreshSnapshot ─────────────────────────────────────────────────────
 
 describe('saveRefreshSnapshot', () => {
-  test('writes .last-refresh.json with file hashes', () => {
+  test('writes .last-refresh.json with file hashes', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     writeIntelFile(intelDir, 'files.json', { 'x.js': {} });
@@ -392,7 +392,7 @@ describe('saveRefreshSnapshot', () => {
 // ─── ensureIntelDir ──────────────────────────────────────────────────────────
 
 describe('ensureIntelDir', () => {
-  test('creates intel directory when absent', () => {
+  test('creates intel directory when absent', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-intel-ensure-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -406,7 +406,7 @@ describe('ensureIntelDir', () => {
     }
   });
 
-  test('no error when directory already exists', () => {
+  test('no error when directory already exists', async () => {
     const { planningDir, intelDir: _intelDir, cleanup } = createTempProject();
 
     try {
@@ -422,7 +422,7 @@ describe('ensureIntelDir', () => {
 // ─── intelUpdate (stub) ──────────────────────────────────────────────────────
 
 describe('intelUpdate', () => {
-  test('returns spawn_agent action when enabled', () => {
+  test('returns spawn_agent action when enabled', async () => {
     const { planningDir, cleanup } = createTempProject();
 
     try {
@@ -438,13 +438,13 @@ describe('intelUpdate', () => {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 describe('Constants', () => {
-  test('INTEL_FILES has all 5 expected files', () => {
+  test('INTEL_FILES has all 5 expected files', async () => {
     expect(Object.keys(INTEL_FILES)).toEqual(['files', 'apis', 'deps', 'arch', 'stack']);
     expect(INTEL_FILES.files).toBe('files.json');
     expect(INTEL_FILES.arch).toBe('arch.md');
   });
 
-  test('INTEL_DIR is correct', () => {
+  test('INTEL_DIR is correct', async () => {
     expect(INTEL_DIR).toBe('.planning/intel');
   });
 });
@@ -452,7 +452,7 @@ describe('Constants', () => {
 // ─── intelSnapshot ──────────────────────────────────────────────────────────
 
 describe('intelSnapshot', () => {
-  test('writes .last-refresh.json with accurate timestamp', () => {
+  test('writes .last-refresh.json with accurate timestamp', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
     writeIntelFile(intelDir, 'files.json', { 'a.js': { exports: [] } });
     writeIntelFile(intelDir, 'deps.json', { lodash: { version: '4.0.0' } });
@@ -474,7 +474,7 @@ describe('intelSnapshot', () => {
     }
   });
 
-  test('returns disabled when intel is off', () => {
+  test('returns disabled when intel is off', async () => {
     const { planningDir, cleanup } = createTempProject({ intel: { enabled: false } });
 
     try {
@@ -489,7 +489,7 @@ describe('intelSnapshot', () => {
 // ─── intelValidate ──────────────────────────────────────────────────────────
 
 describe('intelValidate', () => {
-  test('returns valid:true for correct intel files', () => {
+  test('returns valid:true for correct intel files', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
     const now = new Date().toISOString();
 
@@ -507,7 +507,7 @@ describe('intelValidate', () => {
     }
   });
 
-  test('warns on description-style exports', () => {
+  test('warns on description-style exports', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     writeIntelFile(intelDir, 'files.json', {
@@ -522,7 +522,7 @@ describe('intelValidate', () => {
     }
   });
 
-  test('warns on stale timestamps', () => {
+  test('warns on stale timestamps', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     const old = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
@@ -536,7 +536,7 @@ describe('intelValidate', () => {
     }
   });
 
-  test('errors on missing files', () => {
+  test('errors on missing files', async () => {
     const { planningDir, cleanup } = createTempProject();
     // No intel files written — all 5 missing
 
@@ -549,7 +549,7 @@ describe('intelValidate', () => {
     }
   });
 
-  test('errors on invalid JSON', () => {
+  test('errors on invalid JSON', async () => {
     const { planningDir, intelDir, cleanup } = createTempProject();
 
     fs.writeFileSync(path.join(intelDir, 'files.json'), '{broken json!!!', 'utf8');
@@ -573,7 +573,7 @@ describe('intelExtractExports', () => {
     return { filePath, cleanup: () => fs.rmSync(tmpDir, { recursive: true, force: true }) };
   }
 
-  test('extracts CJS module.exports keys', () => {
+  test('extracts CJS module.exports keys', async () => {
     const { filePath, cleanup } = writeTempFile(
       'function foo() {}\nfunction bar() {}\nconst baz = 1;\nmodule.exports = {\n  foo,\n  bar,\n  baz\n};\n'
     );
@@ -584,7 +584,7 @@ describe('intelExtractExports', () => {
     } finally { cleanup(); }
   });
 
-  test('extracts exports.X patterns', () => {
+  test('extracts exports.X patterns', async () => {
     const { filePath, cleanup } = writeTempFile(
       'exports.hello = function() {};\nexports.world = 42;\n'
     );
@@ -595,7 +595,7 @@ describe('intelExtractExports', () => {
     } finally { cleanup(); }
   });
 
-  test('extracts ESM export function', () => {
+  test('extracts ESM export function', async () => {
     const { filePath, cleanup } = writeTempFile(
       'export function doThing() {\n  return 1;\n}\n'
     );
@@ -606,7 +606,7 @@ describe('intelExtractExports', () => {
     } finally { cleanup(); }
   });
 
-  test('extracts ESM export const/let', () => {
+  test('extracts ESM export const/let', async () => {
     const { filePath, cleanup } = writeTempFile(
       'export const MY_VAR = 42;\nexport let counter = 0;\n'
     );
@@ -618,7 +618,7 @@ describe('intelExtractExports', () => {
     } finally { cleanup(); }
   });
 
-  test('extracts ESM export default function', () => {
+  test('extracts ESM export default function', async () => {
     const { filePath, cleanup } = writeTempFile(
       'export default function App() {\n  return null;\n}\n'
     );
@@ -629,7 +629,7 @@ describe('intelExtractExports', () => {
     } finally { cleanup(); }
   });
 
-  test('extracts ESM named export block', () => {
+  test('extracts ESM named export block', async () => {
     const { filePath, cleanup } = writeTempFile(
       'const foo = 1;\nconst bar = 2;\nconst baz = 3;\nexport { foo, bar as baz };\n'
     );
@@ -642,13 +642,13 @@ describe('intelExtractExports', () => {
     } finally { cleanup(); }
   });
 
-  test('returns empty for nonexistent file', () => {
+  test('returns empty for nonexistent file', async () => {
     const r = intelExtractExports('/no/such/file/anywhere.js');
     expect(r.exports).toEqual([]);
     expect(r.method).toBe('none');
   });
 
-  test('handles mixed CJS and ESM', () => {
+  test('handles mixed CJS and ESM', async () => {
     const { filePath, cleanup } = writeTempFile(
       'module.exports = { alpha };\nexport function beta() {}\n'
     );
@@ -664,7 +664,7 @@ describe('intelExtractExports', () => {
 // ─── intelPatchMeta ─────────────────────────────────────────────────────────
 
 describe('intelPatchMeta', () => {
-  test('patches _meta.updated_at to current time', () => {
+  test('patches _meta.updated_at to current time', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-patch-'));
     const filePath = path.join(tmpDir, 'test.json');
     fs.writeFileSync(filePath, JSON.stringify({
@@ -686,7 +686,7 @@ describe('intelPatchMeta', () => {
     }
   });
 
-  test('increments version', () => {
+  test('increments version', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-patch-'));
     const filePath = path.join(tmpDir, 'test.json');
     fs.writeFileSync(filePath, JSON.stringify({
@@ -703,13 +703,13 @@ describe('intelPatchMeta', () => {
     }
   });
 
-  test('returns error for nonexistent file', () => {
+  test('returns error for nonexistent file', async () => {
     const result = intelPatchMeta('/no/such/path/data.json');
     expect(result.patched).toBe(false);
     expect(result.error).toBeDefined();
   });
 
-  test('returns error for invalid JSON', () => {
+  test('returns error for invalid JSON', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-patch-'));
     const filePath = path.join(tmpDir, 'bad.json');
     fs.writeFileSync(filePath, '{not valid json!!!', 'utf8');

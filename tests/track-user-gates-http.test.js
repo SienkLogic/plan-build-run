@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 describe('track-user-gates handleHttp', () => {
-  test('exports handleHttp function', () => {
+  test('exports handleHttp function', async () => {
     const { handleHttp } = require('../plugins/pbr/scripts/track-user-gates');
     expect(typeof handleHttp).toBe('function');
   });

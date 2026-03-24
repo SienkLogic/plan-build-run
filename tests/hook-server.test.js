@@ -206,11 +206,11 @@ describe('hook-server.js integration', () => {
 describe('hook-server.js exports', () => {
   const { appendEvent, readEventLogTail, mergeContext, resolveHandler, register, lazyHandler, createServer, translatePreToolUseResponse, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
 
-  test('DEFAULT_PORT is 19836', () => {
+  test('DEFAULT_PORT is 19836', async () => {
     expect(DEFAULT_PORT).toBe(19836);
   });
 
-  test('appendEvent writes JSONL line to .hook-events.jsonl', () => {
+  test('appendEvent writes JSONL line to .hook-events.jsonl', async () => {
     const savedCwd = process.cwd();
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-append-test-'));
     const planningDir = path.join(tmpDir, '.planning');
@@ -232,24 +232,24 @@ describe('hook-server.js exports', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('appendEvent is a no-op when planningDir is null', () => {
+  test('appendEvent is a no-op when planningDir is null', async () => {
     // Should not throw
     expect(() => appendEvent(null, { ts: 'x', event: 'y' })).not.toThrow();
   });
 
-  test('resolveHandler returns null for unknown event/tool', () => {
+  test('resolveHandler returns null for unknown event/tool', async () => {
     const handler = resolveHandler('FakeEvent', 'FakeTool');
     expect(handler).toBeNull();
   });
 
-  test('resolveHandler finds exact match after register()', () => {
+  test('resolveHandler finds exact match after register()', async () => {
     register('ResolveExact', 'ReadTest', async () => ({ additionalContext: 'found' }));
     const handler = resolveHandler('ResolveExact', 'ReadTest');
     expect(handler).not.toBeNull();
     expect(typeof handler).toBe('function');
   });
 
-  test('resolveHandler finds wildcard match after register()', () => {
+  test('resolveHandler finds wildcard match after register()', async () => {
     register('ResolveWild', '*', async () => ({ additionalContext: 'wild' }));
     const handler = resolveHandler('ResolveWild', 'anything');
     expect(handler).not.toBeNull();
@@ -292,12 +292,12 @@ describe('hook-server.js exports', () => {
   // readEventLogTail
   // -------------------------------------------------------------------------
 
-  test('readEventLogTail returns empty array when file does not exist', () => {
+  test('readEventLogTail returns empty array when file does not exist', async () => {
     const result = readEventLogTail('/nonexistent/path/logs/hooks.jsonl', 10);
     expect(result).toEqual([]);
   });
 
-  test('readEventLogTail returns empty array when file is empty', () => {
+  test('readEventLogTail returns empty array when file is empty', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir);
@@ -308,7 +308,7 @@ describe('hook-server.js exports', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('readEventLogTail parses valid JSONL lines', () => {
+  test('readEventLogTail parses valid JSONL lines', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir);
@@ -321,7 +321,7 @@ describe('hook-server.js exports', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('readEventLogTail skips malformed lines', () => {
+  test('readEventLogTail skips malformed lines', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir);
@@ -334,7 +334,7 @@ describe('hook-server.js exports', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('readEventLogTail respects maxLines limit', () => {
+  test('readEventLogTail respects maxLines limit', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir);
@@ -348,7 +348,7 @@ describe('hook-server.js exports', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('readEventLogTail uses default maxLines of 500 when not provided', () => {
+  test('readEventLogTail uses default maxLines of 500 when not provided', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir);
@@ -381,7 +381,7 @@ describe('hook-server.js exports', () => {
   // createServer — unit test the request handler directly
   // -------------------------------------------------------------------------
 
-  test('createServer returns a server object', () => {
+  test('createServer returns a server object', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
@@ -610,7 +610,7 @@ describe('hook-server.js exports', () => {
   // -------------------------------------------------------------------------
 
   describe('PreToolUse response translation', () => {
-    test('block decision is translated to hookSpecificOutput format', () => {
+    test('block decision is translated to hookSpecificOutput format', async () => {
       const result = translatePreToolUseResponse('PreToolUse', { decision: 'block', reason: 'bad commit' });
       expect(result).toEqual({
         hookSpecificOutput: {
@@ -621,26 +621,26 @@ describe('hook-server.js exports', () => {
       });
     });
 
-    test('allow decision passes through unchanged', () => {
+    test('allow decision passes through unchanged', async () => {
       const result = translatePreToolUseResponse('PreToolUse', {});
       expect(result).toEqual({});
     });
 
-    test('PostToolUse result is not affected by translation', () => {
+    test('PostToolUse result is not affected by translation', async () => {
       const input = { additionalContext: 'info' };
       const result = translatePreToolUseResponse('PostToolUse', input);
       expect(result).toEqual({ additionalContext: 'info' });
     });
 
-    test('null result returns null', () => {
+    test('null result returns null', async () => {
       expect(translatePreToolUseResponse('PreToolUse', null)).toBeNull();
     });
 
-    test('undefined result returns undefined', () => {
+    test('undefined result returns undefined', async () => {
       expect(translatePreToolUseResponse('PreToolUse', undefined)).toBeUndefined();
     });
 
-    test('non-PreToolUse event passes block result through unchanged', () => {
+    test('non-PreToolUse event passes block result through unchanged', async () => {
       const input = { decision: 'block', reason: 'test' };
       const result = translatePreToolUseResponse('SubagentStart', input);
       expect(result).toEqual({ decision: 'block', reason: 'test' });
@@ -759,14 +759,14 @@ describe('hook-server.js exports', () => {
   // -------------------------------------------------------------------------
 
   describe('register and resolveHandler', () => {
-    test('pipe-separated register creates both route keys', () => {
+    test('pipe-separated register creates both route keys', async () => {
       const handler = async () => ({ additionalContext: 'pipe-test' });
       register('PipeTest', 'ToolX|ToolY', handler);
       expect(resolveHandler('PipeTest', 'ToolX')).toBe(handler);
       expect(resolveHandler('PipeTest', 'ToolY')).toBe(handler);
     });
 
-    test('exact key match takes priority over wildcard', () => {
+    test('exact key match takes priority over wildcard', async () => {
       const exactH = async () => ({ additionalContext: 'exact' });
       const wildH = async () => ({ additionalContext: 'wild' });
       register('PriorityTest', 'Exact', exactH);
@@ -774,7 +774,7 @@ describe('hook-server.js exports', () => {
       expect(resolveHandler('PriorityTest', 'Exact')).toBe(exactH);
     });
 
-    test('wildcard Event:* matches when no exact key', () => {
+    test('wildcard Event:* matches when no exact key', async () => {
       const wildH = async () => ({ additionalContext: 'wild-fallback' });
       register('WildOnly', '*', wildH);
       expect(resolveHandler('WildOnly', 'AnyTool')).toBe(wildH);

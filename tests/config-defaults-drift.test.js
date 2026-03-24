@@ -58,26 +58,26 @@ describe('Config defaults drift prevention', () => {
     loadDefaults = getLoadDefaultsFallback();
   });
 
-  test('configInit() hardcoded defaults match configLoadDefaults() for shared top-level keys', () => {
+  test('configInit() hardcoded defaults match configLoadDefaults() for shared top-level keys', async () => {
     const sharedTopLevel = ['version', 'schema_version', 'mode', 'depth'];
     for (const key of sharedTopLevel) {
       expect(initDefaults[key]).toBe(loadDefaults[key]);
     }
   });
 
-  test('configInit() creates config with schema_version 3', () => {
+  test('configInit() creates config with schema_version 3', async () => {
     expect(initDefaults.schema_version).toBe(3);
   });
 
-  test('configInit() creates config with planning.commit_docs false', () => {
+  test('configInit() creates config with planning.commit_docs false', async () => {
     expect(initDefaults.planning.commit_docs).toBe(false);
   });
 
-  test('configInit() creates config with parallelization.enabled false', () => {
+  test('configInit() creates config with parallelization.enabled false', async () => {
     expect(initDefaults.parallelization.enabled).toBe(false);
   });
 
-  test('configInit() shared nested keys match configLoadDefaults()', () => {
+  test('configInit() shared nested keys match configLoadDefaults()', async () => {
     const sharedFeatures = [
       'structured_planning',
       'goal_verification',

@@ -33,7 +33,7 @@ describe('stepVerify', () => {
   }
 
   // Test a: both STATE.md and SUMMARY.md conditions true → all_passed: true
-  test('a: both STATE.md updated and SUMMARY.md exists → all_passed: true', () => {
+  test('a: both STATE.md updated and SUMMARY.md exists → all_passed: true', async () => {
     // Create STATE.md
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
     // Create SUMMARY.md
@@ -52,7 +52,7 @@ describe('stepVerify', () => {
   });
 
   // Test b: SUMMARY.md does not exist → item in failed array
-  test('b: SUMMARY.md not present → item in failed', () => {
+  test('b: SUMMARY.md not present → item in failed', async () => {
     // No SUMMARY file created
     const result = stepVerify(
       'build',
@@ -67,7 +67,7 @@ describe('stepVerify', () => {
   });
 
   // Test c: STATE.md updated when STATE.md doesn't exist → item in failed
-  test('c: STATE.md does not exist → item in failed', () => {
+  test('c: STATE.md does not exist → item in failed', async () => {
     const result = stepVerify(
       'build',
       'step-6f',
@@ -80,7 +80,7 @@ describe('stepVerify', () => {
   });
 
   // Test d: 'commit made' checks git log — pass if output non-empty
-  test('d: commit made → passes if git log output is non-empty', () => {
+  test('d: commit made → passes if git log output is non-empty', async () => {
     // Assuming the test runs inside a git repo (plan-build-run is a git repo)
     const result = stepVerify(
       'build',
@@ -95,7 +95,7 @@ describe('stepVerify', () => {
   });
 
   // Test e: empty checklist → all_passed: true, empty arrays
-  test('e: empty checklist returns all_passed: true with empty arrays', () => {
+  test('e: empty checklist returns all_passed: true with empty arrays', async () => {
     const result = stepVerify('build', 'step-6f', [], makeCtx());
 
     expect(result).toMatchObject({
@@ -106,7 +106,7 @@ describe('stepVerify', () => {
   });
 
   // Test f: malformed checklist string → { error: 'Invalid checklist JSON' }
-  test('f: non-array checklist returns error', () => {
+  test('f: non-array checklist returns error', async () => {
     const result = stepVerify('build', 'step-6f', 'not-an-array', makeCtx());
 
     expect(result).toMatchObject({ error: 'Invalid checklist JSON' });
@@ -125,7 +125,7 @@ describe('stepVerify', () => {
   });
 
   // Test h: 'PLAN.md exists' when a PLAN file exists → passed
-  test('h: PLAN.md exists when PLAN file in phaseDir → passed', () => {
+  test('h: PLAN.md exists when PLAN file in phaseDir → passed', async () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '# Plan');
 
     const result = stepVerify(
@@ -140,7 +140,7 @@ describe('stepVerify', () => {
   });
 
   // Test i: unknown predicate keyword → count as failed with unknown reason
-  test('i: unknown predicate keyword → counted as failed', () => {
+  test('i: unknown predicate keyword → counted as failed', async () => {
     const result = stepVerify(
       'build',
       'step-6f',
@@ -153,7 +153,7 @@ describe('stepVerify', () => {
   });
 
   // Test j: 'ROADMAP.md updated' checks planningDir root
-  test('j: ROADMAP.md updated when ROADMAP.md exists in planningDir → passed', () => {
+  test('j: ROADMAP.md updated when ROADMAP.md exists in planningDir → passed', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
 
     const result = stepVerify(
@@ -168,7 +168,7 @@ describe('stepVerify', () => {
   });
 
   // Test k: ROADMAP.md not present → failed
-  test('k: ROADMAP.md not present → item in failed', () => {
+  test('k: ROADMAP.md not present → item in failed', async () => {
     const result = stepVerify(
       'build',
       'step-8b',
@@ -181,7 +181,7 @@ describe('stepVerify', () => {
   });
 
   // Test l: multiple items mixed pass/fail — reports correctly
-  test('l: mixed pass/fail checklist reports both arrays correctly', () => {
+  test('l: mixed pass/fail checklist reports both arrays correctly', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
     // No SUMMARY.md — should fail
 

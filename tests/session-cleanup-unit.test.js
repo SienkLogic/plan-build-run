@@ -18,35 +18,35 @@ const {
 let tmpDir;
 let planningDir;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-sc-'));
   planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
 });
 
-afterEach(() => {
+afterEach(async () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe('tryRemove', () => {
-  test('removes existing file and returns true', () => {
+  test('removes existing file and returns true', async () => {
     const fp = path.join(tmpDir, 'test.txt');
     fs.writeFileSync(fp, 'data');
     expect(tryRemove(fp)).toBe(true);
     expect(fs.existsSync(fp)).toBe(false);
   });
 
-  test('returns false for non-existent file', () => {
+  test('returns false for non-existent file', async () => {
     expect(tryRemove(path.join(tmpDir, 'nope.txt'))).toBe(false);
   });
 });
 
 describe('cleanStaleCheckpoints', () => {
-  test('returns empty array when no phases dir', () => {
+  test('returns empty array when no phases dir', async () => {
     expect(cleanStaleCheckpoints(planningDir)).toEqual([]);
   });
 
-  test('does not remove fresh checkpoints', () => {
+  test('does not remove fresh checkpoints', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     const manifest = path.join(phaseDir, '.checkpoint-manifest.json');
@@ -55,7 +55,7 @@ describe('cleanStaleCheckpoints', () => {
     expect(fs.existsSync(manifest)).toBe(true);
   });
 
-  test('removes stale checkpoints (>24h old)', () => {
+  test('removes stale checkpoints (>24h old)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     const manifest = path.join(phaseDir, '.checkpoint-manifest.json');
@@ -70,16 +70,16 @@ describe('cleanStaleCheckpoints', () => {
 });
 
 describe('rotateHooksLog', () => {
-  test('returns false when hooks.jsonl does not exist', () => {
+  test('returns false when hooks.jsonl does not exist', async () => {
     expect(rotateHooksLog(planningDir)).toBe(false);
   });
 
-  test('returns false when hooks.jsonl is small', () => {
+  test('returns false when hooks.jsonl is small', async () => {
     fs.writeFileSync(path.join(planningDir, 'logs', 'hooks.jsonl'), 'small data');
     expect(rotateHooksLog(planningDir)).toBe(false);
   });
 
-  test('always returns false (rotation deprecated — daily files used instead)', () => {
+  test('always returns false (rotation deprecated — daily files used instead)', async () => {
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
     fs.writeFileSync(logPath, 'x'.repeat(201 * 1024));
     expect(rotateHooksLog(planningDir)).toBe(false);
@@ -89,18 +89,18 @@ describe('rotateHooksLog', () => {
 });
 
 describe('findOrphanedProgressFiles', () => {
-  test('returns empty array when no phases dir', () => {
+  test('returns empty array when no phases dir', async () => {
     expect(findOrphanedProgressFiles(planningDir)).toEqual([]);
   });
 
-  test('returns empty array when no progress files', () => {
+  test('returns empty array when no progress files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN.md'), 'plan');
     expect(findOrphanedProgressFiles(planningDir)).toEqual([]);
   });
 
-  test('finds .PROGRESS-* files', () => {
+  test('finds .PROGRESS-* files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '.PROGRESS-01-01'), '{}');
@@ -111,7 +111,7 @@ describe('findOrphanedProgressFiles', () => {
 });
 
 describe('writeSessionHistory', () => {
-  test('writes session entry to sessions.jsonl', () => {
+  test('writes session entry to sessions.jsonl', async () => {
     writeSessionHistory(planningDir, { reason: 'user stopped' });
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
     expect(fs.existsSync(sessionsFile)).toBe(true);
@@ -121,7 +121,7 @@ describe('writeSessionHistory', () => {
     expect(entry.end).toBeDefined();
   });
 
-  test('appends multiple sessions', () => {
+  test('appends multiple sessions', async () => {
     writeSessionHistory(planningDir, { reason: 'first' });
     writeSessionHistory(planningDir, { reason: 'second' });
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
@@ -129,7 +129,7 @@ describe('writeSessionHistory', () => {
     expect(lines.length).toBe(2);
   });
 
-  test('counts agents from today\'s hooks log', () => {
+  test('counts agents from today\'s hooks log', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), event: 'SubagentStart', decision: 'spawned', hook: 'test' });
     fs.writeFileSync(hooksLog, entry + '\n');
@@ -140,7 +140,7 @@ describe('writeSessionHistory', () => {
     expect(session.agents_spawned).toBe(1);
   });
 
-  test('counts commits from today\'s events log', () => {
+  test('counts commits from today\'s events log', async () => {
     const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), cat: 'workflow', event: 'commit-validated', status: 'allow' });
     fs.writeFileSync(eventsLog, entry + '\n');
@@ -151,7 +151,7 @@ describe('writeSessionHistory', () => {
     expect(session.commits_created).toBe(1);
   });
 
-  test('creates logs dir if missing', () => {
+  test('creates logs dir if missing', async () => {
     fs.rmSync(path.join(planningDir, 'logs'), { recursive: true, force: true });
     writeSessionHistory(planningDir, {});
     expect(fs.existsSync(path.join(planningDir, 'logs', 'sessions.jsonl'))).toBe(true);
@@ -159,13 +159,13 @@ describe('writeSessionHistory', () => {
 });
 
 describe('extractSessionLearnings', () => {
-  test('does not write when no interesting events', () => {
+  test('does not write when no interesting events', async () => {
     extractSessionLearnings(planningDir, 'test-session');
     const learningsFile = path.join(planningDir, 'logs', 'session-learnings.jsonl');
     expect(fs.existsSync(learningsFile)).toBe(false);
   });
 
-  test('writes when blocks are found in hooks log', () => {
+  test('writes when blocks are found in hooks log', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), hook: 'validate-commit', event: 'PreToolUse', decision: 'block', reason: 'bad format' });
     fs.writeFileSync(hooksLog, entry + '\n');
@@ -177,7 +177,7 @@ describe('extractSessionLearnings', () => {
     expect(learning.gates_triggered.length).toBeGreaterThan(0);
   });
 
-  test('extracts agent failures from subagent output warnings', () => {
+  test('extracts agent failures from subagent output warnings', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), hook: 'check-subagent-output', event: 'PostToolUse', decision: 'warning', agent_type: 'pbr:executor', expected: 'SUMMARY.md' });
     fs.writeFileSync(hooksLog, entry + '\n');
@@ -188,7 +188,7 @@ describe('extractSessionLearnings', () => {
     expect(learning.agent_failures.length).toBe(1);
   });
 
-  test('counts phase completions from events', () => {
+  test('counts phase completions from events', async () => {
     const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), cat: 'workflow', event: 'phase-complete' });
     fs.writeFileSync(eventsLog, entry + '\n');
@@ -199,7 +199,7 @@ describe('extractSessionLearnings', () => {
     expect(learning.phases_completed).toBe(1);
   });
 
-  test('counts compaction events', () => {
+  test('counts compaction events', async () => {
     const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), cat: 'system', event: 'compaction' });
     fs.writeFileSync(eventsLog, entry + '\n');
@@ -212,15 +212,15 @@ describe('extractSessionLearnings', () => {
 });
 
 describe('handleHttp', () => {
-  test('returns null when planningDir is missing', () => {
+  test('returns null when planningDir is missing', async () => {
     expect(handleHttp({ data: {} })).toBeNull();
   });
 
-  test('returns null when planningDir does not exist', () => {
+  test('returns null when planningDir does not exist', async () => {
     expect(handleHttp({ planningDir: '/nonexistent', data: {} })).toBeNull();
   });
 
-  test('cleans up session artifacts', () => {
+  test('cleans up session artifacts', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, '.active-operation'), 'test');
     fs.writeFileSync(path.join(planningDir, '.session.json'), '{}');
@@ -231,14 +231,14 @@ describe('handleHttp', () => {
     expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
   });
 
-  test('removes .context-tracker file', () => {
+  test('removes .context-tracker file', async () => {
     fs.writeFileSync(path.join(planningDir, '.context-tracker'), '{"chars":1000}');
     const result = handleHttp({ planningDir, data: { reason: 'test' } });
     expect(result).toBeNull();
     expect(fs.existsSync(path.join(planningDir, '.context-tracker'))).toBe(false);
   });
 
-  test('removes all session signal files including .context-tracker', () => {
+  test('removes all session signal files including .context-tracker', async () => {
     fs.writeFileSync(path.join(planningDir, '.context-tracker'), '{}');
     fs.writeFileSync(path.join(planningDir, '.session.json'), '{}');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
@@ -251,7 +251,7 @@ describe('handleHttp', () => {
     expect(fs.existsSync(path.join(planningDir, '.active-plan'))).toBe(false);
   });
 
-  test('writes session history', () => {
+  test('writes session history', async () => {
     handleHttp({ planningDir, data: { reason: 'http cleanup' } });
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
     expect(fs.existsSync(sessionsFile)).toBe(true);
@@ -259,7 +259,7 @@ describe('handleHttp', () => {
 });
 
 describe('DIRECT_FALLBACK_SCRIPTS includes session-cleanup', () => {
-  test('hook-server-client.js contains session-cleanup in DIRECT_FALLBACK_SCRIPTS', () => {
+  test('hook-server-client.js contains session-cleanup in DIRECT_FALLBACK_SCRIPTS', async () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-server-client.js'), 'utf8');
     expect(source).toContain("'session-cleanup': 'session-cleanup'");
   });

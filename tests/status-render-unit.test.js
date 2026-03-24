@@ -11,13 +11,13 @@ const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers'
 const { statusRender, progressBar } = require('../plugins/pbr/scripts/lib/status-render');
 
 describe('progressBar', () => {
-  test('0% => all empty blocks', () => {
+  test('0% => all empty blocks', async () => {
     const bar = progressBar(0);
     expect(bar).toContain('░'.repeat(20));
     expect(bar).toMatch(/0%$/);
   });
 
-  test('100% => all filled blocks', () => {
+  test('100% => all filled blocks', async () => {
     const bar = progressBar(100);
     expect(bar).toContain('█'.repeat(20));
     expect(bar).toMatch(/100%$/);
@@ -49,7 +49,7 @@ describe('statusRender', () => {
     cleanupTmp(tmpDir);
   });
 
-  test('non-existent path => default object with /pbr:new-project', () => {
+  test('non-existent path => default object with /pbr:new-project', async () => {
     const result = statusRender(path.join(tmpDir, 'nonexistent'));
     expect(result.project_name).toBeNull();
     expect(result.phases).toEqual([]);
@@ -66,13 +66,13 @@ describe('statusRender', () => {
   });
 
   describe('config.json handling', () => {
-    test('valid config.json => project_name appears', () => {
+    test('valid config.json => project_name appears', async () => {
       writePlanningFile(planningDir, 'config.json', JSON.stringify({ project_name: 'MyProj' }));
       const result = statusRender(planningDir);
       expect(result.project_name).toBe('MyProj');
     });
 
-    test('malformed config.json => project_name falls back to null', () => {
+    test('malformed config.json => project_name falls back to null', async () => {
       writePlanningFile(planningDir, 'config.json', '{broken');
       const result = statusRender(planningDir);
       expect(result.project_name).toBeNull();
@@ -80,7 +80,7 @@ describe('statusRender', () => {
   });
 
   describe('phase scanning', () => {
-    test('phase with PLAN only => status=planned', () => {
+    test('phase with PLAN only => status=planned', async () => {
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\nplan: "01-01"\n---\n');
       const result = statusRender(planningDir);
       expect(result.phases).toHaveLength(1);
@@ -88,14 +88,14 @@ describe('statusRender', () => {
       expect(result.phases[0].plans_total).toBe(1);
     });
 
-    test('phase with PLAN + SUMMARY => status=built', () => {
+    test('phase with PLAN + SUMMARY => status=built', async () => {
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\nplan: "01-01"\n---\n');
       writePlanningFile(planningDir, 'phases/01-setup/SUMMARY-01-01.md', '---\nstatus: complete\n---\n');
       const result = statusRender(planningDir);
       expect(result.phases[0].status).toBe('built');
     });
 
-    test('phase with VERIFICATION result=passed => status=verified', () => {
+    test('phase with VERIFICATION result=passed => status=verified', async () => {
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\nplan: "01-01"\n---\n');
       writePlanningFile(planningDir, 'phases/01-setup/SUMMARY-01-01.md', '---\nstatus: complete\n---\n');
       writePlanningFile(planningDir, 'phases/01-setup/VERIFICATION.md', '---\nresult: passed\n---\n');
@@ -105,7 +105,7 @@ describe('statusRender', () => {
   });
 
   describe('progress calculation', () => {
-    test('2 phases: 2/3 plans complete => percentage=67', () => {
+    test('2 phases: 2/3 plans complete => percentage=67', async () => {
       // Phase 1: 2 plans, 2 summaries
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\nplan: "01-01"\n---\n');
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-02.md', '---\nplan: "01-02"\n---\n');
@@ -121,14 +121,14 @@ describe('statusRender', () => {
   });
 
   describe('milestone parsing', () => {
-    test('COMPLETED milestone => status=completed', () => {
+    test('COMPLETED milestone => status=completed', async () => {
       writePlanningFile(planningDir, 'ROADMAP.md', '---\nproject: test\n---\n\n## Milestone: Test v1.0 — COMPLETED\n\n### Phase 1\n');
       const result = statusRender(planningDir);
       expect(result.milestones).toHaveLength(1);
       expect(result.milestones[0].status).toBe('completed');
     });
 
-    test('ACTIVE milestone => current milestone set', () => {
+    test('ACTIVE milestone => current milestone set', async () => {
       writePlanningFile(planningDir, 'ROADMAP.md', '---\nproject: test\n---\n\n## Milestone: Active (v2.0) — ACTIVE\n\n### Phase 1\n');
       const result = statusRender(planningDir);
       expect(result.milestones.length).toBeGreaterThanOrEqual(1);
@@ -138,14 +138,14 @@ describe('statusRender', () => {
   });
 
   describe('routing integration', () => {
-    test('paused work => /pbr:resume', () => {
+    test('paused work => /pbr:resume', async () => {
       // .continue-here.md is checked relative to planningDir/..
       fs.writeFileSync(path.join(tmpDir, '.continue-here.md'), 'paused');
       const result = statusRender(planningDir);
       expect(result.routing.primary.command).toBe('/pbr:resume');
     });
 
-    test('planned phase => /pbr:build', () => {
+    test('planned phase => /pbr:build', async () => {
       writePlanningFile(planningDir, 'phases/01-setup/PLAN-01.md', '---\nplan: "01-01"\n---\n');
       const result = statusRender(planningDir);
       expect(result.routing.primary.command).toBe('/pbr:build');
@@ -153,19 +153,19 @@ describe('statusRender', () => {
   });
 
   describe('todos/notes/quick counting', () => {
-    test('pending todo => todos_pending=1', () => {
+    test('pending todo => todos_pending=1', async () => {
       writePlanningFile(planningDir, 'todos/pending/001.md', '---\ntitle: fix\n---\n');
       const result = statusRender(planningDir);
       expect(result.todos_pending).toBe(1);
     });
 
-    test('active note => notes_active=1', () => {
+    test('active note => notes_active=1', async () => {
       writePlanningFile(planningDir, 'notes/note.md', '---\ndate: 2026-01-01\n---\n');
       const result = statusRender(planningDir);
       expect(result.notes_active).toBe(1);
     });
 
-    test('quick tasks: in-progress and complete', () => {
+    test('quick tasks: in-progress and complete', async () => {
       writePlanningFile(planningDir, 'quick/001-fix-bug/PLAN.md', '---\ntitle: Fix bug\n---\n');
       writePlanningFile(planningDir, 'quick/002-done/PLAN.md', '---\ntitle: Done task\n---\n');
       writePlanningFile(planningDir, 'quick/002-done/SUMMARY.md', '---\nstatus: complete\n---\n');
@@ -179,7 +179,7 @@ describe('statusRender', () => {
   });
 
   describe('state warning', () => {
-    test('STATE.md >150 lines => state_warning non-null', () => {
+    test('STATE.md >150 lines => state_warning non-null', async () => {
       const longState = '---\nstatus: building\n---\n' + 'line\n'.repeat(200);
       writePlanningFile(planningDir, 'STATE.md', longState);
       const result = statusRender(planningDir);
@@ -187,7 +187,7 @@ describe('statusRender', () => {
       expect(result.state_warning).toContain('150');
     });
 
-    test('STATE.md <150 lines => state_warning null', () => {
+    test('STATE.md <150 lines => state_warning null', async () => {
       writePlanningFile(planningDir, 'STATE.md', '---\nstatus: building\n---\nshort');
       const result = statusRender(planningDir);
       expect(result.state_warning).toBeNull();
@@ -195,7 +195,7 @@ describe('statusRender', () => {
   });
 
   describe('documents inventory', () => {
-    test('all documents present => all true', () => {
+    test('all documents present => all true', async () => {
       writePlanningFile(planningDir, 'PROJECT.md', '# Project');
       writePlanningFile(planningDir, 'REQUIREMENTS.md', '# Reqs');
       writePlanningFile(planningDir, 'ROADMAP.md', '---\nproject: test\n---\n');

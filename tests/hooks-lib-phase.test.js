@@ -206,7 +206,7 @@ function createPhaseDir(name) {
   return dir;
 }
 
-afterEach(() => {
+afterEach(async () => {
   if (tmpDir && fs.existsSync(tmpDir)) {
     cleanupTmp(tmpDir);
   }
@@ -218,7 +218,7 @@ afterEach(() => {
 // ===== frontmatter =====
 
 describe('frontmatter', () => {
-  it('parses valid file and returns frontmatter object', () => {
+  it('parses valid file and returns frontmatter object', async () => {
     setupTmp();
     const filePath = path.join(planningDir, 'test.md');
     fs.writeFileSync(filePath, PLAN_01);
@@ -230,12 +230,12 @@ describe('frontmatter', () => {
     expect(result.must_haves.truths).toContain('Setup is complete');
   });
 
-  it('returns error for missing file', () => {
+  it('returns error for missing file', async () => {
     const result = frontmatter('/nonexistent/file.md');
     expect(result.error).toMatch(/File not found/);
   });
 
-  it('returns empty object for file with no frontmatter', () => {
+  it('returns empty object for file with no frontmatter', async () => {
     setupTmp();
     const filePath = path.join(planningDir, 'no-fm.md');
     fs.writeFileSync(filePath, '# Just a heading\n\nSome content.\n');
@@ -249,7 +249,7 @@ describe('frontmatter', () => {
 // ===== planIndex =====
 
 describe('planIndex', () => {
-  it('returns plan inventory grouped by wave', () => {
+  it('returns plan inventory grouped by wave', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_01);
@@ -264,21 +264,21 @@ describe('planIndex', () => {
     expect(result.waves.wave_2).toBeDefined();
   });
 
-  it('returns error when phases directory missing', () => {
+  it('returns error when phases directory missing', async () => {
     setupTmp();
     // No phases dir created
     const result = planIndex('1', planningDir);
     expect(result.error).toMatch(/No phases directory/);
   });
 
-  it('returns error for non-existent phase number', () => {
+  it('returns error for non-existent phase number', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     const result = planIndex('99', planningDir);
     expect(result.error).toMatch(/No phase directory found matching phase 99/);
   });
 
-  it('returns empty arrays for phase with no PLAN files', () => {
+  it('returns empty arrays for phase with no PLAN files', async () => {
     setupTmp();
     createPhaseDir('01-empty');
     const result = planIndex('1', planningDir);
@@ -287,7 +287,7 @@ describe('planIndex', () => {
     expect(result.waves).toEqual({});
   });
 
-  it('detects has_summary when SUMMARY file exists', () => {
+  it('detects has_summary when SUMMARY file exists', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_01);
@@ -297,7 +297,7 @@ describe('planIndex', () => {
     expect(result.plans[0].has_summary).toBe(true);
   });
 
-  it('counts must-haves correctly', () => {
+  it('counts must-haves correctly', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_01);
@@ -311,7 +311,7 @@ describe('planIndex', () => {
 // ===== mustHavesCollect =====
 
 describe('mustHavesCollect', () => {
-  it('collects must-haves from multiple plans with dedup', () => {
+  it('collects must-haves from multiple plans with dedup', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_01);
@@ -333,20 +333,20 @@ describe('mustHavesCollect', () => {
     expect(result.total).toBe(2 + 2 + 1); // 2 truths + 2 artifacts + 1 key_link
   });
 
-  it('returns error for missing phase', () => {
+  it('returns error for missing phase', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     const result = mustHavesCollect('99', planningDir);
     expect(result.error).toMatch(/No phase directory found/);
   });
 
-  it('returns error when phases directory missing', () => {
+  it('returns error when phases directory missing', async () => {
     setupTmp();
     const result = mustHavesCollect('1', planningDir);
     expect(result.error).toMatch(/No phases directory/);
   });
 
-  it('returns valid structure for plans with empty must_haves', () => {
+  it('returns valid structure for plans with empty must_haves', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     const planNoMH = `---
@@ -370,7 +370,7 @@ wave: 1
 // ===== phaseInfo =====
 
 describe('phaseInfo', () => {
-  it('returns comprehensive info for phase with plans and summaries', () => {
+  it('returns comprehensive info for phase with plans and summaries', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_01);
@@ -389,7 +389,7 @@ describe('phaseInfo', () => {
     expect(result.verification.result).toBe('passed');
   });
 
-  it('returns not_started for empty phase', () => {
+  it('returns not_started for empty phase', async () => {
     setupTmp();
     createPhaseDir('01-empty');
 
@@ -397,7 +397,7 @@ describe('phaseInfo', () => {
     expect(result.filesystem_status).toBe('not_started');
   });
 
-  it('returns discussed for phase with only CONTEXT.md', () => {
+  it('returns discussed for phase with only CONTEXT.md', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-discussed');
     fs.writeFileSync(path.join(phaseDir, 'CONTEXT.md'), '# Context\n\nDiscussion notes.\n');
@@ -407,13 +407,13 @@ describe('phaseInfo', () => {
     expect(result.has_context).toBe(true);
   });
 
-  it('returns error for missing phases directory', () => {
+  it('returns error for missing phases directory', async () => {
     setupTmp();
     const result = phaseInfo('1', planningDir);
     expect(result.error).toMatch(/No phases directory/);
   });
 
-  it('returns error for non-existent phase number', () => {
+  it('returns error for non-existent phase number', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     const result = phaseInfo('99', planningDir);
@@ -424,12 +424,12 @@ describe('phaseInfo', () => {
 // ===== phaseAdd =====
 
 describe('phaseAdd', () => {
-  it('adds phase at end with correct numbering', () => {
+  it('adds phase at end with correct numbering', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     createPhaseDir('02-auth');
 
-    const result = phaseAdd('deploy', null, planningDir);
+    const result = await phaseAdd('deploy', null, planningDir);
     expect(result.phase).toBe(3);
     expect(result.slug).toBe('deploy');
     expect(result.directory).toBe('03-deploy');
@@ -437,13 +437,13 @@ describe('phaseAdd', () => {
     expect(result.renumbered).toBe(false);
   });
 
-  it('inserts after specified phase and renumbers', () => {
+  it('inserts after specified phase and renumbers', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     createPhaseDir('02-auth');
     createPhaseDir('03-deploy');
 
-    const result = phaseAdd('testing', '1', planningDir);
+    const result = await phaseAdd('testing', '1', planningDir);
     expect(result.phase).toBe(2);
     expect(result.directory).toBe('02-testing');
     expect(result.renumbered).toBe(true);
@@ -454,21 +454,21 @@ describe('phaseAdd', () => {
     expect(dirs).toContain('04-deploy');
   });
 
-  it('creates phases dir if missing', () => {
+  it('creates phases dir if missing', async () => {
     setupTmp();
-    const result = phaseAdd('first', null, planningDir);
+    const result = await phaseAdd('first', null, planningDir);
     expect(result.phase).toBe(1);
     expect(result.directory).toBe('01-first');
     expect(fs.existsSync(path.join(planningDir, 'phases', '01-first'))).toBe(true);
   });
 
-  it('handles backward compat when planningDir is options object', () => {
+  it('handles backward compat when planningDir is options object', async () => {
     setupTmp();
     // Set env so it finds the right planning dir
     const origRoot = process.env.PBR_PROJECT_ROOT;
     process.env.PBR_PROJECT_ROOT = tmpDir;
     try {
-      const result = phaseAdd('test-phase', null, { goal: 'Test goal' });
+      const result = await phaseAdd('test-phase', null, { goal: 'Test goal' });
       expect(result.phase).toBe(1);
       expect(result.goal).toBe('Test goal');
     } finally {
@@ -480,19 +480,19 @@ describe('phaseAdd', () => {
     }
   });
 
-  it('passes options through correctly', () => {
+  it('passes options through correctly', async () => {
     setupTmp();
-    const result = phaseAdd('test', null, planningDir, { goal: 'My goal', dependsOn: '1' });
+    const result = await phaseAdd('test', null, planningDir, { goal: 'My goal', dependsOn: '1' });
     expect(result.goal).toBe('My goal');
     expect(result.depends_on).toBe('1');
   });
 
-  it('updates ROADMAP.md when it exists', () => {
+  it('updates ROADMAP.md when it exists', async () => {
     setupTmp();
     writePlanningFile(planningDir, 'ROADMAP.md', MINIMAL_ROADMAP);
     createPhaseDir('01-setup');
 
-    const result = phaseAdd('new-phase', null, planningDir, { goal: 'New goal' });
+    const result = await phaseAdd('new-phase', null, planningDir, { goal: 'New goal' });
     expect(result.roadmap_updated).toBe(true);
   });
 });
@@ -500,47 +500,47 @@ describe('phaseAdd', () => {
 // ===== phaseRemove =====
 
 describe('phaseRemove', () => {
-  it('refuses to remove current active phase', () => {
+  it('refuses to remove current active phase', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
-    const result = phaseRemove('1', planningDir);
+    const result = await phaseRemove('1', planningDir);
     expect(result.removed).toBe(false);
     expect(result.error).toMatch(/current active phase/);
   });
 
-  it('refuses to remove phase with passed VERIFICATION.md', () => {
+  it('refuses to remove phase with passed VERIFICATION.md', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('02-auth');
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), VERIFICATION_PASSED);
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
     expect(result.removed).toBe(false);
     expect(result.error).toMatch(/passed verification/);
   });
 
-  it('refuses to remove phase with files (needs --force)', () => {
+  it('refuses to remove phase with files (needs --force)', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('02-auth');
     fs.writeFileSync(path.join(phaseDir, 'some-file.md'), 'content');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
     expect(result.removed).toBe(false);
     expect(result.error).toMatch(/has \d+ files/);
     expect(result.files).toBeDefined();
   });
 
-  it('removes empty phase and renumbers subsequent dirs', () => {
+  it('removes empty phase and renumbers subsequent dirs', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     createPhaseDir('02-empty');
     createPhaseDir('03-auth');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
     expect(result.removed).toBe(true);
     expect(result.renumbered).toBe(true);
 
@@ -551,15 +551,15 @@ describe('phaseRemove', () => {
     expect(dirs).not.toContain('02-empty');
   });
 
-  it('returns error for non-existent phase', () => {
+  it('returns error for non-existent phase', async () => {
     setupTmp();
     createPhaseDir('01-setup');
-    const result = phaseRemove('99', planningDir);
+    const result = await phaseRemove('99', planningDir);
     expect(result.removed).toBe(false);
     expect(result.error).toMatch(/not found/);
   });
 
-  it('decrements STATE.md current_phase when removing lower phase', () => {
+  it('decrements STATE.md current_phase when removing lower phase', async () => {
     setupTmp();
     createPhaseDir('01-old');
     createPhaseDir('02-empty');
@@ -568,7 +568,7 @@ describe('phaseRemove', () => {
     const stateWith3 = MINIMAL_STATE.replace('current_phase: 1', 'current_phase: 3');
     writePlanningFile(planningDir, 'STATE.md', stateWith3);
 
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
     expect(result.removed).toBe(true);
     expect(result.state_updated).toBe(true);
 
@@ -577,25 +577,25 @@ describe('phaseRemove', () => {
     expect(stateContent).toMatch(/current_phase:\s*2/);
   });
 
-  it('updates ROADMAP.md when it exists', () => {
+  it('updates ROADMAP.md when it exists', async () => {
     setupTmp();
     createPhaseDir('02-empty');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
     writePlanningFile(planningDir, 'ROADMAP.md', MINIMAL_ROADMAP);
 
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
     expect(result.removed).toBe(true);
     expect(result.roadmap_updated).toBe(true);
   });
 
-  it('allows removal when VERIFICATION exists but not passed', () => {
+  it('allows removal when VERIFICATION exists but not passed', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('02-auth');
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), VERIFICATION_FAILED);
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
     // Still has files though, so should refuse for that reason
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
     // It has the VERIFICATION.md file in it
     expect(result.removed).toBe(false);
     expect(result.error).toMatch(/has \d+ files/);
@@ -605,7 +605,7 @@ describe('phaseRemove', () => {
 // ===== phaseList =====
 
 describe('phaseList', () => {
-  it('returns sorted list with status flags', () => {
+  it('returns sorted list with status flags', async () => {
     setupTmp();
     const phaseDir1 = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir1, 'PLAN-01.md'), PLAN_01);
@@ -629,20 +629,20 @@ describe('phaseList', () => {
     expect(result.phases[1].hasVerification).toBe(true);
   });
 
-  it('returns empty array for empty phases dir', () => {
+  it('returns empty array for empty phases dir', async () => {
     setupTmp();
     fs.mkdirSync(path.join(planningDir, 'phases'), { recursive: true });
     const result = phaseList(planningDir);
     expect(result.phases).toEqual([]);
   });
 
-  it('returns empty array for missing phases dir', () => {
+  it('returns empty array for missing phases dir', async () => {
     setupTmp();
     const result = phaseList(planningDir);
     expect(result.phases).toEqual([]);
   });
 
-  it('ignores non-phase directories', () => {
+  it('ignores non-phase directories', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     // Create a non-phase dir (no numeric prefix)
@@ -656,7 +656,7 @@ describe('phaseList', () => {
 // ===== milestoneStats =====
 
 describe('milestoneStats', () => {
-  it('reads from archive directory when it exists', () => {
+  it('reads from archive directory when it exists', async () => {
     setupTmp();
     const archiveDir = path.join(planningDir, 'milestones', 'v1.0', 'phases', '01-setup');
     fs.mkdirSync(archiveDir, { recursive: true });
@@ -683,7 +683,7 @@ describe('milestoneStats', () => {
     expect(result.aggregated.total_metrics.commits).toBe(0);
   });
 
-  it('falls back to active phases with ROADMAP.md parsing', () => {
+  it('falls back to active phases with ROADMAP.md parsing', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), SUMMARY_01);
@@ -703,7 +703,7 @@ Some content about setup.
     expect(result.phases[0].name).toBe('setup');
   });
 
-  it('returns empty when no archive and no matching roadmap', () => {
+  it('returns empty when no archive and no matching roadmap', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     writePlanningFile(planningDir, 'ROADMAP.md', '# Empty Roadmap\n');
@@ -713,7 +713,7 @@ Some content about setup.
     expect(result.phases).toEqual([]);
   });
 
-  it('aggregates deferred and patterns', () => {
+  it('aggregates deferred and patterns', async () => {
     setupTmp();
     const archiveDir = path.join(planningDir, 'milestones', 'v3.0', 'phases', '01-setup');
     fs.mkdirSync(archiveDir, { recursive: true });
@@ -725,7 +725,7 @@ Some content about setup.
     expect(result.aggregated.all_key_decisions).toContain('chose jest over mocha');
   });
 
-  it('parses phase range from ROADMAP milestone section', () => {
+  it('parses phase range from ROADMAP milestone section', async () => {
     setupTmp();
     createPhaseDir('05-api');
     createPhaseDir('06-ui');
@@ -744,7 +744,7 @@ Phases 5-6 cover the API and UI work.
     expect(result.phase_count).toBe(2);
   });
 
-  it('parses table rows in milestone section', () => {
+  it('parses table rows in milestone section', async () => {
     setupTmp();
     createPhaseDir('10-infra');
     fs.writeFileSync(path.join(planningDir, 'phases', '10-infra', 'SUMMARY-01.md'), SUMMARY_01);
@@ -787,14 +787,14 @@ describe('phaseComplete', () => {
 - [ ] Phase 3: Deploy
 `;
 
-  it('updates ROADMAP.md and STATE.md for mid-phase completion', () => {
+  it('updates ROADMAP.md and STATE.md for mid-phase completion', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), SUMMARY_01);
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
     writePlanningFile(planningDir, 'ROADMAP.md', ROADMAP_WITH_TABLE);
 
-    const result = phaseComplete('1', planningDir);
+    const result = await phaseComplete('1', planningDir);
     expect(result.success).toBe(true);
     expect(result.completed_phase).toBe(1);
     expect(result.next_phase).toBe(2);
@@ -810,33 +810,33 @@ describe('phaseComplete', () => {
     expect(roadmapContent).toMatch(/\[x\] Phase 1/);
   });
 
-  it('returns error when STATE.md missing', () => {
+  it('returns error when STATE.md missing', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     writePlanningFile(planningDir, 'ROADMAP.md', ROADMAP_WITH_TABLE);
 
-    const result = phaseComplete('1', planningDir);
+    const result = await phaseComplete('1', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/STATE\.md not found/);
   });
 
-  it('returns error when ROADMAP.md missing', () => {
+  it('returns error when ROADMAP.md missing', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
-    const result = phaseComplete('1', planningDir);
+    const result = await phaseComplete('1', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/ROADMAP\.md not found/);
   });
 
-  it('sets status to verified for final phase', () => {
+  it('sets status to verified for final phase', async () => {
     setupTmp();
     createPhaseDir('03-deploy');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE.replace('current_phase: 1', 'current_phase: 3'));
     writePlanningFile(planningDir, 'ROADMAP.md', ROADMAP_WITH_TABLE);
 
-    const result = phaseComplete('3', planningDir);
+    const result = await phaseComplete('3', planningDir);
     expect(result.success).toBe(true);
     expect(result.final_phase).toBe(true);
     expect(result.next_phase).toBeNull();
@@ -846,25 +846,25 @@ describe('phaseComplete', () => {
     expect(stateContent).toMatch(/status:\s*["']?verified/);
   });
 
-  it('returns error when phase not in ROADMAP progress table', () => {
+  it('returns error when phase not in ROADMAP progress table', async () => {
     setupTmp();
     createPhaseDir('99-missing');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
     writePlanningFile(planningDir, 'ROADMAP.md', ROADMAP_WITH_TABLE);
 
-    const result = phaseComplete('99', planningDir);
+    const result = await phaseComplete('99', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not found in ROADMAP/);
   });
 
-  it('writes phase manifest', () => {
+  it('writes phase manifest', async () => {
     setupTmp();
     const phaseDir = createPhaseDir('01-setup');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), SUMMARY_01);
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
     writePlanningFile(planningDir, 'ROADMAP.md', ROADMAP_WITH_TABLE);
 
-    const result = phaseComplete('1', planningDir);
+    const result = await phaseComplete('1', planningDir);
     expect(result.manifest_written).toBe(true);
 
     const manifestPath = path.join(phaseDir, '.phase-manifest.json');
@@ -879,13 +879,13 @@ describe('phaseComplete', () => {
 // ===== phaseInsert =====
 
 describe('phaseInsert', () => {
-  it('inserts at position 2 and renumbers existing dirs', () => {
+  it('inserts at position 2 and renumbers existing dirs', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     createPhaseDir('02-auth');
     createPhaseDir('03-deploy');
 
-    const result = phaseInsert(2, 'testing', planningDir);
+    const result = await phaseInsert(2, 'testing', planningDir);
     expect(result.phase).toBe(2);
     expect(result.directory).toBe('02-testing');
     expect(result.renumbered_count).toBe(2); // 02 and 03 both renumbered
@@ -898,16 +898,16 @@ describe('phaseInsert', () => {
     expect(dirs).toContain('04-deploy');
   });
 
-  it('returns error for invalid position', () => {
+  it('returns error for invalid position', async () => {
     setupTmp();
     createPhaseDir('01-setup');
 
-    expect(phaseInsert(0, 'bad', planningDir).error).toMatch(/positive integer/);
-    expect(phaseInsert(-1, 'bad', planningDir).error).toMatch(/positive integer/);
-    expect(phaseInsert(1.5, 'bad', planningDir).error).toMatch(/positive integer/);
+    expect((await phaseInsert(0, 'bad', planningDir)).error).toMatch(/positive integer/);
+    expect((await phaseInsert(-1, 'bad', planningDir)).error).toMatch(/positive integer/);
+    expect((await phaseInsert(1.5, 'bad', planningDir)).error).toMatch(/positive integer/);
   });
 
-  it('updates STATE.md current_phase when >= position', () => {
+  it('updates STATE.md current_phase when >= position', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     createPhaseDir('02-auth');
@@ -915,36 +915,36 @@ describe('phaseInsert', () => {
     const stateWith2 = MINIMAL_STATE.replace('current_phase: 1', 'current_phase: 2');
     writePlanningFile(planningDir, 'STATE.md', stateWith2);
 
-    const result = phaseInsert(2, 'new-phase', planningDir);
+    const result = await phaseInsert(2, 'new-phase', planningDir);
     expect(result.state_updated).toBe(true);
 
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     expect(stateContent).toMatch(/current_phase:\s*3/);
   });
 
-  it('does not update STATE.md when current_phase < position', () => {
+  it('does not update STATE.md when current_phase < position', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     createPhaseDir('02-auth');
     writePlanningFile(planningDir, 'STATE.md', MINIMAL_STATE);
 
-    const result = phaseInsert(2, 'new-phase', planningDir);
+    const result = await phaseInsert(2, 'new-phase', planningDir);
     expect(result.state_updated).toBe(false);
   });
 
-  it('creates phases dir if missing', () => {
+  it('creates phases dir if missing', async () => {
     setupTmp();
-    const result = phaseInsert(1, 'first', planningDir);
+    const result = await phaseInsert(1, 'first', planningDir);
     expect(result.phase).toBe(1);
     expect(fs.existsSync(path.join(planningDir, 'phases', '01-first'))).toBe(true);
   });
 
-  it('handles backward compat when planningDir is options object', () => {
+  it('handles backward compat when planningDir is options object', async () => {
     setupTmp();
     const origRoot = process.env.PBR_PROJECT_ROOT;
     process.env.PBR_PROJECT_ROOT = tmpDir;
     try {
-      const result = phaseInsert(1, 'test', { goal: 'My goal' });
+      const result = await phaseInsert(1, 'test', { goal: 'My goal' });
       expect(result.phase).toBe(1);
     } finally {
       if (origRoot !== undefined) {
@@ -955,12 +955,12 @@ describe('phaseInsert', () => {
     }
   });
 
-  it('updates ROADMAP.md when it exists', () => {
+  it('updates ROADMAP.md when it exists', async () => {
     setupTmp();
     createPhaseDir('01-setup');
     writePlanningFile(planningDir, 'ROADMAP.md', MINIMAL_ROADMAP);
 
-    const result = phaseInsert(1, 'pre-setup', planningDir, { goal: 'Pre-work' });
+    const result = await phaseInsert(1, 'pre-setup', planningDir, { goal: 'Pre-work' });
     expect(result.roadmap_updated).toBe(true);
   });
 });

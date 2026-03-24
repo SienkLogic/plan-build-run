@@ -41,28 +41,28 @@ function setupPhaseDir() {
 const runScript = (data) => _run(data, { cwd: tmpDir });
 
 describe('findInPhaseDir', () => {
-  test('returns empty when no phases dir', () => {
+  test('returns empty when no phases dir', async () => {
     expect(findInPhaseDir(planningDir, /^PLAN.*\.md$/i)).toEqual([]);
   });
 
-  test('returns empty when no STATE.md', () => {
+  test('returns empty when no STATE.md', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-test'), { recursive: true });
     expect(findInPhaseDir(planningDir, /^PLAN.*\.md$/i)).toEqual([]);
   });
 
-  test('returns empty when STATE.md has no phase line', () => {
+  test('returns empty when STATE.md has no phase line', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-test'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'No phase info');
     expect(findInPhaseDir(planningDir, /^PLAN.*\.md$/i)).toEqual([]);
   });
 
-  test('returns empty when phase dir does not exist for current phase', () => {
+  test('returns empty when phase dir does not exist for current phase', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '02-other'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     expect(findInPhaseDir(planningDir, /^PLAN.*\.md$/i)).toEqual([]);
   });
 
-  test('finds matching files in current phase dir', () => {
+  test('finds matching files in current phase dir', async () => {
     const phaseDir = path.join(planningDir, 'phases', '02-auth');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'content');
@@ -72,7 +72,7 @@ describe('findInPhaseDir', () => {
     expect(result[0]).toContain('PLAN-01.md');
   });
 
-  test('skips empty files', () => {
+  test('skips empty files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), '');
@@ -81,7 +81,7 @@ describe('findInPhaseDir', () => {
     expect(result).toEqual([]);
   });
 
-  test('pads single-digit phase number', () => {
+  test('pads single-digit phase number', async () => {
     const phaseDir = path.join(planningDir, 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), 'pass');
@@ -90,7 +90,7 @@ describe('findInPhaseDir', () => {
     expect(result).toHaveLength(1);
   });
 
-  test('finds multiple matching files', () => {
+  test('finds multiple matching files', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'plan1');
@@ -102,16 +102,16 @@ describe('findInPhaseDir', () => {
 });
 
 describe('findInQuickDir', () => {
-  test('returns empty when no quick dir', () => {
+  test('returns empty when no quick dir', async () => {
     expect(findInQuickDir(planningDir, /^SUMMARY.*\.md$/i)).toEqual([]);
   });
 
-  test('returns empty when quick dir has no numbered dirs', () => {
+  test('returns empty when quick dir has no numbered dirs', async () => {
     fs.mkdirSync(path.join(planningDir, 'quick', 'not-numbered'), { recursive: true });
     expect(findInQuickDir(planningDir, /^SUMMARY.*\.md$/i)).toEqual([]);
   });
 
-  test('finds SUMMARY.md in the most recent quick task', () => {
+  test('finds SUMMARY.md in the most recent quick task', async () => {
     const dir001 = path.join(planningDir, 'quick', '001-task-a');
     const dir002 = path.join(planningDir, 'quick', '002-task-b');
     fs.mkdirSync(dir001, { recursive: true });
@@ -123,14 +123,14 @@ describe('findInQuickDir', () => {
     expect(result[0]).toContain('002-task-b');
   });
 
-  test('skips non-directory entries', () => {
+  test('skips non-directory entries', async () => {
     fs.mkdirSync(path.join(planningDir, 'quick'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'quick', '001-file'), 'not a dir');
     const result = findInQuickDir(planningDir, /^SUMMARY.*\.md$/i);
     expect(result).toEqual([]);
   });
 
-  test('skips empty matching files', () => {
+  test('skips empty matching files', async () => {
     const dir = path.join(planningDir, 'quick', '001-task');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'SUMMARY.md'), '');
@@ -140,7 +140,7 @@ describe('findInQuickDir', () => {
 });
 
 describe('checkSummaryCommits', () => {
-  test('no warnings when SUMMARY has commits', () => {
+  test('no warnings when SUMMARY has commits', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -150,7 +150,7 @@ describe('checkSummaryCommits', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('warns when SUMMARY has no commits field', () => {
+  test('warns when SUMMARY has no commits field', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -161,7 +161,7 @@ describe('checkSummaryCommits', () => {
     expect(warnings[0]).toContain('No "commits" field');
   });
 
-  test('warns when commits field is empty array', () => {
+  test('warns when commits field is empty array', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -172,7 +172,7 @@ describe('checkSummaryCommits', () => {
     expect(warnings[0]).toContain('empty');
   });
 
-  test('warns when commits field is null', () => {
+  test('warns when commits field is null', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -182,7 +182,7 @@ describe('checkSummaryCommits', () => {
     expect(warnings).toHaveLength(1);
   });
 
-  test('warns when commits field is tilde (yaml null)', () => {
+  test('warns when commits field is tilde (yaml null)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -192,13 +192,13 @@ describe('checkSummaryCommits', () => {
     expect(warnings).toHaveLength(1);
   });
 
-  test('skips non-SUMMARY files', () => {
+  test('skips non-SUMMARY files', async () => {
     const warnings = [];
     checkSummaryCommits(planningDir, ['phases/01-test/PLAN-01.md'], warnings);
     expect(warnings).toHaveLength(0);
   });
 
-  test('skips files without frontmatter', () => {
+  test('skips files without frontmatter', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), '# Summary\nNo frontmatter');
@@ -209,7 +209,7 @@ describe('checkSummaryCommits', () => {
 });
 
 describe('AGENT_OUTPUTS check functions (direct calls)', () => {
-  test('executor check finds in phase dir', () => {
+  test('executor check finds in phase dir', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), 'content');
@@ -218,7 +218,7 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('executor check falls through to quick dir', () => {
+  test('executor check falls through to quick dir', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const quickDir = path.join(planningDir, 'quick', '001-task');
     fs.mkdirSync(quickDir, { recursive: true });
@@ -227,13 +227,13 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('executor check returns empty when no summary anywhere', () => {
+  test('executor check returns empty when no summary anywhere', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const result = AGENT_OUTPUTS['pbr:executor'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('planner check finds PLAN.md', () => {
+  test('planner check finds PLAN.md', async () => {
     const phaseDir = path.join(planningDir, 'phases', '02-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'plan content');
@@ -242,7 +242,7 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('verifier check finds VERIFICATION.md', () => {
+  test('verifier check finds VERIFICATION.md', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), 'verified');
@@ -251,7 +251,7 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('researcher check finds research files', () => {
+  test('researcher check finds research files', async () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'STACK.md'), 'research');
     const result = AGENT_OUTPUTS['pbr:researcher'].check(planningDir);
@@ -259,26 +259,26 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result[0]).toContain('research');
   });
 
-  test('researcher check returns empty when no research dir', () => {
+  test('researcher check returns empty when no research dir', async () => {
     const result = AGENT_OUTPUTS['pbr:researcher'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('researcher check returns empty for non-md files', () => {
+  test('researcher check returns empty for non-md files', async () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'data.json'), '{}');
     const result = AGENT_OUTPUTS['pbr:researcher'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('synthesizer check finds research files', () => {
+  test('synthesizer check finds research files', async () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'SYNTHESIS.md'), 'synthesis');
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('synthesizer check finds CONTEXT.md as fallback', () => {
+  test('synthesizer check finds CONTEXT.md as fallback', async () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     // No research .md files
     fs.writeFileSync(path.join(planningDir, 'CONTEXT.md'), 'context');
@@ -286,54 +286,54 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result).toEqual(['CONTEXT.md']);
   });
 
-  test('synthesizer check returns empty when no research dir and no CONTEXT.md', () => {
+  test('synthesizer check returns empty when no research dir and no CONTEXT.md', async () => {
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('synthesizer check returns empty when CONTEXT.md is empty', () => {
+  test('synthesizer check returns empty when CONTEXT.md is empty', async () => {
     fs.writeFileSync(path.join(planningDir, 'CONTEXT.md'), '');
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('debugger check finds debug files', () => {
+  test('debugger check finds debug files', async () => {
     fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'debug', 'session-001.md'), 'debug');
     const result = AGENT_OUTPUTS['pbr:debugger'].check(planningDir);
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('debugger check returns empty when no debug dir', () => {
+  test('debugger check returns empty when no debug dir', async () => {
     const result = AGENT_OUTPUTS['pbr:debugger'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('codebase-mapper check finds codebase files', () => {
+  test('codebase-mapper check finds codebase files', async () => {
     fs.mkdirSync(path.join(planningDir, 'codebase'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'codebase', 'MAP.md'), 'map');
     const result = AGENT_OUTPUTS['pbr:codebase-mapper'].check(planningDir);
     expect(result.length).toBeGreaterThan(0);
   });
 
-  test('codebase-mapper check returns empty when no codebase dir', () => {
+  test('codebase-mapper check returns empty when no codebase dir', async () => {
     const result = AGENT_OUTPUTS['pbr:codebase-mapper'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('plan-checker returns empty (noFileExpected)', () => {
+  test('plan-checker returns empty (noFileExpected)', async () => {
     expect(AGENT_OUTPUTS['pbr:plan-checker'].check(planningDir)).toEqual([]);
   });
 
-  test('integration-checker returns empty (noFileExpected)', () => {
+  test('integration-checker returns empty (noFileExpected)', async () => {
     expect(AGENT_OUTPUTS['pbr:integration-checker'].check(planningDir)).toEqual([]);
   });
 
-  test('general returns empty (noFileExpected)', () => {
+  test('general returns empty (noFileExpected)', async () => {
     expect(AGENT_OUTPUTS['pbr:general'].check(planningDir)).toEqual([]);
   });
 
-  test('synthesizer check with research dir but only non-md files falls to CONTEXT.md', () => {
+  test('synthesizer check with research dir but only non-md files falls to CONTEXT.md', async () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'data.json'), '{}');
     fs.writeFileSync(path.join(planningDir, 'CONTEXT.md'), 'has content');
@@ -341,14 +341,14 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     expect(result).toEqual(['CONTEXT.md']);
   });
 
-  test('debugger check ignores non-md files', () => {
+  test('debugger check ignores non-md files', async () => {
     fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'debug', 'data.json'), '{}');
     const result = AGENT_OUTPUTS['pbr:debugger'].check(planningDir);
     expect(result).toEqual([]);
   });
 
-  test('codebase-mapper check ignores non-md files', () => {
+  test('codebase-mapper check ignores non-md files', async () => {
     fs.mkdirSync(path.join(planningDir, 'codebase'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'codebase', 'data.json'), '{}');
     const result = AGENT_OUTPUTS['pbr:codebase-mapper'].check(planningDir);
@@ -357,7 +357,7 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
 });
 
 describe('checkSummaryCommits additional branches', () => {
-  test('warns when commits field is empty string', () => {
+  test('warns when commits field is empty string', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -368,7 +368,7 @@ describe('checkSummaryCommits additional branches', () => {
     expect(warnings[0]).toContain('empty');
   });
 
-  test('handles read error gracefully', () => {
+  test('handles read error gracefully', async () => {
     const warnings = [];
     checkSummaryCommits(planningDir, ['phases/nonexistent/SUMMARY.md'], warnings);
     expect(warnings).toHaveLength(0);
@@ -376,38 +376,38 @@ describe('checkSummaryCommits additional branches', () => {
 });
 
 describe('isRecent', () => {
-  test('returns true for recently created file', () => {
+  test('returns true for recently created file', async () => {
     const filePath = path.join(tmpDir, 'recent.txt');
     fs.writeFileSync(filePath, 'data');
     expect(isRecent(filePath)).toBe(true);
   });
 
-  test('returns false for nonexistent file', () => {
+  test('returns false for nonexistent file', async () => {
     expect(isRecent(path.join(tmpDir, 'nope.txt'))).toBe(false);
   });
 });
 
 describe('getCurrentPhase', () => {
-  test('extracts from frontmatter', () => {
+  test('extracts from frontmatter', async () => {
     expect(getCurrentPhase('---\ncurrent_phase: 5\n---\nPhase: 3 of 10')).toBe('5');
   });
 
-  test('falls back to body text', () => {
+  test('falls back to body text', async () => {
     expect(getCurrentPhase('# State\nPhase: 7 of 10')).toBe('7');
   });
 
-  test('returns null when no phase info', () => {
+  test('returns null when no phase info', async () => {
     expect(getCurrentPhase('# No phase info')).toBeNull();
   });
 });
 
 describe('SKILL_CHECKS lookup table', () => {
-  test('SKILL_CHECKS is exported and is an object', () => {
+  test('SKILL_CHECKS is exported and is an object', async () => {
     expect(SKILL_CHECKS).toBeDefined();
     expect(typeof SKILL_CHECKS).toBe('object');
   });
 
-  test('SKILL_CHECKS has expected keys', () => {
+  test('SKILL_CHECKS has expected keys', async () => {
     const expectedKeys = [
       'begin:pbr:planner',
       'plan:pbr:researcher',
@@ -423,7 +423,7 @@ describe('SKILL_CHECKS lookup table', () => {
     }
   });
 
-  test('begin:pbr:planner warns when REQUIREMENTS.md missing', () => {
+  test('begin:pbr:planner warns when REQUIREMENTS.md missing', async () => {
     // ROADMAP.md and STATE.md present, REQUIREMENTS.md absent
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
@@ -432,7 +432,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings.some(w => w.includes('REQUIREMENTS.md'))).toBe(true);
   });
 
-  test('begin:pbr:planner warns when ROADMAP.md missing', () => {
+  test('begin:pbr:planner warns when ROADMAP.md missing', async () => {
     fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Req');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
     const warnings = [];
@@ -440,7 +440,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings.some(w => w.includes('ROADMAP.md'))).toBe(true);
   });
 
-  test('begin:pbr:planner no warning when all core files present', () => {
+  test('begin:pbr:planner no warning when all core files present', async () => {
     fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Req');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
@@ -449,7 +449,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('scan:pbr:codebase-mapper warns when tech area missing', () => {
+  test('scan:pbr:codebase-mapper warns when tech area missing', async () => {
     const codebaseDir = path.join(planningDir, 'codebase');
     fs.mkdirSync(codebaseDir, { recursive: true });
     // arch, quality, concerns present but NOT tech
@@ -461,7 +461,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings.some(w => w.includes('"tech"'))).toBe(true);
   });
 
-  test('scan:pbr:codebase-mapper no warning when all 4 areas present', () => {
+  test('scan:pbr:codebase-mapper no warning when all 4 areas present', async () => {
     const codebaseDir = path.join(planningDir, 'codebase');
     fs.mkdirSync(codebaseDir, { recursive: true });
     fs.writeFileSync(path.join(codebaseDir, 'tech-stack.md'), 'tech');
@@ -473,14 +473,14 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('unknown key foo:pbr:executor has no SKILL_CHECKS entry and does not crash', () => {
+  test('unknown key foo:pbr:executor has no SKILL_CHECKS entry and does not crash', async () => {
     expect(SKILL_CHECKS['foo:pbr:executor']).toBeUndefined();
     // Lookup with optional chaining should not throw
     const entry = SKILL_CHECKS['foo:pbr:executor'];
     expect(() => entry?.check(planningDir, [], [])).not.toThrow();
   });
 
-  test('build:pbr:executor calls checkSummaryCommits (warns on missing commits)', () => {
+  test('build:pbr:executor calls checkSummaryCommits (warns on missing commits)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -492,7 +492,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings[0]).toContain('empty');
   });
 
-  test('quick:pbr:executor calls checkSummaryCommits (no warning when commits present)', () => {
+  test('quick:pbr:executor calls checkSummaryCommits (no warning when commits present)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
@@ -503,7 +503,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('plan:pbr:researcher warns when no research output found', () => {
+  test('plan:pbr:researcher warns when no research output found', async () => {
     // Empty planning dir, no research dir, no phase research
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const warnings = [];
@@ -511,7 +511,7 @@ describe('SKILL_CHECKS lookup table', () => {
     expect(warnings.some(w => w.includes('No research output'))).toBe(true);
   });
 
-  test('review:pbr:verifier warns when VERIFICATION.md has gaps_found status', () => {
+  test('review:pbr:verifier warns when VERIFICATION.md has gaps_found status', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'),
@@ -524,24 +524,24 @@ describe('SKILL_CHECKS lookup table', () => {
 });
 
 describe('checkRoadmapStaleness', () => {
-  test('returns null when no ROADMAP.md', () => {
+  test('returns null when no ROADMAP.md', async () => {
     expect(checkRoadmapStaleness(planningDir)).toBeNull();
   });
 
-  test('warns when no Progress table', () => {
+  test('warns when no Progress table', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Milestone: v1\n');
     const result = checkRoadmapStaleness(planningDir);
     expect(result).toContain('no Progress table');
   });
 
-  test('warns when current phase not in Progress table', () => {
+  test('warns when current phase not in Progress table', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 01. Setup | yes |\n');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\nPhase: 3 of 5');
     const result = checkRoadmapStaleness(planningDir);
     expect(result).toContain('no row for Phase 3');
   });
 
-  test('returns null when current phase is in Progress table', () => {
+  test('returns null when current phase is in Progress table', async () => {
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 02. Auth | yes |\n');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 2\n---\nPhase: 2 of 5');
     const result = checkRoadmapStaleness(planningDir);
@@ -556,7 +556,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     return researchDir;
   }
 
-  test('warns when filename is not one of expected names (skipping SUMMARY.md)', () => {
+  test('warns when filename is not one of expected names (skipping SUMMARY.md)', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'RANDOM.md'), '---\nconfidence: HIGH\nsources_checked: 3\n---\n# Random');
     const warnings = [];
@@ -564,7 +564,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     expect(warnings.some(w => w.includes('RANDOM.md') && w.includes('unexpected'))).toBe(true);
   });
 
-  test('does not warn for SUMMARY.md (skipped by researcher check)', () => {
+  test('does not warn for SUMMARY.md (skipped by researcher check)', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'SUMMARY.md'), '# Summary');
     const warnings = [];
@@ -572,7 +572,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     expect(warnings.filter(w => w.includes('SUMMARY.md'))).toHaveLength(0);
   });
 
-  test('warns when YAML frontmatter is missing entirely', () => {
+  test('warns when YAML frontmatter is missing entirely', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'STACK.md'), '# Stack\nNo frontmatter here');
     const warnings = [];
@@ -580,7 +580,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     expect(warnings.some(w => w.includes('frontmatter') && w.includes('missing'))).toBe(true);
   });
 
-  test('warns when frontmatter lacks confidence field', () => {
+  test('warns when frontmatter lacks confidence field', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'STACK.md'), '---\nsources_checked: 3\n---\n# Stack');
     const warnings = [];
@@ -588,7 +588,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     expect(warnings.some(w => w.includes('confidence'))).toBe(true);
   });
 
-  test('warns when frontmatter lacks sources_checked field', () => {
+  test('warns when frontmatter lacks sources_checked field', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'STACK.md'), '---\nconfidence: HIGH\n---\n# Stack');
     const warnings = [];
@@ -596,7 +596,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     expect(warnings.some(w => w.includes('sources_checked'))).toBe(true);
   });
 
-  test('passes with no warnings for valid research file with both fields', () => {
+  test('passes with no warnings for valid research file with both fields', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'STACK.md'), '---\nconfidence: HIGH\nsources_checked: 5\n---\n# Stack Research');
     const warnings = [];
@@ -604,7 +604,7 @@ describe('SKILL_CHECKS begin:pbr:researcher', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('validates multiple files independently', () => {
+  test('validates multiple files independently', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'STACK.md'), '---\nconfidence: HIGH\nsources_checked: 5\n---\n# Stack');
     fs.writeFileSync(path.join(researchDir, 'FEATURES.md'), '# Features\nNo frontmatter');
@@ -622,14 +622,14 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
     return researchDir;
   }
 
-  test('warns when SUMMARY.md is not found', () => {
+  test('warns when SUMMARY.md is not found', async () => {
     makeResearchDir();
     const warnings = [];
     SKILL_CHECKS['begin:pbr:synthesizer'].check(planningDir, ['research/STACK.md'], warnings);
     expect(warnings.some(w => w.includes('SUMMARY.md') && w.includes('not found'))).toBe(true);
   });
 
-  test('warns when Research Coverage table is missing from SUMMARY.md', () => {
+  test('warns when Research Coverage table is missing from SUMMARY.md', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'SUMMARY.md'), '---\nconfidence: HIGH\n---\n# Summary\n## Confidence Assessment\n| Dimension | Level |\n|---|---|\n| Stack | HIGH |\n| Features | HIGH |\n| Architecture | HIGH |\n| Pitfalls | HIGH |');
     const warnings = [];
@@ -637,7 +637,7 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
     expect(warnings.some(w => w.includes('Research Coverage'))).toBe(true);
   });
 
-  test('warns when Confidence Assessment table is missing from SUMMARY.md', () => {
+  test('warns when Confidence Assessment table is missing from SUMMARY.md', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'SUMMARY.md'), '---\nconfidence: HIGH\n---\n# Summary\n## Research Coverage\n| Dimension | Status |\n|---|---|\n| Stack | COMPLETE |\n| Features | COMPLETE |\n| Architecture | COMPLETE |\n| Pitfalls | COMPLETE |');
     const warnings = [];
@@ -645,7 +645,7 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
     expect(warnings.some(w => w.includes('Confidence Assessment'))).toBe(true);
   });
 
-  test('warns when any of the 4 dimensions is not referenced', () => {
+  test('warns when any of the 4 dimensions is not referenced', async () => {
     const researchDir = makeResearchDir();
     // Missing "Pitfalls" dimension
     fs.writeFileSync(path.join(researchDir, 'SUMMARY.md'), '---\nconfidence: HIGH\n---\n# Summary\n## Research Coverage\n| Dimension | Status |\n|---|---|\n| Stack | COMPLETE |\n| Features | COMPLETE |\n| Architecture | COMPLETE |\n## Confidence Assessment\n| Dimension | Level |\n|---|---|\n| Stack | HIGH |\n| Features | HIGH |\n| Architecture | HIGH |');
@@ -654,7 +654,7 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
     expect(warnings.some(w => w.includes('Pitfalls'))).toBe(true);
   });
 
-  test('passes with no warnings for valid SUMMARY.md with all sections and dimensions', () => {
+  test('passes with no warnings for valid SUMMARY.md with all sections and dimensions', async () => {
     const researchDir = makeResearchDir();
     fs.writeFileSync(path.join(researchDir, 'SUMMARY.md'), '---\nconfidence: HIGH\nsources: 4\nconflicts: 0\n---\n# Research Summary\n## Research Coverage\n| Dimension | Status |\n|---|---|\n| Stack | COMPLETE |\n| Features | COMPLETE |\n| Architecture | COMPLETE |\n| Pitfalls | COMPLETE |\n## Confidence Assessment\n| Dimension | Level |\n|---|---|\n| Stack | HIGH |\n| Features | HIGH |\n| Architecture | MEDIUM |\n| Pitfalls | HIGH |');
     const warnings = [];
@@ -662,7 +662,7 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('partial failure: no errors when only 1-3 of 4 research files exist', () => {
+  test('partial failure: no errors when only 1-3 of 4 research files exist', async () => {
     const researchDir = makeResearchDir();
     // Only STACK.md and FEATURES.md exist -- no SUMMARY.md yet
     fs.writeFileSync(path.join(researchDir, 'STACK.md'), '---\nconfidence: HIGH\nsources_checked: 3\n---\n# Stack');
@@ -682,7 +682,7 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
 // --- Integration tests (from base file, exercising main() via subprocess) ---
 
 describe('agent type coverage', () => {
-  test('all 10 PBR agent types are in AGENT_OUTPUTS', () => {
+  test('all 10 PBR agent types are in AGENT_OUTPUTS', async () => {
     const expected = [
       'pbr:executor', 'pbr:planner', 'pbr:verifier', 'pbr:researcher',
       'pbr:synthesizer', 'pbr:plan-checker', 'pbr:integration-checker',
@@ -695,29 +695,29 @@ describe('agent type coverage', () => {
     }
   });
 
-  test('exactly 17 agent types are defined', () => {
+  test('exactly 17 agent types are defined', async () => {
     expect(Object.keys(AGENT_OUTPUTS)).toHaveLength(17);
   });
 });
 
 describe('main() early exits', () => {
-  test('exits 0 when no .planning directory', () => {
+  test('exits 0 when no .planning directory', async () => {
     fs.rmSync(path.join(tmpDir, '.planning'), { recursive: true, force: true });
     const result = runScript({ subagent_type: 'pbr:executor' });
     expect(result.exitCode).toBe(0);
   });
 
-  test('exits 0 for unknown agent types', () => {
+  test('exits 0 for unknown agent types', async () => {
     const result = runScript({ subagent_type: 'pbr:unknown' });
     expect(result.exitCode).toBe(0);
   });
 
-  test('exits 0 for non-plan-build-run agent types', () => {
+  test('exits 0 for non-plan-build-run agent types', async () => {
     const result = runScript({ subagent_type: 'general-purpose' });
     expect(result.exitCode).toBe(0);
   });
 
-  test('handles subagent_type at top level (not nested in tool_input)', () => {
+  test('handles subagent_type at top level (not nested in tool_input)', async () => {
     setupPhaseDir();
     const result = runScript({ subagent_type: 'pbr:executor' });
     expect(result.exitCode).toBe(0);
@@ -726,7 +726,7 @@ describe('main() early exits', () => {
 });
 
 describe('combined warning path and skill-specific gaps', () => {
-  test('combined path: genericMissing AND skillWarnings produces merged warning', () => {
+  test('combined path: genericMissing AND skillWarnings produces merged warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'begin');
     const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
@@ -737,7 +737,7 @@ describe('combined warning path and skill-specific gaps', () => {
     expect(result.output).toContain('Skill-specific warnings');
   });
 
-  test('GAP-07: review skill with verifier gaps_found status triggers warning', () => {
+  test('GAP-07: review skill with verifier gaps_found status triggers warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     fs.writeFileSync(
@@ -750,7 +750,7 @@ describe('combined warning path and skill-specific gaps', () => {
     expect(result.output).toContain('Skill-specific warnings');
   });
 
-  test('warns when .active-skill is missing for executor agent', () => {
+  test('warns when .active-skill is missing for executor agent', async () => {
     setupPhaseDir();
     fs.writeFileSync(
       path.join(planningDir, 'phases', '03-auth', 'SUMMARY-03-01.md'),
@@ -762,7 +762,7 @@ describe('combined warning path and skill-specific gaps', () => {
     expect(result.output).toContain('missing');
   });
 
-  test('no .active-skill warning when file exists', () => {
+  test('no .active-skill warning when file exists', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -774,14 +774,14 @@ describe('combined warning path and skill-specific gaps', () => {
     expect(result.output).not.toContain('.active-skill');
   });
 
-  test('no .active-skill warning for noFileExpected agents', () => {
+  test('no .active-skill warning for noFileExpected agents', async () => {
     setupPhaseDir();
     const result = runScript({ tool_input: { subagent_type: 'pbr:general' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).toBe('');
   });
 
-  test('warns about missing ROADMAP Progress table after executor', () => {
+  test('warns about missing ROADMAP Progress table after executor', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -797,7 +797,7 @@ describe('combined warning path and skill-specific gaps', () => {
     expect(result.output).toContain('Progress table');
   });
 
-  test('no ROADMAP warning when Progress table exists with phase row', () => {
+  test('no ROADMAP warning when Progress table exists with phase row', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -813,7 +813,7 @@ describe('combined warning path and skill-specific gaps', () => {
     expect(result.output).not.toContain('Progress table');
   });
 
-  test('GAP-08: scan skill with codebase-mapper missing focus areas triggers warning', () => {
+  test('GAP-08: scan skill with codebase-mapper missing focus areas triggers warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'scan');
     const codebaseDir = path.join(planningDir, 'codebase');
@@ -829,33 +829,33 @@ describe('combined warning path and skill-specific gaps', () => {
 });
 
 describe('agent_type field priority (2.1.69 compat)', () => {
-  test('prefers data.agent_type over tool_input.subagent_type (forward compat)', () => {
+  test('prefers data.agent_type over tool_input.subagent_type (forward compat)', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     const result = runScript({ agent_type: 'pbr:executor', tool_input: { subagent_type: 'pbr:planner' } });
     expect(result.exitCode).toBe(0);
   });
 
-  test('falls back to tool_input.subagent_type when agent_type is absent (backward compat)', () => {
+  test('falls back to tool_input.subagent_type when agent_type is absent (backward compat)', async () => {
     setupPhaseDir();
     const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.exitCode).toBe(0);
   });
 
-  test('falls back to top-level subagent_type as last resort', () => {
+  test('falls back to top-level subagent_type as last resort', async () => {
     setupPhaseDir();
     const result = runScript({ subagent_type: 'pbr:executor' });
     expect(result.exitCode).toBe(0);
   });
 
-  test('handles missing agent type gracefully', () => {
+  test('handles missing agent type gracefully', async () => {
     const result = runScript({ tool_input: {} });
     expect(result.exitCode).toBe(0);
   });
 });
 
 describe('mtime recency checks (integration)', () => {
-  test('researcher with recent .md file passes without stale warning', () => {
+  test('researcher with recent .md file passes without stale warning', async () => {
     setupPhaseDir();
     const researchFile = path.join(planningDir, 'research', 'STACK.md');
     fs.writeFileSync(researchFile, '# Research');
@@ -864,7 +864,7 @@ describe('mtime recency checks (integration)', () => {
     expect(result.output).not.toContain('stale');
   });
 
-  test('researcher with 10-min-old file is NOT flagged stale (B2 fix)', () => {
+  test('researcher with 10-min-old file is NOT flagged stale (B2 fix)', async () => {
     setupPhaseDir();
     const researchFile = path.join(planningDir, 'research', 'STACK.md');
     fs.writeFileSync(researchFile, '# Research');
@@ -875,7 +875,7 @@ describe('mtime recency checks (integration)', () => {
     expect(result.output).not.toContain('stale');
   });
 
-  test('researcher with old .md file (>30min) returns stale warning', () => {
+  test('researcher with old .md file (>30min) returns stale warning', async () => {
     setupPhaseDir();
     const researchFile = path.join(planningDir, 'research', 'STACK.md');
     fs.writeFileSync(researchFile, '# Research');
@@ -886,7 +886,7 @@ describe('mtime recency checks (integration)', () => {
     expect(result.output).toContain('stale');
   });
 
-  test('synthesizer with old output (>30min) returns stale warning', () => {
+  test('synthesizer with old output (>30min) returns stale warning', async () => {
     setupPhaseDir();
     const researchFile = path.join(planningDir, 'research', 'SYNTHESIS.md');
     fs.writeFileSync(researchFile, '# Synthesis');
@@ -897,7 +897,7 @@ describe('mtime recency checks (integration)', () => {
     expect(result.output).toContain('stale');
   });
 
-  test('synthesizer with recent output does not get stale warning', () => {
+  test('synthesizer with recent output does not get stale warning', async () => {
     setupPhaseDir();
     const researchFile = path.join(planningDir, 'research', 'SYNTHESIS.md');
     fs.writeFileSync(researchFile, '# Synthesis');
@@ -908,7 +908,7 @@ describe('mtime recency checks (integration)', () => {
 });
 
 describe('post-hoc SUMMARY.md trigger', () => {
-  test('triggers post-hoc generation when executor completes without SUMMARY.md and post_hoc_artifacts is true', () => {
+  test('triggers post-hoc generation when executor completes without SUMMARY.md and post_hoc_artifacts is true', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     fs.writeFileSync(
@@ -923,7 +923,7 @@ describe('post-hoc SUMMARY.md trigger', () => {
     expect(result.output).toContain('post-hoc');
   });
 
-  test('skips post-hoc generation when post_hoc_artifacts is false in config', () => {
+  test('skips post-hoc generation when post_hoc_artifacts is false in config', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     fs.writeFileSync(
@@ -950,7 +950,7 @@ describe('post-hoc SUMMARY.md trigger', () => {
     expect(result.output).not.toContain('post-hoc');
   });
 
-  test('logs post-hoc generation event to event log', () => {
+  test('logs post-hoc generation event to event log', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     fs.writeFileSync(
@@ -971,7 +971,7 @@ describe('post-hoc SUMMARY.md trigger', () => {
 });
 
 describe('completion marker validation', () => {
-  test('executor output with ## PLAN COMPLETE produces no completion marker warning', () => {
+  test('executor output with ## PLAN COMPLETE produces no completion marker warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -986,7 +986,7 @@ describe('completion marker validation', () => {
     expect(result.output).not.toContain('completion marker');
   });
 
-  test('executor output with ## PLAN FAILED produces no completion marker warning', () => {
+  test('executor output with ## PLAN FAILED produces no completion marker warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -1001,7 +1001,7 @@ describe('completion marker validation', () => {
     expect(result.output).not.toContain('completion marker');
   });
 
-  test('executor output with ## CHECKPOINT: produces no completion marker warning', () => {
+  test('executor output with ## CHECKPOINT: produces no completion marker warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -1016,7 +1016,7 @@ describe('completion marker validation', () => {
     expect(result.output).not.toContain('completion marker');
   });
 
-  test('executor output missing all completion markers produces warning', () => {
+  test('executor output missing all completion markers produces warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -1031,7 +1031,7 @@ describe('completion marker validation', () => {
     expect(result.output).toContain('completion marker');
   });
 
-  test('no completion marker warning for non-executor agents', () => {
+  test('no completion marker warning for non-executor agents', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     fs.writeFileSync(
@@ -1048,7 +1048,7 @@ describe('completion marker validation', () => {
 });
 
 describe('Self-Check section validation', () => {
-  test('SUMMARY.md with ## Self-Check: PASSED produces no self-check warning', () => {
+  test('SUMMARY.md with ## Self-Check: PASSED produces no self-check warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -1063,7 +1063,7 @@ describe('Self-Check section validation', () => {
     expect(result.output).not.toContain('Self-Check section');
   });
 
-  test('SUMMARY.md with ## Self-Check: FAILED produces no self-check warning (section exists)', () => {
+  test('SUMMARY.md with ## Self-Check: FAILED produces no self-check warning (section exists)', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -1078,7 +1078,7 @@ describe('Self-Check section validation', () => {
     expect(result.output).not.toContain('Self-Check section');
   });
 
-  test('SUMMARY.md missing Self-Check section produces warning', () => {
+  test('SUMMARY.md missing Self-Check section produces warning', async () => {
     setupPhaseDir();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(
@@ -1095,13 +1095,13 @@ describe('Self-Check section validation', () => {
 });
 
 describe('KNOWN_AGENTS sync (B3 fix)', () => {
-  test('validate-task.js KNOWN_AGENTS matches core.cjs', () => {
+  test('validate-task.js KNOWN_AGENTS matches core.cjs', async () => {
     const vtKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'validate-task')).KNOWN_AGENTS;
     const coreKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'core.js')).KNOWN_AGENTS;
     expect(vtKnown).toEqual(coreKnown);
   });
 
-  test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', () => {
+  test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', async () => {
     const coreKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'core.js')).KNOWN_AGENTS;
     const prefixed = coreKnown.map(a => 'pbr:' + a);
     for (const key of Object.keys(AGENT_OUTPUTS)) {
@@ -1111,7 +1111,7 @@ describe('KNOWN_AGENTS sync (B3 fix)', () => {
 });
 
 describe('checkDeviationsRequiringReview', () => {
-  test('deviation with action "ask" triggers warning', () => {
+  test('deviation with action "ask" triggers warning', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
@@ -1135,7 +1135,7 @@ describe('checkDeviationsRequiringReview', () => {
     expect(warnings[0]).toContain('Architecture needs redesign');
   });
 
-  test('deviation with action "auto" does not trigger warning', () => {
+  test('deviation with action "auto" does not trigger warning', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
@@ -1156,7 +1156,7 @@ describe('checkDeviationsRequiringReview', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('empty deviations array does not trigger warning', () => {
+  test('empty deviations array does not trigger warning', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
@@ -1171,7 +1171,7 @@ describe('checkDeviationsRequiringReview', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('mixed auto and ask deviations only warns about ask ones', () => {
+  test('mixed auto and ask deviations only warns about ask ones', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
@@ -1195,13 +1195,13 @@ describe('checkDeviationsRequiringReview', () => {
     expect(warnings[0]).not.toContain('Fixed typo');
   });
 
-  test('no SUMMARY files produces no warnings', () => {
+  test('no SUMMARY files produces no warnings', async () => {
     const warnings = [];
     checkDeviationsRequiringReview(planningDir, ['phases/01-test/PLAN-01.md'], warnings);
     expect(warnings).toHaveLength(0);
   });
 
-  test('SUMMARY without frontmatter produces no warnings', () => {
+  test('SUMMARY without frontmatter produces no warnings', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '# Summary\nNo frontmatter');
@@ -1212,7 +1212,7 @@ describe('checkDeviationsRequiringReview', () => {
 });
 
 describe('checkTriggeredSeeds', () => {
-  test('surfaces warning when seed trigger matches current phase slug', () => {
+  test('surfaces warning when seed trigger matches current phase slug', async () => {
     // Write STATE.md with phase_slug
     fs.writeFileSync(
       path.join(planningDir, 'STATE.md'),
@@ -1232,7 +1232,7 @@ describe('checkTriggeredSeeds', () => {
     expect(warnings.some(w => /seed/i.test(w) || /SEED-001/i.test(w))).toBe(true);
   });
 
-  test('does not surface warning when seed trigger does not match', () => {
+  test('does not surface warning when seed trigger does not match', async () => {
     fs.writeFileSync(
       path.join(planningDir, 'STATE.md'),
       '---\nphase_slug: "03-auth"\n---\n# State\nPhase: 3 of 8 (Auth)\nStatus: built\n'
@@ -1249,7 +1249,7 @@ describe('checkTriggeredSeeds', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('does not error when no seeds directory exists', () => {
+  test('does not error when no seeds directory exists', async () => {
     fs.writeFileSync(
       path.join(planningDir, 'STATE.md'),
       '---\nphase_slug: "01-setup"\n---\n# State\nPhase: 1 of 3\nStatus: built\n'
@@ -1260,13 +1260,13 @@ describe('checkTriggeredSeeds', () => {
     expect(warnings).toHaveLength(0);
   });
 
-  test('does not error when STATE.md is missing', () => {
+  test('does not error when STATE.md is missing', async () => {
     const warnings = [];
     expect(() => checkTriggeredSeeds(planningDir, warnings)).not.toThrow();
     expect(warnings).toHaveLength(0);
   });
 
-  test('does not error when STATE.md has no phase_slug', () => {
+  test('does not error when STATE.md has no phase_slug', async () => {
     fs.writeFileSync(
       path.join(planningDir, 'STATE.md'),
       '# State\nPhase: 1 of 3\nStatus: built\n'

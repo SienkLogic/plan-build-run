@@ -44,7 +44,7 @@ describe('end-to-end routing decision', () => {
 });
 
 describe('ceremony override', () => {
-  test('ceremonyLevel "high" overrides risk to full-plan-build-verify', () => {
+  test('ceremonyLevel "high" overrides risk to full-plan-build-verify', async () => {
     const risk = classifyRisk('rename a variable');
     // Without override, this would be low risk
     expect(risk.risk).toBe('low');
@@ -57,7 +57,7 @@ describe('ceremony override', () => {
     expect(ceremony).toBe('full-plan-build-verify');
   });
 
-  test('ceremonyLevel "low" overrides risk to inline', () => {
+  test('ceremonyLevel "low" overrides risk to inline', async () => {
     const risk = classifyRisk('redesign the entire architecture');
     // Without override, this would be high risk
     expect(risk.risk).toBe('high');
@@ -69,7 +69,7 @@ describe('ceremony override', () => {
     expect(ceremony).toBe('inline');
   });
 
-  test('ceremonyLevel "auto" uses classifyRisk result', () => {
+  test('ceremonyLevel "auto" uses classifyRisk result', async () => {
     const risk = classifyRisk('add a new endpoint for user profiles');
     const ceremonyLevel = 'auto';
     const ceremony = ceremonyLevel === 'auto'
@@ -80,7 +80,7 @@ describe('ceremony override', () => {
 });
 
 describe('feature toggle disabled', () => {
-  test('classifyIntent returns valid structure when NL routing would be disabled', () => {
+  test('classifyIntent returns valid structure when NL routing would be disabled', async () => {
     // Module is independent — always returns valid output regardless of config toggle
     const result = classifyIntent('do something random');
     expect(result).toHaveProperty('route');
@@ -91,7 +91,7 @@ describe('feature toggle disabled', () => {
     expect(Array.isArray(result.candidates)).toBe(true);
   });
 
-  test('classifyRisk returns valid structure when adaptive ceremony would be disabled', () => {
+  test('classifyRisk returns valid structure when adaptive ceremony would be disabled', async () => {
     // Module is independent — always returns valid output regardless of config toggle
     const result = classifyRisk('do something random');
     expect(result).toHaveProperty('risk');

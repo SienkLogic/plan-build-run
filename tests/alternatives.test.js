@@ -27,7 +27,7 @@ describe('phaseAlternatives', () => {
   });
 
   // a. nonexistent slug returns correct shape with all available phases
-  test('a: nonexistent slug returns error_type phase-not-found with all available phases', () => {
+  test('a: nonexistent slug returns error_type phase-not-found with all available phases', async () => {
     const result = phaseAlternatives('nonexistent-slug', planningDir);
     expect(result.error_type).toBe('phase-not-found');
     expect(result.slug).toBe('nonexistent-slug');
@@ -40,14 +40,14 @@ describe('phaseAlternatives', () => {
   });
 
   // b. partial match 'api' returns 03-api-layer in suggestions
-  test('b: partial match "api" returns matching phase in suggestions', () => {
+  test('b: partial match "api" returns matching phase in suggestions', async () => {
     const result = phaseAlternatives('api', planningDir);
     expect(result.error_type).toBe('phase-not-found');
     expect(result.suggestions).toContain('03-api-layer');
   });
 
   // c. empty slug returns all phases with empty suggestions
-  test('c: empty slug returns all available phases with empty suggestions array', () => {
+  test('c: empty slug returns all available phases with empty suggestions array', async () => {
     const result = phaseAlternatives('', planningDir);
     expect(result.error_type).toBe('phase-not-found');
     expect(result.available.length).toBeGreaterThanOrEqual(4);
@@ -56,7 +56,7 @@ describe('phaseAlternatives', () => {
   });
 
   // h. suggestions sorted by similarity (closest first)
-  test('h: suggestions are sorted by similarity score (closest match first)', () => {
+  test('h: suggestions are sorted by similarity score (closest match first)', async () => {
     const result = phaseAlternatives('front', planningDir);
     // "frontend" should match more closely than others
     if (result.suggestions.length > 1) {
@@ -68,13 +68,13 @@ describe('phaseAlternatives', () => {
   });
 
   // i. error_type field is always present
-  test('i: error_type field is set to phase-not-found', () => {
+  test('i: error_type field is set to phase-not-found', async () => {
     const result = phaseAlternatives('whatever', planningDir);
     expect(result.error_type).toBe('phase-not-found');
   });
 
   // j. missing phases dir returns empty arrays without throwing
-  test('j: missing phases directory returns empty arrays without throwing', () => {
+  test('j: missing phases directory returns empty arrays without throwing', async () => {
     const emptyPlanningDir = path.join(tmpDir, 'empty-planning');
     fs.mkdirSync(emptyPlanningDir, { recursive: true });
     let result;
@@ -101,7 +101,7 @@ describe('prerequisiteAlternatives', () => {
   });
 
   // d. phase with some summaries returns correct shape
-  test('d: returns correct shape with existing and missing summaries', () => {
+  test('d: returns correct shape with existing and missing summaries', async () => {
     const phaseSlug = '55-ux-polish';
     const phaseDir = path.join(planningDir, 'phases', phaseSlug);
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -124,7 +124,7 @@ describe('prerequisiteAlternatives', () => {
   });
 
   // e. phase with no SUMMARY files returns missing_summaries listing expected plan IDs
-  test('e: phase with no summaries returns all plan IDs in missing_summaries', () => {
+  test('e: phase with no summaries returns all plan IDs in missing_summaries', async () => {
     const phaseSlug = '03-api';
     const phaseDir = path.join(planningDir, 'phases', phaseSlug);
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -138,7 +138,7 @@ describe('prerequisiteAlternatives', () => {
   });
 
   // i. error_type field is always present for prerequisiteAlternatives
-  test('i: error_type field is set to missing-prereq', () => {
+  test('i: error_type field is set to missing-prereq', async () => {
     const phaseSlug = '01-setup';
     const phaseDir = path.join(planningDir, 'phases', phaseSlug);
     fs.mkdirSync(phaseDir, { recursive: true });
@@ -163,7 +163,7 @@ describe('configAlternatives', () => {
   });
 
   // f. known field with invalid value returns valid_values list
-  test('f: known field "depth" with invalid value returns valid_values and suggested_fix', () => {
+  test('f: known field "depth" with invalid value returns valid_values and suggested_fix', async () => {
     const result = configAlternatives('depth', 'invalid-value', planningDir);
     expect(result.error_type).toBe('config-invalid');
     expect(result.field).toBe('depth');
@@ -177,7 +177,7 @@ describe('configAlternatives', () => {
   });
 
   // g. unknown field returns empty valid_values and remove suggestion
-  test('g: unknown field returns empty valid_values and "Remove this field" suggestion', () => {
+  test('g: unknown field returns empty valid_values and "Remove this field" suggestion', async () => {
     const result = configAlternatives('unknown-field', 'x', planningDir);
     expect(result.error_type).toBe('config-invalid');
     expect(result.field).toBe('unknown-field');
@@ -186,13 +186,13 @@ describe('configAlternatives', () => {
   });
 
   // i. error_type field is always present for configAlternatives
-  test('i: error_type field is set to config-invalid', () => {
+  test('i: error_type field is set to config-invalid', async () => {
     const result = configAlternatives('depth', 'bad', planningDir);
     expect(result.error_type).toBe('config-invalid');
   });
 
   // additional: git.branching known field
-  test('known field "git.branching" returns valid phase/main/off values', () => {
+  test('known field "git.branching" returns valid phase/main/off values', async () => {
     const result = configAlternatives('git.branching', 'wrong', planningDir);
     expect(result.error_type).toBe('config-invalid');
     expect(result.valid_values).toContain('phase');

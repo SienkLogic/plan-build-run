@@ -56,7 +56,7 @@ describe('validate health — Phase 15 feature checks', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('validate health returns phase10 checks', () => {
+  test('validate health returns phase10 checks', async () => {
     makeMinimalPlanning(tmpDir);
     const result = execSync(`node "${TOOLS_PATH}" validate health --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
     const parsed = JSON.parse(result);
@@ -70,7 +70,7 @@ describe('validate health — Phase 15 feature checks', () => {
     // was removed with plan-build-run/bin/lib/ deletion
   });
 
-  test('validate health does not crash when STATE.md is missing', () => {
+  test('validate health does not crash when STATE.md is missing', async () => {
     makeMinimalPlanning(tmpDir, { withState: false });
     const result = execSync(`node "${TOOLS_PATH}" validate health --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
     const parsed = JSON.parse(result);
@@ -92,7 +92,7 @@ describe('audit evidence logging', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('getProgressData logs audit evidence to hooks.jsonl', () => {
+  test('getProgressData logs audit evidence to hooks.jsonl', async () => {
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'ROADMAP.md'), '# Roadmap\n\n## Phase 1: Test\n- [ ] Plan\n');
@@ -109,7 +109,7 @@ describe('audit evidence logging', () => {
     expect(auditEntries[0].result).toBe('ok');
   });
 
-  test('getContextualHelp logs audit evidence to hooks.jsonl', () => {
+  test('getContextualHelp logs audit evidence to hooks.jsonl', async () => {
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'STATE.md'), '---\nstatus: "building"\nblockers: []\n---\n');
@@ -125,7 +125,7 @@ describe('audit evidence logging', () => {
     expect(auditEntries.length).toBeGreaterThan(0);
   });
 
-  test('generateOnboardingGuide logs audit evidence to hooks.jsonl', () => {
+  test('generateOnboardingGuide logs audit evidence to hooks.jsonl', async () => {
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'ROADMAP.md'), '# Roadmap\n\n## Phase 1: Test\n- [ ] Plan\n');

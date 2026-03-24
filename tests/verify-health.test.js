@@ -50,7 +50,7 @@ function getParsedOutput() {
 // --- cross_project_patterns ---
 
 describe('cmdValidateHealth - Phase 16 cross_project_patterns', () => {
-  test('reports enabled and healthy when cross_project_patterns is true and ~/.claude/patterns/ has json files', () => {
+  test('reports enabled and healthy when cross_project_patterns is true and ~/.claude/patterns/ has json files', async () => {
     const patternsDir = path.join(os.homedir(), '.claude', 'patterns');
     const tempPatternFile = path.join(patternsDir, '_test-health-check.json');
     let created = false;
@@ -77,7 +77,7 @@ describe('cmdValidateHealth - Phase 16 cross_project_patterns', () => {
     }
   });
 
-  test('reports disabled when cross_project_patterns is false', () => {
+  test('reports disabled when cross_project_patterns is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', features: { cross_project_patterns: false } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -90,7 +90,7 @@ describe('cmdValidateHealth - Phase 16 cross_project_patterns', () => {
     }
   });
 
-  test('reports degraded when cross_project_patterns is enabled but ~/.claude/patterns/ is empty', () => {
+  test('reports degraded when cross_project_patterns is enabled but ~/.claude/patterns/ is empty', async () => {
     // Use a temp dir that doesn't have pattern files by overriding the module if possible
     // We test the output contains the feature name and either degraded or healthy
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
@@ -104,7 +104,7 @@ describe('cmdValidateHealth - Phase 16 cross_project_patterns', () => {
     }
   });
 
-  test('feature_status key exists in health output when config.json is present', () => {
+  test('feature_status key exists in health output when config.json is present', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', features: { cross_project_patterns: true, spec_templates: true, global_learnings: true } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -120,7 +120,7 @@ describe('cmdValidateHealth - Phase 16 cross_project_patterns', () => {
 // --- spec_templates ---
 
 describe('cmdValidateHealth - Phase 16 spec_templates', () => {
-  test('reports enabled and healthy when spec_templates is true', () => {
+  test('reports enabled and healthy when spec_templates is true', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', features: { spec_templates: true } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -133,7 +133,7 @@ describe('cmdValidateHealth - Phase 16 spec_templates', () => {
     }
   });
 
-  test('reports disabled when spec_templates is false', () => {
+  test('reports disabled when spec_templates is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', features: { spec_templates: false } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -150,7 +150,7 @@ describe('cmdValidateHealth - Phase 16 spec_templates', () => {
 // --- global_learnings ---
 
 describe('cmdValidateHealth - Phase 16 global_learnings', () => {
-  test('reports enabled status when global_learnings is true', () => {
+  test('reports enabled status when global_learnings is true', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', features: { global_learnings: true } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -163,7 +163,7 @@ describe('cmdValidateHealth - Phase 16 global_learnings', () => {
     }
   });
 
-  test('reports disabled when global_learnings is false', () => {
+  test('reports disabled when global_learnings is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ depth: 'standard', features: { global_learnings: false } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -176,7 +176,7 @@ describe('cmdValidateHealth - Phase 16 global_learnings', () => {
     }
   });
 
-  test('reports healthy when global_learnings enabled and ~/.claude/learnings.jsonl exists', () => {
+  test('reports healthy when global_learnings enabled and ~/.claude/learnings.jsonl exists', async () => {
     const learningsPath = path.join(os.homedir(), '.claude', 'learnings.jsonl');
     const learningsExists = fs.existsSync(learningsPath);
 

@@ -5,44 +5,44 @@ const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/core');
 
 let tmpDir;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-lock-'));
 });
 
-afterEach(() => {
+afterEach(async () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe('lockedFileUpdate', () => {
-  test('creates file if it does not exist', () => {
+  test('creates file if it does not exist', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
-    const result = lockedFileUpdate(filePath, () => '# New State\nPhase: 1 of 5');
+    const result = await lockedFileUpdate(filePath, () => '# New State\nPhase: 1 of 5');
     expect(result.success).toBe(true);
     expect(result.content).toBe('# New State\nPhase: 1 of 5');
     expect(fs.readFileSync(filePath, 'utf8')).toBe('# New State\nPhase: 1 of 5');
   });
 
-  test('reads and modifies existing file', () => {
+  test('reads and modifies existing file', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'Phase: 1 of 5\nStatus: planning');
-    const result = lockedFileUpdate(filePath, (content) => {
+    const result = await lockedFileUpdate(filePath, (content) => {
       return content.replace('planning', 'building');
     });
     expect(result.success).toBe(true);
     expect(fs.readFileSync(filePath, 'utf8')).toContain('Status: building');
   });
 
-  test('removes lock file after success', () => {
+  test('removes lock file after success', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'content');
-    lockedFileUpdate(filePath, (c) => c + '\nupdated');
+    await lockedFileUpdate(filePath, (c) => c + '\nupdated');
     expect(fs.existsSync(filePath + '.lock')).toBe(false);
   });
 
-  test('removes lock file after error in updateFn', () => {
+  test('removes lock file after error in updateFn', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'content');
-    const result = lockedFileUpdate(filePath, () => {
+    const result = await lockedFileUpdate(filePath, () => {
       throw new Error('update failed');
     });
     expect(result.success).toBe(false);
@@ -50,7 +50,7 @@ describe('lockedFileUpdate', () => {
     expect(fs.existsSync(filePath + '.lock')).toBe(false);
   });
 
-  test('performs last-resort write when lock is held by another process', () => {
+  test('performs last-resort write when lock is held by another process', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'content');
 
@@ -60,7 +60,7 @@ describe('lockedFileUpdate', () => {
     // Touch it to make it recent (not stale)
     fs.utimesSync(lockPath, new Date(), new Date());
 
-    const result = lockedFileUpdate(filePath, (c) => c + '\nmodified', {
+    const result = await lockedFileUpdate(filePath, (c) => c + '\nmodified', {
       retries: 2,
       retryDelayMs: 10,
       timeoutMs: 60000 // Very long timeout so lock won't be considered stale
@@ -73,7 +73,7 @@ describe('lockedFileUpdate', () => {
     fs.unlinkSync(lockPath);
   });
 
-  test('recovers from stale lock', () => {
+  test('recovers from stale lock', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'content');
 
@@ -83,35 +83,35 @@ describe('lockedFileUpdate', () => {
     const oldTime = new Date(Date.now() - 10000); // 10 seconds ago
     fs.utimesSync(lockPath, oldTime, oldTime);
 
-    const result = lockedFileUpdate(filePath, (c) => c + '\nrecovered', {
+    const result = await lockedFileUpdate(filePath, (c) => c + '\nrecovered', {
       timeoutMs: 5000 // Lock is 10s old, timeout is 5s → stale
     });
     expect(result.success).toBe(true);
     expect(fs.readFileSync(filePath, 'utf8')).toContain('recovered');
   });
 
-  test('updateFn receives current file content', () => {
+  test('updateFn receives current file content', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'Phase: 2 of 8');
     let receivedContent = null;
-    lockedFileUpdate(filePath, (content) => {
+    await lockedFileUpdate(filePath, (content) => {
       receivedContent = content;
       return content;
     });
     expect(receivedContent).toBe('Phase: 2 of 8');
   });
 
-  test('updateFn receives empty string for missing file', () => {
+  test('updateFn receives empty string for missing file', async () => {
     const filePath = path.join(tmpDir, 'NEW.md');
     let receivedContent = null;
-    lockedFileUpdate(filePath, (content) => {
+    await lockedFileUpdate(filePath, (content) => {
       receivedContent = content;
       return 'new content';
     });
     expect(receivedContent).toBe('');
   });
 
-  test('writes data as last resort when lock cannot be acquired', () => {
+  test('writes data as last resort when lock cannot be acquired', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'original');
 
@@ -126,7 +126,7 @@ describe('lockedFileUpdate', () => {
     process.stderr.write = (msg) => { stderrOutput += msg; };
 
     try {
-      const result = lockedFileUpdate(filePath, (c) => c + ' last-resort', {
+      const result = await lockedFileUpdate(filePath, (c) => c + ' last-resort', {
         retries: 2,
         retryDelayMs: 1,
         timeoutMs: 999999 // long timeout so lock is not stale
@@ -141,7 +141,7 @@ describe('lockedFileUpdate', () => {
     }
   });
 
-  test('removes stale lock and succeeds', () => {
+  test('removes stale lock and succeeds', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'content');
 
@@ -151,7 +151,7 @@ describe('lockedFileUpdate', () => {
     const oldTime = new Date(Date.now() - 15000);
     fs.utimesSync(lockPath, oldTime, oldTime);
 
-    const result = lockedFileUpdate(filePath, (c) => c + ' recovered', {
+    const result = await lockedFileUpdate(filePath, (c) => c + ' recovered', {
       timeoutMs: 10000 // lock is 15s old, timeout is 10s -> stale
     });
 
@@ -161,7 +161,7 @@ describe('lockedFileUpdate', () => {
     expect(fs.existsSync(lockPath)).toBe(false);
   });
 
-  test('last-resort write still cleans up when lock was never acquired', () => {
+  test('last-resort write still cleans up when lock was never acquired', async () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'data');
 
@@ -170,7 +170,7 @@ describe('lockedFileUpdate', () => {
     fs.writeFileSync(lockPath, '99999');
     fs.utimesSync(lockPath, new Date(), new Date());
 
-    const result = lockedFileUpdate(filePath, (c) => c + ' updated', {
+    const result = await lockedFileUpdate(filePath, (c) => c + ' updated', {
       retries: 1,
       retryDelayMs: 1,
       timeoutMs: 999999
@@ -184,12 +184,12 @@ describe('lockedFileUpdate', () => {
     fs.unlinkSync(lockPath);
   });
 
-  test('sequential updates work correctly', () => {
+  test('sequential updates work correctly', async () => {
     const filePath = path.join(tmpDir, 'counter.txt');
     fs.writeFileSync(filePath, '0');
 
     for (let i = 1; i <= 5; i++) {
-      lockedFileUpdate(filePath, (content) => {
+      await lockedFileUpdate(filePath, (content) => {
         return String(parseInt(content, 10) + 1);
       });
     }

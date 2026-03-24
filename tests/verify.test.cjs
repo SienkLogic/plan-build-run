@@ -53,7 +53,7 @@ describe('validate consistency command', () => {
     cleanup(tmpDir);
   });
 
-  test('passes for consistent project', () => {
+  test('passes for consistent project', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 1: A\n### Phase 2: B\n### Phase 3: C\n`
@@ -70,7 +70,7 @@ describe('validate consistency command', () => {
     assert.strictEqual(output.warning_count, 0, 'no warnings');
   });
 
-  test('warns about phase on disk but not in roadmap', () => {
+  test('warns about phase on disk but not in roadmap', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 1: A\n`
@@ -89,7 +89,7 @@ describe('validate consistency command', () => {
     );
   });
 
-  test('warns about gaps in phase numbering', () => {
+  test('warns about gaps in phase numbering', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       `# Roadmap\n### Phase 1: A\n### Phase 3: C\n`
@@ -124,7 +124,7 @@ describe('verify plan-structure command', () => {
     cleanup(tmpDir);
   });
 
-  test('reports missing required frontmatter fields', () => {
+  test('reports missing required frontmatter fields', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-PLAN.md');
     fs.writeFileSync(planPath, '# No frontmatter here\n\nJust a plan without YAML.\n');
 
@@ -139,7 +139,7 @@ describe('verify plan-structure command', () => {
     );
   });
 
-  test('validates complete plan with all required fields and tasks', () => {
+  test('validates complete plan with all required fields and tasks', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-PLAN.md');
     fs.writeFileSync(planPath, validPlanContent());
 
@@ -152,7 +152,7 @@ describe('verify plan-structure command', () => {
     assert.strictEqual(output.task_count, 1, 'should have 1 task');
   });
 
-  test('reports task missing name element', () => {
+  test('reports task missing name element', async () => {
     const content = [
       '---',
       'phase: 01-test',
@@ -189,7 +189,7 @@ describe('verify plan-structure command', () => {
     );
   });
 
-  test('reports task missing action element', () => {
+  test('reports task missing action element', async () => {
     const content = [
       '---',
       'phase: 01-test',
@@ -226,7 +226,7 @@ describe('verify plan-structure command', () => {
     );
   });
 
-  test('warns about wave > 1 with empty depends_on', () => {
+  test('warns about wave > 1 with empty depends_on', async () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-PLAN.md');
     fs.writeFileSync(planPath, validPlanContent({ wave: 2, dependsOn: '[]' }));
 
@@ -240,7 +240,7 @@ describe('verify plan-structure command', () => {
     );
   });
 
-  test('errors when checkpoint task but autonomous is true', () => {
+  test('errors when checkpoint task but autonomous is true', async () => {
     const content = [
       '---',
       'phase: 01-test',
@@ -286,7 +286,7 @@ describe('verify plan-structure command', () => {
     );
   });
 
-  test('returns error for nonexistent file', () => {
+  test('returns error for nonexistent file', async () => {
     const result = runPbrTools('verify plan-structure .planning/phases/01-test/nonexistent.md', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -320,7 +320,7 @@ describe('verify phase-completeness command', () => {
     cleanup(tmpDir);
   });
 
-  test('reports complete phase with matching plans and summaries', () => {
+  test('reports complete phase with matching plans and summaries', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan\n');
     fs.writeFileSync(path.join(phaseDir, '01-01-SUMMARY.md'), '# Summary\n');
@@ -335,7 +335,7 @@ describe('verify phase-completeness command', () => {
     assert.deepStrictEqual(output.incomplete_plans, [], 'should have no incomplete plans');
   });
 
-  test('reports incomplete phase with plan missing summary', () => {
+  test('reports incomplete phase with plan missing summary', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '# Plan\n');
 
@@ -354,7 +354,7 @@ describe('verify phase-completeness command', () => {
     );
   });
 
-  test('warns about orphan summaries', () => {
+  test('warns about orphan summaries', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.writeFileSync(path.join(phaseDir, '01-01-SUMMARY.md'), '# Summary\n');
 
@@ -368,7 +368,7 @@ describe('verify phase-completeness command', () => {
     );
   });
 
-  test('returns error for nonexistent phase', () => {
+  test('returns error for nonexistent phase', async () => {
     const result = runPbrTools('verify phase-completeness 99', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -393,7 +393,7 @@ describe('verify summary command', () => {
     cleanup(tmpDir);
   });
 
-  test('returns not found for nonexistent summary', () => {
+  test('returns not found for nonexistent summary', async () => {
     const result = runPbrTools('verify-summary .planning/phases/01-test/nonexistent.md', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -406,7 +406,7 @@ describe('verify summary command', () => {
     );
   });
 
-  test('passes for valid summary with real files and commits', () => {
+  test('passes for valid summary with real files and commits', async () => {
     // Create a source file and commit it
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'src', 'app.js'), 'console.log("hello");\n');
@@ -434,7 +434,7 @@ describe('verify summary command', () => {
     assert.strictEqual(output.checks.commits_exist, true, 'commits should exist');
   });
 
-  test('reports missing files mentioned in summary', () => {
+  test('reports missing files mentioned in summary', async () => {
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-SUMMARY.md');
     fs.writeFileSync(summaryPath, [
       '# Summary',
@@ -452,7 +452,7 @@ describe('verify summary command', () => {
     );
   });
 
-  test('detects self-check section with pass indicators', () => {
+  test('detects self-check section with pass indicators', async () => {
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-SUMMARY.md');
     fs.writeFileSync(summaryPath, [
       '# Summary',
@@ -469,7 +469,7 @@ describe('verify summary command', () => {
     assert.strictEqual(output.checks.self_check, 'passed', `Expected self_check "passed": ${JSON.stringify(output.checks)}`);
   });
 
-  test('detects self-check section with fail indicators', () => {
+  test('detects self-check section with fail indicators', async () => {
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-SUMMARY.md');
     fs.writeFileSync(summaryPath, [
       '# Summary',
@@ -486,7 +486,7 @@ describe('verify summary command', () => {
     assert.strictEqual(output.checks.self_check, 'failed', `Expected self_check "failed": ${JSON.stringify(output.checks)}`);
   });
 
-  test('REG-03: returns self_check "not_found" when no self-check section exists', () => {
+  test('REG-03: returns self_check "not_found" when no self-check section exists', async () => {
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-SUMMARY.md');
     fs.writeFileSync(summaryPath, [
       '# Summary',
@@ -504,7 +504,7 @@ describe('verify summary command', () => {
     assert.strictEqual(output.passed, true, `Missing self-check should not fail: ${JSON.stringify(output)}`);
   });
 
-  test('search(-1) regression: self-check guard prevents entry when no heading', () => {
+  test('search(-1) regression: self-check guard prevents entry when no heading', async () => {
     // No Self-Check/Verification/Quality Check heading — guard on line 79 prevents
     // content.search(selfCheckPattern) from ever being called, so -1 is impossible
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-SUMMARY.md');
@@ -524,7 +524,7 @@ describe('verify summary command', () => {
     assert.strictEqual(output.checks.self_check, 'not_found', `Expected not_found since no heading: ${JSON.stringify(output.checks)}`);
   });
 
-  test('respects checkFileCount parameter', () => {
+  test('respects checkFileCount parameter', async () => {
     // Write summary referencing 5 files (none exist)
     const summaryPath = path.join(tmpDir, '.planning', 'phases', '01-test', '01-01-SUMMARY.md');
     fs.writeFileSync(summaryPath, [
@@ -562,7 +562,7 @@ describe('verify references command', () => {
     cleanup(tmpDir);
   });
 
-  test('reports valid when all referenced files exist', () => {
+  test('reports valid when all referenced files exist', async () => {
     fs.writeFileSync(path.join(tmpDir, 'src', 'app.js'), 'console.log("app");\n');
     const filePath = path.join(tmpDir, '.planning', 'phases', '01-test', 'doc.md');
     fs.writeFileSync(filePath, '@src/app.js\n');
@@ -575,7 +575,7 @@ describe('verify references command', () => {
     assert.strictEqual(output.found, 1, `should find 1 file: ${JSON.stringify(output)}`);
   });
 
-  test('reports missing for nonexistent referenced files', () => {
+  test('reports missing for nonexistent referenced files', async () => {
     const filePath = path.join(tmpDir, '.planning', 'phases', '01-test', 'doc.md');
     fs.writeFileSync(filePath, '@src/missing.js\n');
 
@@ -590,7 +590,7 @@ describe('verify references command', () => {
     );
   });
 
-  test('detects backtick file paths', () => {
+  test('detects backtick file paths', async () => {
     fs.writeFileSync(path.join(tmpDir, 'src', 'utils', 'helper.js'), 'module.exports = {};\n');
     const filePath = path.join(tmpDir, '.planning', 'phases', '01-test', 'doc.md');
     fs.writeFileSync(filePath, 'See `src/utils/helper.js` for details.\n');
@@ -602,7 +602,7 @@ describe('verify references command', () => {
     assert.ok(output.found >= 1, `Expected at least 1 found, got ${output.found}`);
   });
 
-  test('skips backtick template expressions', () => {
+  test('skips backtick template expressions', async () => {
     // Template expressions like ${variable} in backtick paths are skipped
     // @-refs with http are processed but not found on disk
     const filePath = path.join(tmpDir, '.planning', 'phases', '01-test', 'doc.md');
@@ -616,7 +616,7 @@ describe('verify references command', () => {
     assert.strictEqual(output.total, 0, `Expected total 0 (template skipped): ${JSON.stringify(output)}`);
   });
 
-  test('returns error for nonexistent file', () => {
+  test('returns error for nonexistent file', async () => {
     const result = runPbrTools('verify references .planning/phases/01-test/nonexistent.md', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -640,7 +640,7 @@ describe('verify commits command', () => {
     cleanup(tmpDir);
   });
 
-  test('validates real commit hashes', () => {
+  test('validates real commit hashes', async () => {
     const hash = execSync('git rev-parse --short HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
 
     const result = runPbrTools(`verify commits ${hash}`, tmpDir);
@@ -651,7 +651,7 @@ describe('verify commits command', () => {
     assert.ok(output.valid.includes(hash), `Expected valid to include ${hash}: ${JSON.stringify(output.valid)}`);
   });
 
-  test('reports invalid for fake hashes', () => {
+  test('reports invalid for fake hashes', async () => {
     const result = runPbrTools('verify commits abcdef1234567', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -663,7 +663,7 @@ describe('verify commits command', () => {
     );
   });
 
-  test('handles mixed valid and invalid hashes', () => {
+  test('handles mixed valid and invalid hashes', async () => {
     const hash = execSync('git rev-parse --short HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
 
     const result = runPbrTools(`verify commits ${hash} abcdef1234567`, tmpDir);
@@ -723,7 +723,7 @@ describe('verify artifacts command', () => {
     fs.writeFileSync(planPath, content);
   }
 
-  test('passes when all artifacts exist and match criteria', () => {
+  test('passes when all artifacts exist and match criteria', async () => {
     writePlanWithArtifacts(tmpDir, [
       '- path: "src/app.js"',
       '  min_lines: 2',
@@ -738,7 +738,7 @@ describe('verify artifacts command', () => {
     assert.strictEqual(output.all_passed, true, `Expected all_passed true: ${JSON.stringify(output)}`);
   });
 
-  test('reports missing artifact file', () => {
+  test('reports missing artifact file', async () => {
     writePlanWithArtifacts(tmpDir, [
       '- path: "src/nonexistent.js"',
     ]);
@@ -754,7 +754,7 @@ describe('verify artifacts command', () => {
     );
   });
 
-  test('reports insufficient line count', () => {
+  test('reports insufficient line count', async () => {
     writePlanWithArtifacts(tmpDir, [
       '- path: "src/app.js"',
       '  min_lines: 10',
@@ -772,7 +772,7 @@ describe('verify artifacts command', () => {
     );
   });
 
-  test('reports missing pattern', () => {
+  test('reports missing pattern', async () => {
     writePlanWithArtifacts(tmpDir, [
       '- path: "src/app.js"',
       '  contains: "module.exports"',
@@ -790,7 +790,7 @@ describe('verify artifacts command', () => {
     );
   });
 
-  test('reports missing export', () => {
+  test('reports missing export', async () => {
     writePlanWithArtifacts(tmpDir, [
       '- path: "src/app.js"',
       '  exports:',
@@ -809,7 +809,7 @@ describe('verify artifacts command', () => {
     );
   });
 
-  test('returns error when no artifacts in frontmatter', () => {
+  test('returns error when no artifacts in frontmatter', async () => {
     const content = [
       '---',
       'phase: 01-test',
@@ -888,7 +888,7 @@ describe('verify key-links command', () => {
     fs.writeFileSync(planPath, content);
   }
 
-  test('verifies link when pattern found in source', () => {
+  test('verifies link when pattern found in source', async () => {
     writePlanWithKeyLinks(tmpDir, [
       '- from: "src/a.js"',
       '  to: "src/b.js"',
@@ -904,7 +904,7 @@ describe('verify key-links command', () => {
     assert.strictEqual(output.all_verified, true, `Expected all_verified true: ${JSON.stringify(output)}`);
   });
 
-  test('verifies link when pattern found in target', () => {
+  test('verifies link when pattern found in target', async () => {
     writePlanWithKeyLinks(tmpDir, [
       '- from: "src/a.js"',
       '  to: "src/b.js"',
@@ -925,7 +925,7 @@ describe('verify key-links command', () => {
     );
   });
 
-  test('fails when pattern not found in source or target', () => {
+  test('fails when pattern not found in source or target', async () => {
     writePlanWithKeyLinks(tmpDir, [
       '- from: "src/a.js"',
       '  to: "src/b.js"',
@@ -942,7 +942,7 @@ describe('verify key-links command', () => {
     assert.strictEqual(output.links[0].verified, false, 'link should not be verified');
   });
 
-  test('verifies link without pattern using string inclusion', () => {
+  test('verifies link without pattern using string inclusion', async () => {
     writePlanWithKeyLinks(tmpDir, [
       '- from: "src/a.js"',
       '  to: "src/b.js"',
@@ -962,7 +962,7 @@ describe('verify key-links command', () => {
     );
   });
 
-  test('reports source file not found', () => {
+  test('reports source file not found', async () => {
     writePlanWithKeyLinks(tmpDir, [
       '- from: "src/nonexistent.js"',
       '  to: "src/b.js"',
@@ -980,7 +980,7 @@ describe('verify key-links command', () => {
     );
   });
 
-  test('returns error when no key_links in frontmatter', () => {
+  test('returns error when no key_links in frontmatter', async () => {
     const content = [
       '---',
       'phase: 01-test',

@@ -21,7 +21,7 @@ function cleanup(tmpDir) {
 
 describe('context-budget-check.js', () => {
   describe('readRoadmapSummary', () => {
-    test('extracts phase progress from ROADMAP.md', () => {
+    test('extracts phase progress from ROADMAP.md', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const roadmap = `# ROADMAP
 
@@ -46,14 +46,14 @@ describe('context-budget-check.js', () => {
       cleanup(tmpDir);
     });
 
-    test('returns empty string when no ROADMAP.md', () => {
+    test('returns empty string when no ROADMAP.md', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = readRoadmapSummary(planningDir);
       expect(result).toBe('');
       cleanup(tmpDir);
     });
 
-    test('returns empty string when no progress table', () => {
+    test('returns empty string when no progress table', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# ROADMAP\n\nNo table here.');
       const result = readRoadmapSummary(planningDir);
@@ -63,7 +63,7 @@ describe('context-budget-check.js', () => {
   });
 
   describe('readCurrentPlan', () => {
-    test('extracts plan objective from current phase', () => {
+    test('extracts plan objective from current phase', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const phasesDir = path.join(planningDir, 'phases', '02-auth');
       fs.mkdirSync(phasesDir, { recursive: true });
@@ -93,14 +93,14 @@ Implement JWT authentication middleware
       cleanup(tmpDir);
     });
 
-    test('returns empty string when no phase match in STATE.md', () => {
+    test('returns empty string when no phase match in STATE.md', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = readCurrentPlan(planningDir, 'No phase info here');
       expect(result).toBe('');
       cleanup(tmpDir);
     });
 
-    test('returns empty string when no phases directory', () => {
+    test('returns empty string when no phases directory', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = readCurrentPlan(planningDir, 'Phase: 1 of 3');
       expect(result).toBe('');
@@ -109,7 +109,7 @@ Implement JWT authentication middleware
   });
 
   describe('readConfigHighlights', () => {
-    test('extracts key config values', () => {
+    test('extracts key config values', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const config = {
         depth: 'comprehensive',
@@ -130,14 +130,14 @@ Implement JWT authentication middleware
       cleanup(tmpDir);
     });
 
-    test('returns empty string when no config.json', () => {
+    test('returns empty string when no config.json', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = readConfigHighlights(planningDir);
       expect(result).toBe('');
       cleanup(tmpDir);
     });
 
-    test('returns empty string for empty config', () => {
+    test('returns empty string for empty config', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'), '{}');
       const result = readConfigHighlights(planningDir);
@@ -147,7 +147,7 @@ Implement JWT authentication middleware
   });
 
   describe('readRecentErrors', () => {
-    test('extracts recent errors from events log', () => {
+    test('extracts recent errors from events log', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const savedCwd = process.cwd();
       clearRootCache();
@@ -173,7 +173,7 @@ Implement JWT authentication middleware
       cleanup(tmpDir);
     });
 
-    test('returns empty array when no events log', () => {
+    test('returns empty array when no events log', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const savedCwd = process.cwd();
       clearRootCache();
@@ -187,7 +187,7 @@ Implement JWT authentication middleware
   });
 
   describe('readRecentAgents', () => {
-    test('extracts recent agents from hooks log', () => {
+    test('extracts recent agents from hooks log', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const savedCwd = process.cwd();
       clearRootCache();
@@ -215,7 +215,7 @@ Implement JWT authentication middleware
       cleanup(tmpDir);
     });
 
-    test('returns empty array when no hooks log', () => {
+    test('returns empty array when no hooks log', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const savedCwd = process.cwd();
       clearRootCache();
@@ -227,7 +227,7 @@ Implement JWT authentication middleware
       cleanup(tmpDir);
     });
 
-    test('respects maxAgents limit', () => {
+    test('respects maxAgents limit', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const savedCwd = process.cwd();
       clearRootCache();
@@ -251,7 +251,7 @@ Implement JWT authentication middleware
   });
 
   describe('buildRecoveryContext', () => {
-    test('builds context with all fields', () => {
+    test('builds context with all fields', async () => {
       const result = buildRecoveryContext(
         'building phase 3',
         '  Phase 1: verified\n  Phase 2: built',
@@ -266,13 +266,13 @@ Implement JWT authentication middleware
       expect(result).toContain('STATE.md');
     });
 
-    test('returns PBR workflow directive even when no other meaningful context', () => {
+    test('returns PBR workflow directive even when no other meaningful context', async () => {
       const result = buildRecoveryContext('', '', '', '');
       expect(result).toContain('PBR WORKFLOW REQUIRED');
       expect(result).toContain('/pbr:quick');
     });
 
-    test('includes partial context', () => {
+    test('includes partial context', async () => {
       const result = buildRecoveryContext('', '', '03-api/PLAN.md — Build REST endpoints', '');
       expect(result).toContain('Current plan: 03-api/PLAN.md');
       expect(result).not.toContain('Active operation');
@@ -280,7 +280,7 @@ Implement JWT authentication middleware
   });
 
   describe('STATE.md preservation (integration)', () => {
-    test('preserves existing STATE.md content and adds Session Continuity', () => {
+    test('preserves existing STATE.md content and adds Session Continuity', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
 
       // Create STATE.md with frontmatter and body
@@ -332,7 +332,7 @@ None
       cleanup(tmpDir);
     });
 
-    test('updates existing Session Continuity section on repeated compaction', () => {
+    test('updates existing Session Continuity section on repeated compaction', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
 
       // Create STATE.md with an existing Session Continuity section
@@ -367,7 +367,7 @@ Old continuity data here
       cleanup(tmpDir);
     });
 
-    test('exits 0 with no output when STATE.md missing', () => {
+    test('exits 0 with no output when STATE.md missing', async () => {
       const { tmpDir, planningDir: _planningDir } = makeTmpDir();
       // planningDir exists but no STATE.md
 
@@ -377,7 +377,7 @@ Old continuity data here
       cleanup(tmpDir);
     });
 
-    test('outputs recovery context to stdout', () => {
+    test('outputs recovery context to stdout', async () => {
       const { tmpDir, planningDir } = makeTmpDir();
 
       // Create full state

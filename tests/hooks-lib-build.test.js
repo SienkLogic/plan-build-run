@@ -39,18 +39,18 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('stalenessCheck', () => {
-  test('returns error when phase not found', () => {
+  test('returns error when phase not found', async () => {
     const result = stalenessCheck('nonexistent-phase', planningDir);
     expect(result).toEqual({ error: expect.stringContaining('Phase not found') });
   });
 
-  test('returns not stale with empty plans array when no PLAN files', () => {
+  test('returns not stale with empty plans array when no PLAN files', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
     const result = stalenessCheck('01-setup', planningDir);
     expect(result).toEqual({ stale: false, plans: [] });
   });
 
-  test('returns not stale when plan has no depends_on', () => {
+  test('returns not stale when plan has no depends_on', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
@@ -65,7 +65,7 @@ describe('stalenessCheck', () => {
     expect(result.plans[0].reason).toBe('no dependencies');
   });
 
-  test('returns stale when dependency SUMMARY is newer (timestamp mode)', () => {
+  test('returns stale when dependency SUMMARY is newer (timestamp mode)', async () => {
     // Create dependency phase with a SUMMARY
     const depDir = path.join(planningDir, 'phases', '01-dep');
     fs.mkdirSync(depDir, { recursive: true });
@@ -92,7 +92,7 @@ describe('stalenessCheck', () => {
     expect(result.plans[0].reason).toMatch(/modified after planning/);
   });
 
-  test('returns not stale when dependency_fingerprints size matches', () => {
+  test('returns not stale when dependency_fingerprints size matches', async () => {
     const phaseDir = path.join(planningDir, 'phases', '03-fp');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -119,7 +119,7 @@ describe('stalenessCheck', () => {
     expect(result.plans[0].reason).toBe('fingerprints match');
   });
 
-  test('returns stale when dependency_fingerprints size differs', () => {
+  test('returns stale when dependency_fingerprints size differs', async () => {
     const phaseDir = path.join(planningDir, 'phases', '04-fp');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -143,7 +143,7 @@ describe('stalenessCheck', () => {
     expect(result.plans[0].reason).toMatch(/changed/);
   });
 
-  test('returns stale when fingerprinted dependency file is missing', () => {
+  test('returns stale when fingerprinted dependency file is missing', async () => {
     const phaseDir = path.join(planningDir, 'phases', '05-fp');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -163,7 +163,7 @@ describe('stalenessCheck', () => {
     expect(result.plans[0].reason).toMatch(/not found/);
   });
 
-  test('handles unreadable plan file gracefully', () => {
+  test('handles unreadable plan file gracefully', async () => {
     const phaseDir = path.join(planningDir, 'phases', '06-unreadable');
     fs.mkdirSync(phaseDir, { recursive: true });
     // Create a subdirectory with the same name pattern as a PLAN file
@@ -175,7 +175,7 @@ describe('stalenessCheck', () => {
     expect(result.plans[0].reason).toBe('unreadable');
   });
 
-  test('extracts plan_id from filename when frontmatter has no plan field', () => {
+  test('extracts plan_id from filename when frontmatter has no plan field', async () => {
     const phaseDir = path.join(planningDir, 'phases', '07-noid');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
@@ -195,14 +195,14 @@ describe('stalenessCheck', () => {
 // ---------------------------------------------------------------------------
 
 describe('summaryGate', () => {
-  test('fails gate "exists" when file is missing', () => {
+  test('fails gate "exists" when file is missing', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
     const result = summaryGate('01-setup', '01', planningDir);
     expect(result.ok).toBe(false);
     expect(result.gate).toBe('exists');
   });
 
-  test('fails gate "nonempty" when file is empty', () => {
+  test('fails gate "nonempty" when file is empty', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '');
@@ -211,7 +211,7 @@ describe('summaryGate', () => {
     expect(result.gate).toBe('nonempty');
   });
 
-  test('fails gate "valid-frontmatter" when no --- delimiters', () => {
+  test('fails gate "valid-frontmatter" when no --- delimiters', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), 'no frontmatter here\njust text');
@@ -220,7 +220,7 @@ describe('summaryGate', () => {
     expect(result.gate).toBe('valid-frontmatter');
   });
 
-  test('fails gate "valid-frontmatter" when --- present but no status field', () => {
+  test('fails gate "valid-frontmatter" when --- present but no status field', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nplan: "01"\n---\nBody');
@@ -229,7 +229,7 @@ describe('summaryGate', () => {
     expect(result.gate).toBe('valid-frontmatter');
   });
 
-  test('passes all gates with valid SUMMARY', () => {
+  test('passes all gates with valid SUMMARY', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\nplan: "01"\n---\n## Results');
@@ -245,7 +245,7 @@ describe('summaryGate', () => {
 // ---------------------------------------------------------------------------
 
 describe('checkpointInit', () => {
-  test('creates manifest with correct structure', () => {
+  test('creates manifest with correct structure', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     const result = checkpointInit('01-setup', ['01', '02'], planningDir);
@@ -260,7 +260,7 @@ describe('checkpointInit', () => {
     expect(manifest.last_good_commit).toBeNull();
   });
 
-  test('accepts comma-separated string of plan IDs', () => {
+  test('accepts comma-separated string of plan IDs', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     const result = checkpointInit('01-setup', '01, 02, 03', planningDir);
@@ -270,7 +270,7 @@ describe('checkpointInit', () => {
     expect(manifest.plans).toEqual(['01', '02', '03']);
   });
 
-  test('handles empty plans', () => {
+  test('handles empty plans', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     const result = checkpointInit('01-setup', '', planningDir);
@@ -280,7 +280,7 @@ describe('checkpointInit', () => {
     expect(manifest.plans).toEqual([]);
   });
 
-  test('handles null/undefined plans', () => {
+  test('handles null/undefined plans', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     const result = checkpointInit('01-setup', null, planningDir);
@@ -290,7 +290,7 @@ describe('checkpointInit', () => {
     expect(manifest.plans).toEqual([]);
   });
 
-  test('includes session_id from .session.json if present', () => {
+  test('includes session_id from .session.json if present', async () => {
     fs.writeFileSync(path.join(planningDir, '.session.json'),
       JSON.stringify({ session_id: 'test-session-123' }));
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
@@ -301,7 +301,7 @@ describe('checkpointInit', () => {
     expect(manifest.session_id).toBe('test-session-123');
   });
 
-  test('session_id is null when no .session.json', () => {
+  test('session_id is null when no .session.json', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     const result = checkpointInit('01-setup', ['01'], planningDir);
@@ -335,7 +335,7 @@ describe('checkpointUpdate', () => {
     return manifestPath;
   }
 
-  test('moves resolved plan from plans to checkpoints_resolved', () => {
+  test('moves resolved plan from plans to checkpoints_resolved', async () => {
     initManifest();
     const result = checkpointUpdate('01-setup', { resolved: '01' }, planningDir);
     expect(result.ok).toBe(true);
@@ -345,7 +345,7 @@ describe('checkpointUpdate', () => {
     expect(manifest.checkpoints_resolved).toContain('01');
   });
 
-  test('advances wave number', () => {
+  test('advances wave number', async () => {
     initManifest();
     const result = checkpointUpdate('01-setup', { wave: 2 }, planningDir);
     expect(result.ok).toBe(true);
@@ -354,7 +354,7 @@ describe('checkpointUpdate', () => {
     expect(manifest.wave).toBe(2);
   });
 
-  test('appends sha to commit_log and updates last_good_commit', () => {
+  test('appends sha to commit_log and updates last_good_commit', async () => {
     initManifest();
     const result = checkpointUpdate('01-setup', { resolved: '01', sha: 'abc1234' }, planningDir);
     expect(result.ok).toBe(true);
@@ -366,7 +366,7 @@ describe('checkpointUpdate', () => {
     expect(manifest.commit_log[0].plan).toBe('01');
   });
 
-  test('rejects update from different session_id without force', () => {
+  test('rejects update from different session_id without force', async () => {
     initManifest({ session_id: 'session-A' });
     // Write a .session.json with a different session
     fs.writeFileSync(path.join(planningDir, '.session.json'),
@@ -376,7 +376,7 @@ describe('checkpointUpdate', () => {
     expect(result.error).toMatch(/different session/);
   });
 
-  test('allows update from different session with force: true', () => {
+  test('allows update from different session with force: true', async () => {
     initManifest({ session_id: 'session-A' });
     fs.writeFileSync(path.join(planningDir, '.session.json'),
       JSON.stringify({ session_id: 'session-B' }));
@@ -385,7 +385,7 @@ describe('checkpointUpdate', () => {
     expect(result.ok).toBe(true);
   });
 
-  test('returns error when manifest is missing', () => {
+  test('returns error when manifest is missing', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
     const result = checkpointUpdate('01-setup', { resolved: '01' }, planningDir);
     expect(result.error).toMatch(/Cannot read/);
@@ -397,12 +397,12 @@ describe('checkpointUpdate', () => {
 // ---------------------------------------------------------------------------
 
 describe('seedsMatch', () => {
-  test('returns empty matched array when no seeds dir', () => {
+  test('returns empty matched array when no seeds dir', async () => {
     const result = seedsMatch('03-auth', 3, planningDir);
     expect(result).toEqual({ matched: [] });
   });
 
-  test('returns seed on exact slug match', () => {
+  test('returns seed on exact slug match', async () => {
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
     fs.writeFileSync(path.join(seedsDir, 'auth-seed.md'), [
@@ -420,7 +420,7 @@ describe('seedsMatch', () => {
     expect(result.matched[0].trigger).toBe('03-auth');
   });
 
-  test('returns seed on substring match', () => {
+  test('returns seed on substring match', async () => {
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
     fs.writeFileSync(path.join(seedsDir, 'auth-seed.md'), [
@@ -434,7 +434,7 @@ describe('seedsMatch', () => {
     expect(result.matched.length).toBe(1);
   });
 
-  test('returns seed on phase number match', () => {
+  test('returns seed on phase number match', async () => {
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
     fs.writeFileSync(path.join(seedsDir, 'phase3.md'), [
@@ -449,7 +449,7 @@ describe('seedsMatch', () => {
     expect(result.matched[0].name).toBe('phase-3-seed');
   });
 
-  test('wildcard trigger matches any phase', () => {
+  test('wildcard trigger matches any phase', async () => {
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
     fs.writeFileSync(path.join(seedsDir, 'global.md'), [
@@ -464,7 +464,7 @@ describe('seedsMatch', () => {
     expect(result.matched[0].trigger).toBe('*');
   });
 
-  test('non-matching trigger is excluded', () => {
+  test('non-matching trigger is excluded', async () => {
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
     fs.writeFileSync(path.join(seedsDir, 'unrelated.md'), [
@@ -478,7 +478,7 @@ describe('seedsMatch', () => {
     expect(result.matched.length).toBe(0);
   });
 
-  test('skips seed files without frontmatter', () => {
+  test('skips seed files without frontmatter', async () => {
     const seedsDir = path.join(planningDir, 'seeds');
     fs.mkdirSync(seedsDir, { recursive: true });
     fs.writeFileSync(path.join(seedsDir, 'nofm.md'), 'no frontmatter here');
@@ -493,20 +493,20 @@ describe('seedsMatch', () => {
 // ---------------------------------------------------------------------------
 
 describe('ciPoll', () => {
-  test('returns error with abort when runId is missing', () => {
+  test('returns error with abort when runId is missing', async () => {
     const result = ciPoll(null, 300);
     expect(result.status).toBe('error');
     expect(result.next_action).toBe('abort');
     expect(result.error).toMatch(/Missing run-id/);
   });
 
-  test('returns timed_out when timeout <= 0', () => {
+  test('returns timed_out when timeout <= 0', async () => {
     const result = ciPoll('12345', 0);
     expect(result.status).toBe('timed_out');
     expect(result.next_action).toBe('abort');
   });
 
-  test('returns passed with continue on completed+success', () => {
+  test('returns passed with continue on completed+success', async () => {
     execSync.mockReturnValue(JSON.stringify({
       status: 'completed',
       conclusion: 'success',
@@ -520,7 +520,7 @@ describe('ciPoll', () => {
     expect(result.url).toBe('https://github.com/runs/123');
   });
 
-  test('returns failed with abort on completed+failure', () => {
+  test('returns failed with abort on completed+failure', async () => {
     execSync.mockReturnValue(JSON.stringify({
       status: 'completed',
       conclusion: 'failure',
@@ -533,7 +533,7 @@ describe('ciPoll', () => {
     expect(result.conclusion).toBe('failure');
   });
 
-  test('returns wait on in_progress status', () => {
+  test('returns wait on in_progress status', async () => {
     execSync.mockReturnValue(JSON.stringify({
       status: 'in_progress',
       conclusion: null,
@@ -545,7 +545,7 @@ describe('ciPoll', () => {
     expect(result.next_action).toBe('wait');
   });
 
-  test('returns error when execSync throws', () => {
+  test('returns error when execSync throws', async () => {
     execSync.mockImplementation(() => { throw new Error('gh not found'); });
 
     const result = ciPoll('123', 300);
@@ -553,7 +553,7 @@ describe('ciPoll', () => {
     expect(result.error).toMatch(/gh not found/);
   });
 
-  test('returns error when gh outputs invalid JSON', () => {
+  test('returns error when gh outputs invalid JSON', async () => {
     execSync.mockReturnValue('not valid json at all');
 
     const result = ciPoll('123', 300);
@@ -561,7 +561,7 @@ describe('ciPoll', () => {
     expect(result.error).toMatch(/Failed to parse/);
   });
 
-  test('uses default timeout of 300 when not provided', () => {
+  test('uses default timeout of 300 when not provided', async () => {
     execSync.mockReturnValue(JSON.stringify({ status: 'completed', conclusion: 'success', url: '' }));
     // Should not return timed_out
     const result = ciPoll('123');
@@ -574,13 +574,13 @@ describe('ciPoll', () => {
 // ---------------------------------------------------------------------------
 
 describe('rollback', () => {
-  test('returns error when manifest is missing', () => {
+  test('returns error when manifest is missing', async () => {
     const result = rollback(path.join(planningDir, 'nonexistent.json'));
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/Manifest not found/);
   });
 
-  test('returns error when manifest has no last_good_commit', () => {
+  test('returns error when manifest has no last_good_commit', async () => {
     const mPath = path.join(planningDir, 'manifest.json');
     fs.writeFileSync(mPath, JSON.stringify({
       last_good_commit: null,
@@ -592,7 +592,7 @@ describe('rollback', () => {
     expect(result.error).toMatch(/No rollback point/);
   });
 
-  test('returns error when manifest is invalid JSON', () => {
+  test('returns error when manifest is invalid JSON', async () => {
     const mPath = path.join(planningDir, 'manifest.json');
     fs.writeFileSync(mPath, 'not json');
 
@@ -630,7 +630,7 @@ describe('rollback', () => {
     );
   });
 
-  test('returns error when git reset fails', () => {
+  test('returns error when git reset fails', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
     const mPath = path.join(phaseDir, '.checkpoint-manifest.json');
@@ -646,7 +646,7 @@ describe('rollback', () => {
     expect(result.error).toMatch(/git reset --soft failed/);
   });
 
-  test('downstream plans are invalidated when they depend on failed plan', () => {
+  test('downstream plans are invalidated when they depend on failed plan', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -673,7 +673,7 @@ describe('rollback', () => {
     ]));
   });
 
-  test('manifest is updated after rollback (resolved filtered)', () => {
+  test('manifest is updated after rollback (resolved filtered)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
     fs.mkdirSync(phaseDir, { recursive: true });
 

@@ -16,7 +16,7 @@ describe('run-hook.js', () => {
     // We test via requiring the module and calling the exported function indirectly
     // Since fixMsysPath isn't exported, test via environment variable behavior
 
-    test('converts MSYS path /d/Repos to D:\\Repos when used via env', () => {
+    test('converts MSYS path /d/Repos to D:\\Repos when used via env', async () => {
       // Run a tiny script that requires run-hook and prints the resolved pluginRoot
       const script = `
         process.env.CLAUDE_PLUGIN_ROOT = '/d/Repos/test-project/plugins/pbr';
@@ -37,7 +37,7 @@ describe('run-hook.js', () => {
   });
 
   describe('script resolution', () => {
-    test('resolves scripts relative to __dirname', () => {
+    test('resolves scripts relative to __dirname', async () => {
       // Run a real hook script that exits quickly (hook-logger.js doesn't have main)
       // Use a script we know exists and will exit cleanly on empty stdin
       const result = execSync(
@@ -48,7 +48,7 @@ describe('run-hook.js', () => {
       expect(result).toBeDefined();
     });
 
-    test('fails gracefully for missing scripts', () => {
+    test('fails gracefully for missing scripts', async () => {
       try {
         execSync(`node "${RUN_HOOK}" nonexistent-script-xyz.js`, {
           encoding: 'utf8',
@@ -62,7 +62,7 @@ describe('run-hook.js', () => {
       }
     });
 
-    test('reports searched paths on failure', () => {
+    test('reports searched paths on failure', async () => {
       try {
         execSync(`node "${RUN_HOOK}" missing-hook.js`, {
           encoding: 'utf8',
@@ -76,7 +76,7 @@ describe('run-hook.js', () => {
   });
 
   describe('invocation modes', () => {
-    test('works when invoked directly: node run-hook.js <script>', () => {
+    test('works when invoked directly: node run-hook.js <script>', async () => {
       // Echo minimal JSON to a hook that reads stdin
       try {
         execSync(`echo {} | node "${RUN_HOOK}" log-tool-failure.js`, {
@@ -88,7 +88,7 @@ describe('run-hook.js', () => {
       }
     });
 
-    test('module.exports is a function', () => {
+    test('module.exports is a function', async () => {
       // Verify the module exports runScript
       // We need to isolate this since requiring run-hook.js has side effects
       const script = `
@@ -106,7 +106,7 @@ describe('run-hook.js', () => {
 });
 
 describe('run-hook.js BOOTSTRAP_SNIPPET export', () => {
-  test('BOOTSTRAP_SNIPPET is exported as a string', () => {
+  test('BOOTSTRAP_SNIPPET is exported as a string', async () => {
     const result = execSync(
       `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(typeof m.BOOTSTRAP_SNIPPET);"`,
       { encoding: 'utf8', timeout: 5000 }
@@ -114,7 +114,7 @@ describe('run-hook.js BOOTSTRAP_SNIPPET export', () => {
     expect(result.trim()).toBe('string');
   });
 
-  test('BOOTSTRAP_SNIPPET contains MSYS path fix logic', () => {
+  test('BOOTSTRAP_SNIPPET contains MSYS path fix logic', async () => {
     const result = execSync(
       `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(m.BOOTSTRAP_SNIPPET);"`,
       { encoding: 'utf8', timeout: 5000 }
@@ -125,7 +125,7 @@ describe('run-hook.js BOOTSTRAP_SNIPPET export', () => {
     expect(snippet).toContain('run-hook.js');
   });
 
-  test('runScript is exported as a function', () => {
+  test('runScript is exported as a function', async () => {
     const result = execSync(
       `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(typeof m.runScript);"`,
       { encoding: 'utf8', timeout: 5000 }
@@ -141,17 +141,17 @@ describe('hooks.json $bootstrap documentation', () => {
     hooksJson = require(HOOKS_JSON);
   });
 
-  test('has $bootstrap documentation key', () => {
+  test('has $bootstrap documentation key', async () => {
     expect(hooksJson).toHaveProperty('$bootstrap');
     expect(typeof hooksJson.$bootstrap).toBe('object');
   });
 
-  test('$bootstrap.why explains the MSYS path problem', () => {
+  test('$bootstrap.why explains the MSYS path problem', async () => {
     expect(hooksJson.$bootstrap).toHaveProperty('why');
     expect(hooksJson.$bootstrap.why).toContain('MSYS');
   });
 
-  test('$bootstrap.pattern documents the bootstrap one-liner', () => {
+  test('$bootstrap.pattern documents the bootstrap one-liner', async () => {
     expect(hooksJson.$bootstrap).toHaveProperty('pattern');
     expect(hooksJson.$bootstrap.pattern).toContain('CLAUDE_PLUGIN_ROOT');
     expect(hooksJson.$bootstrap.pattern).toContain('String.fromCharCode');
@@ -183,7 +183,7 @@ describe('hooks.json bootstrap drift detection', () => {
     return results;
   }
 
-  test('all hook commands start with BOOTSTRAP_SNIPPET (drift detector)', () => {
+  test('all hook commands start with BOOTSTRAP_SNIPPET (drift detector)', async () => {
     const hooksJson = require(HOOKS_JSON);
 
     // Get BOOTSTRAP_SNIPPET from a subprocess to avoid side effects of requiring run-hook.js

@@ -31,7 +31,7 @@ describe('snapshot-manager', () => {
   });
 
   describe('writeSnapshot', () => {
-    test('creates timestamped file in sessions/snapshots/', () => {
+    test('creates timestamped file in sessions/snapshots/', async () => {
       writeSnapshot(planningDir, makeContext());
       const snapDir = path.join(planningDir, 'sessions', 'snapshots');
       expect(fs.existsSync(snapDir)).toBe(true);
@@ -40,7 +40,7 @@ describe('snapshot-manager', () => {
       expect(files[0]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-snapshot\.md$/);
     });
 
-    test('includes YAML frontmatter with timestamp and session_id', () => {
+    test('includes YAML frontmatter with timestamp and session_id', async () => {
       writeSnapshot(planningDir, makeContext());
       const snapDir = path.join(planningDir, 'sessions', 'snapshots');
       const files = fs.readdirSync(snapDir);
@@ -53,7 +53,7 @@ describe('snapshot-manager', () => {
   });
 
   describe('loadLatestSnapshot', () => {
-    test('returns the most recent snapshot', () => {
+    test('returns the most recent snapshot', async () => {
       // Write two snapshots with different data
       writeSnapshot(planningDir, makeContext({ session_id: 'first' }));
 
@@ -72,12 +72,12 @@ describe('snapshot-manager', () => {
       expect(latest.session_id).toBe('second');
     });
 
-    test('returns null when no snapshots exist', () => {
+    test('returns null when no snapshots exist', async () => {
       const result = loadLatestSnapshot(planningDir);
       expect(result).toBeNull();
     });
 
-    test('returns null when snapshot exceeds maxAgeHours', () => {
+    test('returns null when snapshot exceeds maxAgeHours', async () => {
       const snapDir = path.join(planningDir, 'sessions', 'snapshots');
       fs.mkdirSync(snapDir, { recursive: true });
       const oldTimestamp = new Date(Date.now() - 72 * 3600000).toISOString();
@@ -90,7 +90,7 @@ describe('snapshot-manager', () => {
       expect(result).toBeNull();
     });
 
-    test('returns snapshot when within maxAgeHours', () => {
+    test('returns snapshot when within maxAgeHours', async () => {
       const snapDir = path.join(planningDir, 'sessions', 'snapshots');
       fs.mkdirSync(snapDir, { recursive: true });
       const recentTimestamp = new Date(Date.now() - 1 * 3600000).toISOString();
@@ -104,7 +104,7 @@ describe('snapshot-manager', () => {
       expect(result.session_id).toBe('recent-session');
     });
 
-    test('returns snapshot when maxAgeHours is not set (backward compat)', () => {
+    test('returns snapshot when maxAgeHours is not set (backward compat)', async () => {
       const snapDir = path.join(planningDir, 'sessions', 'snapshots');
       fs.mkdirSync(snapDir, { recursive: true });
       const oldTimestamp = new Date(Date.now() - 72 * 3600000).toISOString();
@@ -120,7 +120,7 @@ describe('snapshot-manager', () => {
   });
 
   describe('formatSnapshotBriefing', () => {
-    test('produces concise text under 1200 chars', () => {
+    test('produces concise text under 1200 chars', async () => {
       writeSnapshot(planningDir, makeContext());
       const snapshot = loadLatestSnapshot(planningDir);
       const briefing = formatSnapshotBriefing(snapshot);
@@ -131,13 +131,13 @@ describe('snapshot-manager', () => {
       expect(briefing).toMatch(/src\/index\.js/);
     });
 
-    test('returns empty string for null snapshot', () => {
+    test('returns empty string for null snapshot', async () => {
       expect(formatSnapshotBriefing(null)).toBe('');
     });
   });
 
   describe('pruning', () => {
-    test('caps snapshots directory at 10 files (removes oldest)', () => {
+    test('caps snapshots directory at 10 files (removes oldest)', async () => {
       const snapDir = path.join(planningDir, 'sessions', 'snapshots');
       fs.mkdirSync(snapDir, { recursive: true });
 

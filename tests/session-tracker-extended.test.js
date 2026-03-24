@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe('resetTracker', () => {
-  test('creates tracker file', () => {
+  test('creates tracker file', async () => {
     resetTracker(planningDir);
     const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
     expect(data.phases_completed).toBe(0);
@@ -28,7 +28,7 @@ describe('resetTracker', () => {
     expect(data.last_phase_completed).toBeNull();
   });
 
-  test('creates tracker with sessionId (session-scoped path)', () => {
+  test('creates tracker with sessionId (session-scoped path)', async () => {
     const sessDir = path.join(planningDir, '.sessions', 'test-sess');
     fs.mkdirSync(sessDir, { recursive: true });
     resetTracker(planningDir, 'test-sess');
@@ -38,25 +38,25 @@ describe('resetTracker', () => {
 });
 
 describe('incrementTracker', () => {
-  test('increments existing tracker', () => {
+  test('increments existing tracker', async () => {
     resetTracker(planningDir);
     const count = incrementTracker(planningDir);
     expect(count).toBe(1);
   });
 
-  test('auto-creates tracker when missing', () => {
+  test('auto-creates tracker when missing', async () => {
     const count = incrementTracker(planningDir);
     expect(count).toBe(1);
   });
 
-  test('increments multiple times', () => {
+  test('increments multiple times', async () => {
     resetTracker(planningDir);
     incrementTracker(planningDir);
     const count = incrementTracker(planningDir);
     expect(count).toBe(2);
   });
 
-  test('increments with sessionId', () => {
+  test('increments with sessionId', async () => {
     const sessDir = path.join(planningDir, '.sessions', 'test-sess');
     fs.mkdirSync(sessDir, { recursive: true });
     resetTracker(planningDir, 'test-sess');
@@ -66,7 +66,7 @@ describe('incrementTracker', () => {
 });
 
 describe('loadTracker', () => {
-  test('loads existing tracker', () => {
+  test('loads existing tracker', async () => {
     resetTracker(planningDir);
     incrementTracker(planningDir);
     const data = loadTracker(planningDir);
@@ -74,16 +74,16 @@ describe('loadTracker', () => {
     expect(data.phases_completed).toBe(1);
   });
 
-  test('returns null when tracker missing', () => {
+  test('returns null when tracker missing', async () => {
     expect(loadTracker(planningDir)).toBeNull();
   });
 
-  test('returns null for corrupt tracker', () => {
+  test('returns null for corrupt tracker', async () => {
     fs.writeFileSync(path.join(planningDir, TRACKER_FILE), 'not json');
     expect(loadTracker(planningDir)).toBeNull();
   });
 
-  test('loads with sessionId', () => {
+  test('loads with sessionId', async () => {
     const sessDir = path.join(planningDir, '.sessions', 'test-sess');
     fs.mkdirSync(sessDir, { recursive: true });
     resetTracker(planningDir, 'test-sess');

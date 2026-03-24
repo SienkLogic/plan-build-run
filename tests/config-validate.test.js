@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 describe('config validate', () => {
-  test('valid config passes with no errors or warnings', () => {
+  test('valid config passes with no errors or warnings', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -63,7 +63,7 @@ describe('config validate', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  test('warns on unrecognized top-level key', () => {
+  test('warns on unrecognized top-level key', async () => {
     writeConfig({
       version: 2,
       mode: 'interactive',
@@ -77,7 +77,7 @@ describe('config validate', () => {
     );
   });
 
-  test('warns on unrecognized feature key', () => {
+  test('warns on unrecognized feature key', async () => {
     writeConfig({
       version: 2,
       features: { auto_contineu: true }
@@ -88,7 +88,7 @@ describe('config validate', () => {
     );
   });
 
-  test('errors on invalid depth enum', () => {
+  test('errors on invalid depth enum', async () => {
     writeConfig({
       version: 2,
       depth: 'turbo'
@@ -100,7 +100,7 @@ describe('config validate', () => {
     );
   });
 
-  test('errors on invalid mode enum', () => {
+  test('errors on invalid mode enum', async () => {
     writeConfig({
       version: 2,
       mode: 'manual'
@@ -112,7 +112,7 @@ describe('config validate', () => {
     );
   });
 
-  test('errors on wrong type for feature flag', () => {
+  test('errors on wrong type for feature flag', async () => {
     writeConfig({
       version: 2,
       features: { auto_continue: 'yes' }
@@ -124,7 +124,7 @@ describe('config validate', () => {
     );
   });
 
-  test('errors on invalid git branching value', () => {
+  test('errors on invalid git branching value', async () => {
     writeConfig({
       version: 2,
       git: { branching: 'feature' }
@@ -136,7 +136,7 @@ describe('config validate', () => {
     );
   });
 
-  test('warns on unrecognized models key', () => {
+  test('warns on unrecognized models key', async () => {
     writeConfig({
       version: 2,
       models: { reasearcher: 'sonnet' }
@@ -147,7 +147,7 @@ describe('config validate', () => {
     );
   });
 
-  test('handles missing config.json gracefully', () => {
+  test('handles missing config.json gracefully', async () => {
     // .planning exists but config.json does not
     const result = execSync(
       `node ${path.join(SCRIPTS, 'pbr-tools.js')} config validate`,
@@ -158,14 +158,14 @@ describe('config validate', () => {
     expect(parsed.errors).toEqual(expect.arrayContaining([expect.stringContaining('not found')]));
   });
 
-  test('handles malformed JSON', () => {
+  test('handles malformed JSON', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), '{ invalid json }');
     const result = run();
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(expect.arrayContaining([expect.stringContaining('not valid JSON')]));
   });
 
-  test('validates auto_advance feature flag', () => {
+  test('validates auto_advance feature flag', async () => {
     writeConfig({
       version: 2,
       features: { auto_advance: true }
@@ -175,7 +175,7 @@ describe('config validate', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('errors on parallelization max_concurrent_agents above 10', () => {
+  test('errors on parallelization max_concurrent_agents above 10', async () => {
     writeConfig({
       version: 2,
       parallelization: { max_concurrent_agents: 50 }
@@ -187,7 +187,7 @@ describe('config validate', () => {
     );
   });
 
-  test('errors on autonomous mode with active gates', () => {
+  test('errors on autonomous mode with active gates', async () => {
     writeConfig({
       version: 2,
       mode: 'autonomous',
@@ -200,7 +200,7 @@ describe('config validate', () => {
     );
   });
 
-  test('warns on auto_continue with interactive mode', () => {
+  test('warns on auto_continue with interactive mode', async () => {
     writeConfig({
       version: 2,
       mode: 'interactive',
@@ -213,7 +213,7 @@ describe('config validate', () => {
     );
   });
 
-  test('warns on plan_level with parallelization disabled', () => {
+  test('warns on plan_level with parallelization disabled', async () => {
     writeConfig({
       version: 2,
       parallelization: { enabled: false, plan_level: true }
@@ -225,7 +225,7 @@ describe('config validate', () => {
     );
   });
 
-  test('errors on max_concurrent_agents=1 with teams', () => {
+  test('errors on max_concurrent_agents=1 with teams', async () => {
     writeConfig({
       version: 2,
       parallelization: { max_concurrent_agents: 1 },
@@ -238,7 +238,7 @@ describe('config validate', () => {
     );
   });
 
-  test('no conflict warnings for compatible config', () => {
+  test('no conflict warnings for compatible config', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -253,7 +253,7 @@ describe('config validate', () => {
   });
 
   describe('prd config', () => {
-    test('prd.auto_extract: false is valid', () => {
+    test('prd.auto_extract: false is valid', async () => {
       writeConfig({
         version: 2,
         schema_version: 2,
@@ -266,7 +266,7 @@ describe('config validate', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    test('prd.auto_extract: true is valid', () => {
+    test('prd.auto_extract: true is valid', async () => {
       writeConfig({
         version: 2,
         schema_version: 2,
@@ -279,7 +279,7 @@ describe('config validate', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    test('prd with unknown key warns (unrecognized key)', () => {
+    test('prd with unknown key warns (unrecognized key)', async () => {
       writeConfig({
         version: 2,
         schema_version: 2,
@@ -293,7 +293,7 @@ describe('config validate', () => {
       );
     });
 
-    test('prd.auto_extract: non-boolean is invalid', () => {
+    test('prd.auto_extract: non-boolean is invalid', async () => {
       writeConfig({
         version: 2,
         schema_version: 2,
@@ -310,12 +310,12 @@ describe('config validate', () => {
 
 describe('user defaults', () => {
   describe('mergeUserDefaults', () => {
-    test('returns base when no defaults', () => {
+    test('returns base when no defaults', async () => {
       const base = { mode: 'interactive', depth: 'standard' };
       expect(mergeUserDefaults(base, null)).toEqual(base);
     });
 
-    test('adds missing keys from user defaults', () => {
+    test('adds missing keys from user defaults', async () => {
       const base = { version: 2, mode: 'interactive' };
       const defaults = { depth: 'quick', mode: 'autonomous' };
       const result = mergeUserDefaults(base, defaults);
@@ -324,7 +324,7 @@ describe('user defaults', () => {
       expect(result.mode).toBe('interactive');
     });
 
-    test('deep-merges nested objects', () => {
+    test('deep-merges nested objects', async () => {
       const base = { features: { tdd_mode: true } };
       const defaults = { features: { research_phase: false, tdd_mode: false } };
       const result = mergeUserDefaults(base, defaults);
@@ -334,7 +334,7 @@ describe('user defaults', () => {
       expect(result.features.research_phase).toBe(false);
     });
 
-    test('does not merge arrays (base wins)', () => {
+    test('does not merge arrays (base wins)', async () => {
       const base = { models: { executor: 'opus' } };
       const defaults = { models: { executor: 'sonnet', researcher: 'haiku' } };
       const result = mergeUserDefaults(base, defaults);
@@ -342,7 +342,7 @@ describe('user defaults', () => {
       expect(result.models.researcher).toBe('haiku');
     });
 
-    test('handles empty user defaults object', () => {
+    test('handles empty user defaults object', async () => {
       const base = { mode: 'interactive' };
       expect(mergeUserDefaults(base, {})).toEqual(base);
     });
@@ -358,7 +358,7 @@ describe('user defaults', () => {
       }
     });
 
-    test('saves only portable keys', () => {
+    test('saves only portable keys', async () => {
       const config = {
         version: 2,
         mode: 'autonomous',
@@ -384,7 +384,7 @@ describe('user defaults', () => {
   });
 
   describe('loadUserDefaults', () => {
-    test('returns null when file does not exist', () => {
+    test('returns null when file does not exist', async () => {
       // USER_DEFAULTS_PATH may or may not exist
       // We test the merge path handles null gracefully (loadUserDefaults returns null for missing file)
       expect(USER_DEFAULTS_PATH).toMatch(/defaults\.json$/);
@@ -395,7 +395,7 @@ describe('user defaults', () => {
 });
 
 describe('new config properties validation', () => {
-  test('accepts config with all new workflow properties', () => {
+  test('accepts config with all new workflow properties', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -417,7 +417,7 @@ describe('new config properties validation', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('accepts config with new top-level sections', () => {
+  test('accepts config with new top-level sections', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -434,7 +434,7 @@ describe('new config properties validation', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('rejects invalid enum values for new properties', () => {
+  test('rejects invalid enum values for new properties', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -449,7 +449,7 @@ describe('new config properties validation', () => {
     );
   });
 
-  test('rejects out-of-range values', () => {
+  test('rejects out-of-range values', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -464,7 +464,7 @@ describe('new config properties validation', () => {
     );
   });
 
-  test('accepts config with gates.checkpoint_auto_resolve', () => {
+  test('accepts config with gates.checkpoint_auto_resolve', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -477,7 +477,7 @@ describe('new config properties validation', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('accepts schema_version 3', () => {
+  test('accepts schema_version 3', async () => {
     writeConfig({
       version: 2,
       schema_version: 3,
@@ -491,7 +491,7 @@ describe('new config properties validation', () => {
 });
 
 describe('context_window_tokens validation', () => {
-  test('accepts valid value 200000', () => {
+  test('accepts valid value 200000', async () => {
     writeConfig({
       version: 2,
       mode: 'interactive',
@@ -503,7 +503,7 @@ describe('context_window_tokens validation', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('accepts valid value 1000000', () => {
+  test('accepts valid value 1000000', async () => {
     writeConfig({
       version: 2,
       mode: 'interactive',
@@ -515,7 +515,7 @@ describe('context_window_tokens validation', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('rejects value below minimum (50000)', () => {
+  test('rejects value below minimum (50000)', async () => {
     writeConfig({
       version: 2,
       mode: 'interactive',
@@ -528,7 +528,7 @@ describe('context_window_tokens validation', () => {
     expect(result.errors.some(e => e.includes('context_window_tokens'))).toBe(true);
   });
 
-  test('rejects value above maximum (3000000)', () => {
+  test('rejects value above maximum (3000000)', async () => {
     writeConfig({
       version: 2,
       mode: 'interactive',

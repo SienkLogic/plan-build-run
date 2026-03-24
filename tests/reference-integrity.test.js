@@ -75,7 +75,7 @@ describe('Reference Integrity', () => {
   const agentFiles = getMdFiles(AGENTS_DIR);
   const allFiles = [...skillFiles, ...agentFiles];
 
-  test('all skill and agent Read references point to existing files', () => {
+  test('all skill and agent Read references point to existing files', async () => {
     const broken = [];
 
     for (const filePath of allFiles) {
@@ -108,7 +108,7 @@ describe('Reference Integrity', () => {
     expect(true).toBe(true);
   });
 
-  test('no orphaned template files (every template is referenced)', () => {
+  test('no orphaned template files (every template is referenced)', async () => {
     // Collect all referenced paths
     const allRefs = new Set();
     for (const filePath of allFiles) {
@@ -161,7 +161,7 @@ describe('Reference Integrity', () => {
     expect(true).toBe(true);
   });
 
-  test('references/ directory files all exist and are non-empty', () => {
+  test('references/ directory files all exist and are non-empty', async () => {
     const refsDir = path.join(PLUGIN_ROOT, 'references');
     expect(fs.existsSync(refsDir)).toBe(true);
 
@@ -182,7 +182,7 @@ describe('Reference Integrity', () => {
     expect(empty).toEqual([]);
   });
 
-  test('skills/shared/ fragment files all exist and are non-empty', () => {
+  test('skills/shared/ fragment files all exist and are non-empty', async () => {
     const sharedDir = path.join(SKILLS_DIR, 'shared');
     expect(fs.existsSync(sharedDir)).toBe(true);
 
@@ -215,12 +215,12 @@ describe('hooks.json Structure', () => {
   const hooksPath = path.join(PROJECT_ROOT, 'plugins', 'pbr', 'hooks', 'hooks.json');
   const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
 
-  test('hooks.json is valid JSON with hooks property', () => {
+  test('hooks.json is valid JSON with hooks property', async () => {
     expect(hooksConfig).toHaveProperty('hooks');
     expect(typeof hooksConfig.hooks).toBe('object');
   });
 
-  test('all hook script paths reference existing files', () => {
+  test('all hook script paths reference existing files', async () => {
     const missing = [];
     const hooksDir = path.join(PROJECT_ROOT, 'plugins', 'pbr', 'scripts');
 
@@ -246,7 +246,7 @@ describe('hooks.json Structure', () => {
     expect(missing).toEqual([]);
   });
 
-  test('async hooks do not output stdout (no additionalContext needed)', () => {
+  test('async hooks do not output stdout (no additionalContext needed)', async () => {
     // Async hooks cannot have their stdout captured by Claude Code.
     // Only pure-logging hooks should be async.
     const asyncHooks = [];
@@ -269,7 +269,7 @@ describe('hooks.json Structure', () => {
     }
   });
 
-  test('async hooks have a timeout', () => {
+  test('async hooks have a timeout', async () => {
     for (const [, entries] of Object.entries(hooksConfig.hooks)) {
       for (const entry of entries) {
         for (const hook of entry.hooks || []) {
@@ -283,7 +283,7 @@ describe('hooks.json Structure', () => {
     }
   });
 
-  test('blocking hooks (PreToolUse) are not async', () => {
+  test('blocking hooks (PreToolUse) are not async', async () => {
     const preToolUseEntries = hooksConfig.hooks.PreToolUse || [];
     for (const entry of preToolUseEntries) {
       for (const hook of entry.hooks || []) {
@@ -294,14 +294,14 @@ describe('hooks.json Structure', () => {
 });
 
 describe('Anti-Pattern Checks', () => {
-  test('synthesizer agent has no model in frontmatter (config-only)', () => {
+  test('synthesizer agent has no model in frontmatter (config-only)', async () => {
     const synthPath = path.join(AGENTS_DIR, 'synthesizer.md');
     const content = fs.readFileSync(synthPath, 'utf8');
     const frontmatter = content.split('---')[1];
     expect(frontmatter).not.toMatch(/model:\s*\w+/);
   });
 
-  test('no agent files reference "haiku" as their model', () => {
+  test('no agent files reference "haiku" as their model', async () => {
     const agentFiles = getMdFiles(AGENTS_DIR);
     const haikuAgents = [];
 
@@ -317,7 +317,7 @@ describe('Anti-Pattern Checks', () => {
     expect(haikuAgents).toEqual([]);
   });
 
-  test('no SKILL.md files contain inlined agent definitions (>75 line code blocks)', () => {
+  test('no SKILL.md files contain inlined agent definitions (>75 line code blocks)', async () => {
     const skillFiles = getSkillFiles();
     const violations = [];
 
@@ -340,7 +340,7 @@ describe('Anti-Pattern Checks', () => {
     expect(violations).toEqual([]);
   });
 
-  test('no hardcoded year references in researcher agent', () => {
+  test('no hardcoded year references in researcher agent', async () => {
     const researcherPath = path.join(AGENTS_DIR, 'researcher.md');
     const content = fs.readFileSync(researcherPath, 'utf8');
     // Should use dynamic date, not hardcoded years
@@ -357,7 +357,7 @@ describe('Anti-Pattern Checks', () => {
     expect(matches).toEqual([]);
   });
 
-  test('config.json synthesizer model is defined (agent has no frontmatter model)', () => {
+  test('config.json synthesizer model is defined (agent has no frontmatter model)', async () => {
     const configPath = path.resolve(
       __dirname, '..', '.planning', 'config.json'
     );

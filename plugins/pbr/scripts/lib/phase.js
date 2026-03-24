@@ -232,7 +232,7 @@ function phaseInfo(phaseNum, planningDir) {
  * @param {string} [planningDir] - Path to .planning directory
  * @param {object} [options] - Optional settings: { goal, dependsOn }
  */
-function phaseAdd(slug, afterPhase, planningDir, options) {
+async function phaseAdd(slug, afterPhase, planningDir, options) {
   // Handle backward compat: if planningDir is an object, it's actually options
   if (typeof planningDir === 'object' && planningDir !== null && !options) {
     options = planningDir;
@@ -284,7 +284,7 @@ function phaseAdd(slug, afterPhase, planningDir, options) {
   if (fs.existsSync(roadmapPath)) {
     const phaseName = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const depNum = opts.dependsOn ? parseInt(opts.dependsOn, 10) : null;
-    const result = roadmapAppendPhase(dir, newNum, phaseName, opts.goal || null, depNum);
+    const result = await roadmapAppendPhase(dir, newNum, phaseName, opts.goal || null, depNum);
     roadmapUpdated = result.success !== false;
   }
 
@@ -307,7 +307,7 @@ function phaseAdd(slug, afterPhase, planningDir, options) {
  * @param {string} phaseNum - Phase number to remove
  * @param {string} [planningDir] - Path to .planning directory
  */
-function phaseRemove(phaseNum, planningDir) {
+async function phaseRemove(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const phasesDir = path.join(dir, 'phases');
   const num = parseInt(phaseNum, 10);
@@ -372,8 +372,8 @@ function phaseRemove(phaseNum, planningDir) {
   let roadmapUpdated = false;
   const roadmapPath = path.join(dir, 'ROADMAP.md');
   if (fs.existsSync(roadmapPath)) {
-    roadmapRemovePhase(dir, num);
-    roadmapRenumberPhases(dir, num + 1, -1);
+    await roadmapRemovePhase(dir, num);
+    await roadmapRenumberPhases(dir, num + 1, -1);
     roadmapUpdated = true;
   }
 
@@ -645,7 +645,7 @@ function _extractMilestonePhaseNums(roadmapPath, version) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} Result with success, completed_phase, next_phase, etc.
  */
-function phaseComplete(phaseNum, planningDir) {
+async function phaseComplete(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   const roadmapPath = path.join(dir, 'ROADMAP.md');
@@ -685,7 +685,7 @@ function phaseComplete(phaseNum, planningDir) {
   }
 
   // --- Update ROADMAP.md atomically ---
-  const roadmapResult = lockedFileUpdate(roadmapPath, (content) => {
+  const roadmapResult = await lockedFileUpdate(roadmapPath, (content) => {
     let updated = content;
     const contentLines = updated.split(/\r?\n/);
     const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
@@ -737,7 +737,7 @@ function phaseComplete(phaseNum, planningDir) {
 
   // --- Update STATE.md (compound update via statePatch for atomicity) ---
   if (nextEntry) {
-    statePatch(JSON.stringify({
+    await statePatch(JSON.stringify({
       current_phase: nextPhaseNum,
       plans_complete: '0',
       status: 'planned',
@@ -745,11 +745,11 @@ function phaseComplete(phaseNum, planningDir) {
     }), dir);
   } else {
     // Final phase in milestone
-    statePatch(JSON.stringify({ status: 'verified' }), dir);
+    await statePatch(JSON.stringify({ status: 'verified' }), dir);
   }
 
   // Recalculate progress
-  stateUpdateProgress(dir);
+  await stateUpdateProgress(dir);
 
   // --- Write .phase-manifest.json aggregating all plan commits ---
   let manifestWritten = false;
@@ -854,7 +854,7 @@ function _buildPhaseManifest(phaseNum, phaseDir) {
  * @param {object} [options] - Optional: { goal, dependsOn }
  * @returns {object} Result with phase, slug, directory, renumbered_count, etc.
  */
-function phaseInsert(position, slug, planningDir, options) {
+async function phaseInsert(position, slug, planningDir, options) {
   // Handle backward compat: if planningDir is an object, it's actually options
   if (typeof planningDir === 'object' && planningDir !== null && !options) {
     options = planningDir;
@@ -902,11 +902,11 @@ function phaseInsert(position, slug, planningDir, options) {
   if (fs.existsSync(roadmapPath)) {
     const { roadmapInsertPhase } = require('./roadmap');
     // First renumber existing phases in ROADMAP.md
-    roadmapRenumberPhases(dir, position, +1);
+    await roadmapRenumberPhases(dir, position, +1);
     // Then insert the new phase at the right position
     const phaseName = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const depNum = opts.dependsOn ? parseInt(opts.dependsOn, 10) : null;
-    roadmapInsertPhase(dir, position, phaseName, opts.goal || null, depNum);
+    await roadmapInsertPhase(dir, position, phaseName, opts.goal || null, depNum);
     roadmapUpdated = true;
   }
 

@@ -42,20 +42,20 @@ afterEach(() => {
 // --- extractSection ---
 
 describe('extractSection', () => {
-  test('extracts a section by heading', () => {
+  test('extracts a section by heading', async () => {
     const content = '## Heading One\nLine 1\nLine 2\n\n## Heading Two\nOther';
     const result = extractSection(content, 'Heading One');
     expect(result).toContain('Line 1');
     expect(result).toContain('Line 2');
   });
 
-  test('returns null when heading not found', () => {
+  test('returns null when heading not found', async () => {
     const content = '## Other\nStuff';
     const result = extractSection(content, 'Missing');
     expect(result).toBeNull();
   });
 
-  test('limits to 5 lines', () => {
+  test('limits to 5 lines', async () => {
     const lines = Array.from({ length: 10 }, (_, i) => `Line ${i + 1}`).join('\n');
     const content = `## Test\n${lines}\n\n## Other\nStuff`;
     const result = extractSection(content, 'Test');
@@ -68,7 +68,7 @@ describe('extractSection', () => {
 // --- findContinueFiles ---
 
 describe('findContinueFiles', () => {
-  test('finds .continue-here files recursively', () => {
+  test('finds .continue-here files recursively', async () => {
     const dir = path.join(tmpDir, 'phases');
     fs.mkdirSync(path.join(dir, 'sub'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'sub', '.continue-here.md'), 'data');
@@ -77,14 +77,14 @@ describe('findContinueFiles', () => {
     expect(result[0]).toContain('.continue-here');
   });
 
-  test('returns empty array when no files found', () => {
+  test('returns empty array when no files found', async () => {
     const dir = path.join(tmpDir, 'empty-phases');
     fs.mkdirSync(dir, { recursive: true });
     const result = findContinueFiles(dir);
     expect(result).toEqual([]);
   });
 
-  test('returns empty array for non-existent dir', () => {
+  test('returns empty array for non-existent dir', async () => {
     const result = findContinueFiles(path.join(tmpDir, 'nonexistent'));
     expect(result).toEqual([]);
   });
@@ -93,7 +93,7 @@ describe('findContinueFiles', () => {
 // --- countNotes ---
 
 describe('countNotes', () => {
-  test('counts non-promoted notes', () => {
+  test('counts non-promoted notes', async () => {
     const notesDir = path.join(planningDir, 'notes');
     fs.mkdirSync(notesDir, { recursive: true });
     fs.writeFileSync(path.join(notesDir, 'note1.md'), '---\ndate: 2026-03-01\npromoted: false\n---\nNote 1');
@@ -102,11 +102,11 @@ describe('countNotes', () => {
     expect(countNotes(notesDir)).toBe(2);
   });
 
-  test('returns 0 for non-existent dir', () => {
+  test('returns 0 for non-existent dir', async () => {
     expect(countNotes(path.join(tmpDir, 'no-notes'))).toBe(0);
   });
 
-  test('returns 0 for empty dir', () => {
+  test('returns 0 for empty dir', async () => {
     const notesDir = path.join(planningDir, 'empty-notes');
     fs.mkdirSync(notesDir, { recursive: true });
     expect(countNotes(notesDir)).toBe(0);
@@ -116,17 +116,17 @@ describe('countNotes', () => {
 // --- getHookHealthSummary ---
 
 describe('getHookHealthSummary', () => {
-  test('returns null when no hooks log', () => {
+  test('returns null when no hooks log', async () => {
     expect(getHookHealthSummary(planningDir)).toBeNull();
   });
 
-  test('returns null when no failures', () => {
+  test('returns null when no failures', async () => {
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
     fs.writeFileSync(logPath, JSON.stringify({ hook: 'test', decision: 'allow' }) + '\n');
     expect(getHookHealthSummary(planningDir)).toBeNull();
   });
 
-  test('returns summary with failure counts', () => {
+  test('returns summary with failure counts', async () => {
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
     const entries = [
       JSON.stringify({ hook: 'validate-commit', decision: 'block' }),
@@ -140,7 +140,7 @@ describe('getHookHealthSummary', () => {
     expect(result).toContain('check-plan: 1');
   });
 
-  test('returns null for empty log', () => {
+  test('returns null for empty log', async () => {
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
     fs.writeFileSync(logPath, '');
     expect(getHookHealthSummary(planningDir)).toBeNull();
@@ -150,11 +150,11 @@ describe('getHookHealthSummary', () => {
 // --- detectOtherSessions ---
 
 describe('detectOtherSessions', () => {
-  test('returns empty array when no sessions dir', () => {
+  test('returns empty array when no sessions dir', async () => {
     expect(detectOtherSessions(planningDir, 'sess-1')).toEqual([]);
   });
 
-  test('excludes own session', () => {
+  test('excludes own session', async () => {
     const sessionsDir = path.join(planningDir, '.sessions');
     fs.mkdirSync(path.join(sessionsDir, 'sess-1'), { recursive: true });
     fs.mkdirSync(path.join(sessionsDir, 'sess-2'), { recursive: true });
@@ -163,7 +163,7 @@ describe('detectOtherSessions', () => {
     expect(result[0].sessionId).toBe('sess-2');
   });
 
-  test('reads meta.json for age and pid', () => {
+  test('reads meta.json for age and pid', async () => {
     const sessionsDir = path.join(planningDir, '.sessions');
     fs.mkdirSync(path.join(sessionsDir, 'sess-1'), { recursive: true });
     fs.mkdirSync(path.join(sessionsDir, 'sess-2'), { recursive: true });
@@ -176,7 +176,7 @@ describe('detectOtherSessions', () => {
     expect(result[0].pid).toBe(12345);
   });
 
-  test('reads active-skill from session dir', () => {
+  test('reads active-skill from session dir', async () => {
     const sessionsDir = path.join(planningDir, '.sessions');
     fs.mkdirSync(path.join(sessionsDir, 'sess-1'), { recursive: true });
     fs.mkdirSync(path.join(sessionsDir, 'sess-2'), { recursive: true });
@@ -189,19 +189,19 @@ describe('detectOtherSessions', () => {
 // --- getIntelContext ---
 
 describe('getIntelContext', () => {
-  test('returns empty when config disabled', () => {
+  test('returns empty when config disabled', async () => {
     expect(getIntelContext(planningDir, { intel: { enabled: false } })).toBe('');
   });
 
-  test('returns empty when inject_on_start not true', () => {
+  test('returns empty when inject_on_start not true', async () => {
     expect(getIntelContext(planningDir, { intel: { enabled: true, inject_on_start: false } })).toBe('');
   });
 
-  test('returns empty when no arch.md', () => {
+  test('returns empty when no arch.md', async () => {
     expect(getIntelContext(planningDir, { intel: { enabled: true, inject_on_start: true } })).toBe('');
   });
 
-  test('returns content when arch.md exists', () => {
+  test('returns content when arch.md exists', async () => {
     const intelDir = path.join(planningDir, 'intel');
     fs.mkdirSync(intelDir, { recursive: true });
     fs.writeFileSync(path.join(intelDir, 'arch.md'), '# Architecture\nSome content here');
@@ -210,7 +210,7 @@ describe('getIntelContext', () => {
     expect(result).toContain('Some content here');
   });
 
-  test('truncates long content', () => {
+  test('truncates long content', async () => {
     const intelDir = path.join(planningDir, 'intel');
     fs.mkdirSync(intelDir, { recursive: true });
     fs.writeFileSync(path.join(intelDir, 'arch.md'), 'x'.repeat(3000));
@@ -223,13 +223,13 @@ describe('getIntelContext', () => {
 // --- buildEnhancedBriefing ---
 
 describe('buildEnhancedBriefing', () => {
-  test('returns null when not enabled', () => {
+  test('returns null when not enabled', async () => {
     expect(buildEnhancedBriefing(planningDir, null)).toBeNull();
     expect(buildEnhancedBriefing(planningDir, {})).toBeNull();
     expect(buildEnhancedBriefing(planningDir, { features: {} })).toBeNull();
   });
 
-  test('returns briefing when enabled', () => {
+  test('returns briefing when enabled', async () => {
     // Need git repo for git context
     const { execSync } = require('child_process');
     try { execSync('git init', { cwd: tmpDir, stdio: 'pipe' }); } catch (_e) { /* ok */ }
@@ -245,7 +245,7 @@ describe('buildEnhancedBriefing', () => {
 // --- buildContext ---
 
 describe('buildContext', () => {
-  test('produces output when STATE.md exists', () => {
+  test('produces output when STATE.md exists', async () => {
     const { execSync } = require('child_process');
     try { execSync('git init', { cwd: tmpDir, stdio: 'pipe' }); } catch (_e) { /* ok */ }
     try { execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'pipe' }); } catch (_e) { /* ok */ }
@@ -261,7 +261,7 @@ describe('buildContext', () => {
     expect(result).toContain('PBR WORKFLOW REQUIRED');
   });
 
-  test('handles missing STATE.md', () => {
+  test('handles missing STATE.md', async () => {
     const { execSync } = require('child_process');
     try { execSync('git init', { cwd: tmpDir, stdio: 'pipe' }); } catch (_e) { /* ok */ }
     try { execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'pipe' }); } catch (_e) { /* ok */ }
@@ -276,7 +276,7 @@ describe('buildContext', () => {
 // --- checkLearningsDeferrals ---
 
 describe('checkLearningsDeferrals', () => {
-  test('returns empty array when no learnings', () => {
+  test('returns empty array when no learnings', async () => {
     const result = checkLearningsDeferrals(planningDir);
     expect(Array.isArray(result)).toBe(true);
   });
@@ -285,15 +285,15 @@ describe('checkLearningsDeferrals', () => {
 // --- getDecisionBriefing ---
 
 describe('getDecisionBriefing', () => {
-  test('returns empty when feature disabled', () => {
+  test('returns empty when feature disabled', async () => {
     expect(getDecisionBriefing(planningDir, { features: {} })).toBe('');
   });
 
-  test('returns empty when no decisions dir', () => {
+  test('returns empty when no decisions dir', async () => {
     expect(getDecisionBriefing(planningDir, { features: { decision_journal: true } })).toBe('');
   });
 
-  test('returns briefing when active decisions exist', () => {
+  test('returns briefing when active decisions exist', async () => {
     const config = { features: { decision_journal: true } };
     const decisionsDir = path.join(planningDir, 'decisions');
     fs.mkdirSync(decisionsDir, { recursive: true });
@@ -315,11 +315,11 @@ Details here.
 // --- getNegativeKnowledgeBriefing ---
 
 describe('getNegativeKnowledgeBriefing', () => {
-  test('returns empty when feature disabled', () => {
+  test('returns empty when feature disabled', async () => {
     expect(getNegativeKnowledgeBriefing(planningDir, { features: {} })).toBe('');
   });
 
-  test('returns empty when no working set and no state', () => {
+  test('returns empty when no working set and no state', async () => {
     expect(getNegativeKnowledgeBriefing(planningDir, { features: { negative_knowledge: true } })).toBe('');
   });
 });
@@ -327,7 +327,7 @@ describe('getNegativeKnowledgeBriefing', () => {
 // --- Constants ---
 
 describe('FAILURE_DECISIONS', () => {
-  test('matches all expected failure types', () => {
+  test('matches all expected failure types', async () => {
     expect(FAILURE_DECISIONS.test('block')).toBe(true);
     expect(FAILURE_DECISIONS.test('error')).toBe(true);
     expect(FAILURE_DECISIONS.test('warn')).toBe(true);
@@ -341,7 +341,7 @@ describe('FAILURE_DECISIONS', () => {
 });
 
 describe('HOOK_HEALTH_MAX_ENTRIES', () => {
-  test('is 50', () => {
+  test('is 50', async () => {
     expect(HOOK_HEALTH_MAX_ENTRIES).toBe(50);
   });
 });

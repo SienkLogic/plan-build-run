@@ -10,7 +10,7 @@ function strip(str) {
 
 describe('status-line.js', () => {
   describe('buildStatusLine', () => {
-    test('builds full status line from complete STATE.md', () => {
+    test('builds full status line from complete STATE.md', async () => {
       const content = 'Phase: 3 of 10 (building)\nPlan: 2 of 4\nStatus: building';
       const result = strip(buildStatusLine(content, 45));
       expect(result).toContain('\u25C6 PBR');
@@ -20,28 +20,28 @@ describe('status-line.js', () => {
       expect(result).toContain('45%');
     });
 
-    test('includes phase info only', () => {
+    test('includes phase info only', async () => {
       const content = 'Phase: 1 of 5';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('PBR');
       expect(result).toContain('Phase 1/5');
     });
 
-    test('includes plan info', () => {
+    test('includes plan info', async () => {
       const content = 'Phase: 2 of 8\nPlan: 1 of 3';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Phase 2/8');
       expect(result).toContain('Plan 1/3');
     });
 
-    test('colors completed plans green', () => {
+    test('colors completed plans green', async () => {
       const content = 'Phase: 2 of 8\nPlan: 3 of 3';
       const raw = buildStatusLine(content, null);
       // Green ANSI before "Plan 3/3"
       expect(raw).toContain('\x1b[32mPlan 3/3');
     });
 
-    test('adds context bar when percentage provided', () => {
+    test('adds context bar when percentage provided', async () => {
       const content = 'Phase: 1 of 5';
       const result = strip(buildStatusLine(content, 60));
       expect(result).toContain('60%');
@@ -49,37 +49,37 @@ describe('status-line.js', () => {
       expect(result).toMatch(/[\u2588\u2591]/);
     });
 
-    test('omits context bar when ctxPercent is null', () => {
+    test('omits context bar when ctxPercent is null', async () => {
       const content = 'Phase: 1 of 5';
       const result = strip(buildStatusLine(content, null));
       expect(result).not.toContain('%');
       expect(result).not.toMatch(/[\u2588\u2591]/);
     });
 
-    test('shows brand even with empty content', () => {
+    test('shows brand even with empty content', async () => {
       const result = strip(buildStatusLine('', null));
       expect(result).toContain('\u25C6 PBR');
     });
 
-    test('shows brand even with no parseable fields', () => {
+    test('shows brand even with no parseable fields', async () => {
       const result = strip(buildStatusLine('Just some random text', null));
       expect(result).toContain('\u25C6 PBR');
     });
 
-    test('includes phase name as separate section', () => {
+    test('includes phase name as separate section', async () => {
       const content = 'Phase: 3 of 10 (API layer)';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Phase 3/10');
       expect(result).toContain('API layer');
     });
 
-    test('includes status text', () => {
+    test('includes status text', async () => {
       const content = 'Phase: 1 of 5\nStatus: verified';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('verified');
     });
 
-    test('truncates long status text', () => {
+    test('truncates long status text', async () => {
       const longStatus = 'a'.repeat(60);
       const content = `Phase: 1 of 5\nStatus: ${longStatus}`;
       const result = strip(buildStatusLine(content, null));
@@ -88,13 +88,13 @@ describe('status-line.js', () => {
       expect(result).not.toContain(longStatus);
     });
 
-    test('uses pipe separator between sections', () => {
+    test('uses pipe separator between sections', async () => {
       const content = 'Phase: 2 of 8\nPlan: 1 of 3';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('\u2502');
     });
 
-    test('status with no phase still shows PBR brand', () => {
+    test('status with no phase still shows PBR brand', async () => {
       const content = 'Status: idle';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('\u25C6 PBR');
@@ -103,72 +103,72 @@ describe('status-line.js', () => {
   });
 
   describe('buildContextBar', () => {
-    test('returns empty string for zero width', () => {
+    test('returns empty string for zero width', async () => {
       expect(buildContextBar(50, 0)).toBe('');
     });
 
-    test('builds bar of correct character count', () => {
+    test('builds bar of correct character count', async () => {
       const bar = strip(buildContextBar(50, 10));
       // 10 characters total (filled + empty)
       expect(bar).toHaveLength(10);
     });
 
-    test('all filled at 100%', () => {
+    test('all filled at 100%', async () => {
       const bar = strip(buildContextBar(100, 10));
       expect(bar).toBe('\u2588'.repeat(10));
     });
 
-    test('all empty at 0%', () => {
+    test('all empty at 0%', async () => {
       const bar = strip(buildContextBar(0, 10));
       expect(bar).toBe('\u2591'.repeat(10));
     });
 
-    test('green color below 70%', () => {
+    test('green color below 70%', async () => {
       const bar = buildContextBar(50, 10);
       expect(bar).toContain('\x1b[1;32m'); // boldGreen
     });
 
-    test('yellow color at 70-89%', () => {
+    test('yellow color at 70-89%', async () => {
       const bar = buildContextBar(75, 10);
       expect(bar).toContain('\x1b[1;33m'); // boldYellow
     });
 
-    test('red color at 90%+', () => {
+    test('red color at 90%+', async () => {
       const bar = buildContextBar(95, 10);
       expect(bar).toContain('\x1b[1;31m'); // boldRed
     });
   });
 
   describe('getContextPercent', () => {
-    test('returns percentage from context_window.used_percentage', () => {
+    test('returns percentage from context_window.used_percentage', async () => {
       expect(getContextPercent({ context_window: { used_percentage: 45.2 } })).toBe(45);
     });
 
-    test('rounds context_window percentage', () => {
+    test('rounds context_window percentage', async () => {
       expect(getContextPercent({ context_window: { used_percentage: 33.7 } })).toBe(34);
     });
 
-    test('returns percentage from legacy context_usage_fraction', () => {
+    test('returns percentage from legacy context_usage_fraction', async () => {
       expect(getContextPercent({ context_usage_fraction: 0.45 })).toBe(45);
     });
 
-    test('rounds legacy fraction', () => {
+    test('rounds legacy fraction', async () => {
       expect(getContextPercent({ context_usage_fraction: 0.333 })).toBe(33);
     });
 
-    test('handles 0 fraction', () => {
+    test('handles 0 fraction', async () => {
       expect(getContextPercent({ context_usage_fraction: 0 })).toBe(0);
     });
 
-    test('returns null when no context data available', () => {
+    test('returns null when no context data available', async () => {
       expect(getContextPercent({})).toBeNull();
     });
 
-    test('returns null for empty object', () => {
+    test('returns null for empty object', async () => {
       expect(getContextPercent({})).toBeNull();
     });
 
-    test('prefers context_window over legacy fraction', () => {
+    test('prefers context_window over legacy fraction', async () => {
       expect(getContextPercent({
         context_window: { used_percentage: 60 },
         context_usage_fraction: 0.5
@@ -178,7 +178,7 @@ describe('status-line.js', () => {
 
   describe('config-driven customization', () => {
     describe('DEFAULTS', () => {
-      test('has all expected keys', () => {
+      test('has all expected keys', async () => {
         expect(DEFAULTS).toHaveProperty('sections');
         expect(DEFAULTS).toHaveProperty('brand_text');
         expect(DEFAULTS).toHaveProperty('max_status_length');
@@ -192,13 +192,13 @@ describe('status-line.js', () => {
         expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'agent', 'git', 'hooks', 'context', 'llm']);
       });
 
-      test('default brand text is diamond PBR', () => {
+      test('default brand text is diamond PBR', async () => {
         expect(DEFAULTS.brand_text).toBe('\u25C6 PBR');
       });
     });
 
     describe('buildStatusLine with config', () => {
-      test('uses default config when none provided', () => {
+      test('uses default config when none provided', async () => {
         const content = 'Phase: 3 of 10 (building)\nPlan: 2 of 4\nStatus: building';
         const result = strip(buildStatusLine(content, 45));
         expect(result).toContain('\u25C6 PBR');
@@ -208,7 +208,7 @@ describe('status-line.js', () => {
         expect(result).toContain('45%');
       });
 
-      test('custom brand text replaces default', () => {
+      test('custom brand text replaces default', async () => {
         const cfg = { ...DEFAULTS, brand_text: 'MY PROJECT' };
         const content = 'Phase: 1 of 5';
         const result = strip(buildStatusLine(content, null, cfg));
@@ -216,7 +216,7 @@ describe('status-line.js', () => {
         expect(result).not.toContain('Plan-Build-Run');
       });
 
-      test('filtering sections hides plan', () => {
+      test('filtering sections hides plan', async () => {
         const cfg = { ...DEFAULTS, sections: ['phase', 'status', 'context'] };
         const content = 'Phase: 2 of 8\nPlan: 1 of 3\nStatus: building';
         const result = strip(buildStatusLine(content, 50, cfg));
@@ -226,7 +226,7 @@ describe('status-line.js', () => {
         expect(result).toContain('50%');
       });
 
-      test('filtering sections hides status', () => {
+      test('filtering sections hides status', async () => {
         const cfg = { ...DEFAULTS, sections: ['phase', 'plan'] };
         const content = 'Phase: 2 of 8\nPlan: 1 of 3\nStatus: building';
         const result = strip(buildStatusLine(content, 50, cfg));
@@ -236,7 +236,7 @@ describe('status-line.js', () => {
         expect(result).not.toContain('50%');
       });
 
-      test('filtering sections hides context bar', () => {
+      test('filtering sections hides context bar', async () => {
         const cfg = { ...DEFAULTS, sections: ['phase'] };
         const content = 'Phase: 1 of 5\nStatus: verified';
         const result = strip(buildStatusLine(content, 80, cfg));
@@ -245,14 +245,14 @@ describe('status-line.js', () => {
         expect(result).not.toContain('verified');
       });
 
-      test('empty sections list returns null', () => {
+      test('empty sections list returns null', async () => {
         const cfg = { ...DEFAULTS, sections: [] };
         const content = 'Phase: 1 of 5';
         const result = buildStatusLine(content, 50, cfg);
         expect(result).toBeNull();
       });
 
-      test('custom max_status_length truncates at different length', () => {
+      test('custom max_status_length truncates at different length', async () => {
         const cfg = { ...DEFAULTS, max_status_length: 20 };
         const longStatus = 'a'.repeat(30);
         const content = `Phase: 1 of 5\nStatus: ${longStatus}`;
@@ -262,14 +262,14 @@ describe('status-line.js', () => {
         expect(result).not.toContain(longStatus);
       });
 
-      test('short status within max_status_length is not truncated', () => {
+      test('short status within max_status_length is not truncated', async () => {
         const cfg = { ...DEFAULTS, max_status_length: 100 };
         const content = 'Phase: 1 of 5\nStatus: building tests';
         const result = strip(buildStatusLine(content, null, cfg));
         expect(result).toContain('building tests');
       });
 
-      test('custom context bar width', () => {
+      test('custom context bar width', async () => {
         const cfg = {
           ...DEFAULTS,
           context_bar: { ...DEFAULTS.context_bar, width: 20 }
@@ -284,7 +284,7 @@ describe('status-line.js', () => {
     });
 
     describe('buildContextBar with config opts', () => {
-      test('custom thresholds shift color boundaries', () => {
+      test('custom thresholds shift color boundaries', async () => {
         // With thresholds green=50, yellow=75: 60% should be yellow
         const bar = buildContextBar(60, 10, {
           thresholds: { green: 50, yellow: 75 },
@@ -293,7 +293,7 @@ describe('status-line.js', () => {
         expect(bar).toContain('\x1b[1;33m'); // boldYellow
       });
 
-      test('custom thresholds: below green is green', () => {
+      test('custom thresholds: below green is green', async () => {
         const bar = buildContextBar(30, 10, {
           thresholds: { green: 50, yellow: 75 },
           chars: DEFAULTS.context_bar.chars
@@ -301,7 +301,7 @@ describe('status-line.js', () => {
         expect(bar).toContain('\x1b[1;32m'); // boldGreen
       });
 
-      test('custom thresholds: above yellow is red', () => {
+      test('custom thresholds: above yellow is red', async () => {
         const bar = buildContextBar(80, 10, {
           thresholds: { green: 50, yellow: 75 },
           chars: DEFAULTS.context_bar.chars
@@ -309,7 +309,7 @@ describe('status-line.js', () => {
         expect(bar).toContain('\x1b[1;31m'); // boldRed
       });
 
-      test('custom bar characters', () => {
+      test('custom bar characters', async () => {
         const bar = strip(buildContextBar(50, 10, {
           thresholds: DEFAULTS.context_bar.thresholds,
           chars: { filled: '#', empty: '-' }
@@ -319,7 +319,7 @@ describe('status-line.js', () => {
         expect(bar).toHaveLength(10);
       });
 
-      test('falls back to defaults when opts not provided', () => {
+      test('falls back to defaults when opts not provided', async () => {
         const bar = strip(buildContextBar(50, 10));
         expect(bar).toHaveLength(10);
         expect(bar).toMatch(/[\u2588\u2591]/);
@@ -344,12 +344,12 @@ describe('status-line.js', () => {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       });
 
-      test('returns DEFAULTS when no config.json exists', () => {
+      test('returns DEFAULTS when no config.json exists', async () => {
         const result = loadStatusLineConfig(tmpDir);
         expect(result).toEqual(DEFAULTS);
       });
 
-      test('returns DEFAULTS when config.json has no status_line section', () => {
+      test('returns DEFAULTS when config.json has no status_line section', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           features: { status_line: true }
@@ -366,7 +366,7 @@ describe('status-line.js', () => {
         expect(result).toHaveProperty('context_bar.chars.empty');
       });
 
-      test('merges partial status_line config with defaults', () => {
+      test('merges partial status_line config with defaults', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           status_line: {
@@ -380,7 +380,7 @@ describe('status-line.js', () => {
         expect(result.context_bar).toHaveProperty('width');
       });
 
-      test('overrides sections from config', () => {
+      test('overrides sections from config', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           status_line: {
@@ -391,7 +391,7 @@ describe('status-line.js', () => {
         expect(result.sections).toEqual(['phase', 'context']);
       });
 
-      test('overrides context_bar.width from config', () => {
+      test('overrides context_bar.width from config', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           status_line: {
@@ -405,7 +405,7 @@ describe('status-line.js', () => {
         expect(result.context_bar.chars).toHaveProperty('filled');
       });
 
-      test('overrides context_bar.thresholds partially', () => {
+      test('overrides context_bar.thresholds partially', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           status_line: {
@@ -420,7 +420,7 @@ describe('status-line.js', () => {
         expect(typeof result.context_bar.width).toBe('number');
       });
 
-      test('overrides context_bar.chars', () => {
+      test('overrides context_bar.chars', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           status_line: {
@@ -434,7 +434,7 @@ describe('status-line.js', () => {
         expect(result.context_bar.chars.empty).toBe('.');
       });
 
-      test('overrides max_status_length', () => {
+      test('overrides max_status_length', async () => {
         fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
           version: 2,
           status_line: { max_status_length: 100 }
@@ -448,7 +448,7 @@ describe('status-line.js', () => {
   describe('getGitInfo', () => {
     const cp = require('child_process');
 
-    test('returns branch and dirty false for clean repo', () => {
+    test('returns branch and dirty false for clean repo', async () => {
       const spy = jest.spyOn(cp, 'execSync');
       spy.mockImplementation((cmd) => {
         if (cmd.includes('branch --show-current')) return 'main\n';
@@ -460,7 +460,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('returns dirty true when porcelain has output', () => {
+    test('returns dirty true when porcelain has output', async () => {
       const spy = jest.spyOn(cp, 'execSync');
       spy.mockImplementation((cmd) => {
         if (cmd.includes('branch --show-current')) return 'feature/x\n';
@@ -472,7 +472,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('returns null when not in a git repo', () => {
+    test('returns null when not in a git repo', async () => {
       const spy = jest.spyOn(cp, 'execSync').mockImplementation(() => {
         throw new Error('not a git repo');
       });
@@ -481,7 +481,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('returns null when branch is empty', () => {
+    test('returns null when branch is empty', async () => {
       const spy = jest.spyOn(cp, 'execSync').mockImplementation((cmd) => {
         if (cmd.includes('branch --show-current')) return '\n';
         return '';
@@ -493,23 +493,23 @@ describe('status-line.js', () => {
   });
 
   describe('formatDuration', () => {
-    test('formats minutes only', () => {
+    test('formats minutes only', async () => {
       expect(formatDuration(720000)).toBe('12m');
     });
 
-    test('formats hours and minutes', () => {
+    test('formats hours and minutes', async () => {
       expect(formatDuration(4980000)).toBe('1h23m');
     });
 
-    test('formats hours with no minutes', () => {
+    test('formats hours with no minutes', async () => {
       expect(formatDuration(7200000)).toBe('2h');
     });
 
-    test('formats zero as 0m', () => {
+    test('formats zero as 0m', async () => {
       expect(formatDuration(0)).toBe('0m');
     });
 
-    test('formats sub-minute as 0m', () => {
+    test('formats sub-minute as 0m', async () => {
       expect(formatDuration(30000)).toBe('0m');
     });
   });
@@ -517,7 +517,7 @@ describe('status-line.js', () => {
   describe('buildStatusLine with git section', () => {
     const cp = require('child_process');
 
-    test('includes git branch when git section is configured', () => {
+    test('includes git branch when git section is configured', async () => {
       const spy = jest.spyOn(cp, 'execSync');
       spy.mockImplementation((cmd) => {
         if (cmd.includes('branch --show-current')) return 'main\n';
@@ -531,7 +531,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('shows dirty indicator', () => {
+    test('shows dirty indicator', async () => {
       const spy = jest.spyOn(cp, 'execSync');
       spy.mockImplementation((cmd) => {
         if (cmd.includes('branch --show-current')) return 'dev\n';
@@ -546,7 +546,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('omits git when not in sections', () => {
+    test('omits git when not in sections', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase'] };
       const result = strip(buildStatusLine(content, null, cfg));
@@ -555,7 +555,7 @@ describe('status-line.js', () => {
   });
 
   describe('parseFrontmatter', () => {
-    test('parses standard frontmatter fields', () => {
+    test('parses standard frontmatter fields', async () => {
       const content = '---\ncurrent_phase: 23\nphase_name: "Quality & Gap Closure"\nstatus: "planned"\n---\n# Body';
       const fm = parseFrontmatter(content);
       expect(fm.current_phase).toBe('23');
@@ -563,21 +563,21 @@ describe('status-line.js', () => {
       expect(fm.status).toBe('planned');
     });
 
-    test('returns null for content without frontmatter', () => {
+    test('returns null for content without frontmatter', async () => {
       expect(parseFrontmatter('# Just a heading')).toBeNull();
     });
 
-    test('returns null for unclosed frontmatter', () => {
+    test('returns null for unclosed frontmatter', async () => {
       expect(parseFrontmatter('---\nfoo: bar\n')).toBeNull();
     });
 
-    test('handles Windows line endings', () => {
+    test('handles Windows line endings', async () => {
       const content = '---\r\ncurrent_phase: 5\r\n---\r\n# Body';
       const fm = parseFrontmatter(content);
       expect(fm.current_phase).toBe('5');
     });
 
-    test('skips YAML null values', () => {
+    test('skips YAML null values', async () => {
       const content = '---\ncurrent_phase: null\nphase_slug: null\nstatus: "milestone_complete"\n---\n# Body';
       const fm = parseFrontmatter(content);
       expect(fm.current_phase).toBeUndefined();
@@ -585,7 +585,7 @@ describe('status-line.js', () => {
       expect(fm.status).toBe('milestone_complete');
     });
 
-    test('skips empty values', () => {
+    test('skips empty values', async () => {
       const content = '---\ncurrent_phase: \nstatus: building\n---\n# Body';
       const fm = parseFrontmatter(content);
       expect(fm.current_phase).toBeUndefined();
@@ -594,7 +594,7 @@ describe('status-line.js', () => {
   });
 
   describe('buildStatusLine between milestones (null phases)', () => {
-    test('shows only brand when all frontmatter phase fields are null', () => {
+    test('shows only brand when all frontmatter phase fields are null', async () => {
       const content = '---\ncurrent_phase: null\nphase_slug: null\nphase_name: null\nstatus: "milestone_complete"\nplans_total: 17\nplans_complete: 17\n---\n# State\nPhase: (none)';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('\u25C6 PBR');
@@ -603,7 +603,7 @@ describe('status-line.js', () => {
       expect(result).toContain('milestone_complete');
     });
 
-    test('shows plan count when plans_complete and plans_total are valid numbers', () => {
+    test('shows plan count when plans_complete and plans_total are valid numbers', async () => {
       const content = '---\ncurrent_phase: null\nstatus: "milestone_complete"\nplans_total: 17\nplans_complete: 17\n---\n# State';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Plan 17/17');
@@ -611,7 +611,7 @@ describe('status-line.js', () => {
   });
 
   describe('buildStatusLine prefers frontmatter over body', () => {
-    test('uses frontmatter phase when body is stale', () => {
+    test('uses frontmatter phase when body is stale', async () => {
       const content = '---\ncurrent_phase: 23\nphase_name: "Quality & Gap Closure"\nstatus: "planned"\nplans_complete: 0\nplans_total: 12\n---\n# State\n\nPhase: 20 of 23 (Agent Definition Audit)\nStatus: Not Started';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Phase 23/23');
@@ -620,45 +620,45 @@ describe('status-line.js', () => {
       expect(result).not.toContain('Agent Definition Audit');
     });
 
-    test('uses frontmatter status when body is stale', () => {
+    test('uses frontmatter status when body is stale', async () => {
       const content = '---\ncurrent_phase: 23\nstatus: "planned"\n---\n# State\n\nPhase: 20 of 23\nStatus: Not Started';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('planned');
     });
 
-    test('uses frontmatter plan counts over body', () => {
+    test('uses frontmatter plan counts over body', async () => {
       const content = '---\ncurrent_phase: 5\nplans_complete: 3\nplans_total: 5\n---\n# State\n\nPhase: 5 of 10\nPlan: 1 of 2';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Plan 3/5');
       expect(result).not.toContain('Plan 1/2');
     });
 
-    test('falls back to body when no frontmatter', () => {
+    test('falls back to body when no frontmatter', async () => {
       const content = 'Phase: 3 of 10 (building)\nPlan: 2 of 4\nStatus: building';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Phase 3/10');
       expect(result).toContain('Plan 2/4');
     });
 
-    test('hides plan section when frontmatter plans_total is 0', () => {
+    test('hides plan section when frontmatter plans_total is 0', async () => {
       const content = '---\ncurrent_phase: 23\nplans_complete: 0\nplans_total: 0\n---\n# State\n\nPhase: 23 of 23';
       const result = strip(buildStatusLine(content, null));
       expect(result).not.toMatch(/Plan \d+\/\d+/);
     });
 
-    test('uses phase_slug from frontmatter when phase_name is absent', () => {
+    test('uses phase_slug from frontmatter when phase_name is absent', async () => {
       const content = '---\ncurrent_phase: 75\nphase_slug: "schema-alignment"\nstatus: "built"\nplans_complete: 3\nplans_total: 5\n---\n# State\n\nPhase: 75 of 39 (Schema Alignment)\nStatus: Built';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Schema Alignment');
     });
 
-    test('formats phase_slug hyphens as title-cased words', () => {
+    test('formats phase_slug hyphens as title-cased words', async () => {
       const content = '---\ncurrent_phase: 10\nphase_slug: "http-hook-server"\nstatus: "building"\n---\n# State\n\nPhase: 10 of 20';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Http Hook Server');
     });
 
-    test('prefers phase_name over phase_slug when both exist', () => {
+    test('prefers phase_name over phase_slug when both exist', async () => {
       const content = '---\ncurrent_phase: 5\nphase_name: "Custom Name"\nphase_slug: "custom-name"\nstatus: "planned"\n---\n# State\n\nPhase: 5 of 10';
       const result = strip(buildStatusLine(content, null));
       expect(result).toContain('Custom Name');
@@ -666,7 +666,7 @@ describe('status-line.js', () => {
   });
 
   describe('buildStatusLine with cost/model/duration', () => {
-    test('shows cost from stdinData', () => {
+    test('shows cost from stdinData', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'cost'] };
       const sd = { cost: { total_cost_usd: 0.42 } };
@@ -674,7 +674,7 @@ describe('status-line.js', () => {
       expect(result).toContain('$0.42');
     });
 
-    test('shows model name from stdinData', () => {
+    test('shows model name from stdinData', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'model'] };
       const sd = { model: { display_name: 'Opus' } };
@@ -682,7 +682,7 @@ describe('status-line.js', () => {
       expect(result).toContain('Opus');
     });
 
-    test('shows duration from stdinData', () => {
+    test('shows duration from stdinData', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'duration'] };
       const sd = { cost: { total_duration_ms: 180000 } };
@@ -690,14 +690,14 @@ describe('status-line.js', () => {
       expect(result).toContain('3m');
     });
 
-    test('omits cost when not in stdinData', () => {
+    test('omits cost when not in stdinData', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'cost'] };
       const result = strip(buildStatusLine(content, null, cfg, {}));
       expect(result).not.toContain('$');
     });
 
-    test('omits model when not in stdinData', () => {
+    test('omits model when not in stdinData', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'model'] };
       const result = strip(buildStatusLine(content, null, cfg, {}));
@@ -705,14 +705,14 @@ describe('status-line.js', () => {
       expect(result).toContain('PBR');
     });
 
-    test('omits duration when not in stdinData', () => {
+    test('omits duration when not in stdinData', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'duration'] };
       const result = strip(buildStatusLine(content, null, cfg, {}));
       expect(result).toContain('PBR');
     });
 
-    test('cost color yellow above $1', () => {
+    test('cost color yellow above $1', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['cost'] };
       const sd = { cost: { total_cost_usd: 2.50 } };
@@ -720,7 +720,7 @@ describe('status-line.js', () => {
       expect(raw).toContain('\x1b[33m$2.50');
     });
 
-    test('cost color red above $5', () => {
+    test('cost color red above $5', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['cost'] };
       const sd = { cost: { total_cost_usd: 7.00 } };
@@ -730,27 +730,27 @@ describe('status-line.js', () => {
   });
 
   describe('formatTokens', () => {
-    test('formats millions with M suffix', () => {
+    test('formats millions with M suffix', async () => {
       expect(formatTokens(1_500_000)).toBe('1.5M');
     });
 
-    test('formats thousands with K suffix', () => {
+    test('formats thousands with K suffix', async () => {
       expect(formatTokens(12_300)).toBe('12.3K');
     });
 
-    test('formats exact million', () => {
+    test('formats exact million', async () => {
       expect(formatTokens(1_000_000)).toBe('1.0M');
     });
 
-    test('formats exact thousand', () => {
+    test('formats exact thousand', async () => {
       expect(formatTokens(1_000)).toBe('1.0K');
     });
 
-    test('formats small numbers without suffix', () => {
+    test('formats small numbers without suffix', async () => {
       expect(formatTokens(500)).toBe('500');
     });
 
-    test('formats zero', () => {
+    test('formats zero', async () => {
       expect(formatTokens(0)).toBe('0');
     });
   });
@@ -763,7 +763,7 @@ describe('status-line.js', () => {
       jest.restoreAllMocks();
     });
 
-    test('shows lifetime-only when no session duration in stdinData', () => {
+    test('shows lifetime-only when no session duration in stdinData', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 2,
@@ -784,7 +784,7 @@ describe('status-line.js', () => {
       expect(lines[1]).not.toContain('lifetime');
     });
 
-    test('shows session stats and lifetime when duration is available', () => {
+    test('shows session stats and lifetime when duration is available', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 2,
@@ -816,7 +816,7 @@ describe('status-line.js', () => {
       expect(lines[1]).toContain('85.0K lifetime');
     });
 
-    test('falls back to lifetime-only when session has zero calls', () => {
+    test('falls back to lifetime-only when session has zero calls', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 0,
@@ -844,7 +844,7 @@ describe('status-line.js', () => {
       expect(lines[1]).not.toContain('lifetime');
     });
 
-    test('uses green color for Local LLM label', () => {
+    test('uses green color for Local LLM label', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 10,
         fallback_count: 0,
@@ -859,7 +859,7 @@ describe('status-line.js', () => {
       expect(raw).toContain('\x1b[32mLocal LLM\x1b[0m');
     });
 
-    test('omits LLM line when no calls', () => {
+    test('omits LLM line when no calls', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 0,
         fallback_count: 0,
@@ -875,7 +875,7 @@ describe('status-line.js', () => {
       expect(result).not.toContain('\n');
     });
 
-    test('omits LLM line when computeLifetimeMetrics throws', () => {
+    test('omits LLM line when computeLifetimeMetrics throws', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockImplementation(() => {
         throw new Error('no log file');
       });
@@ -886,7 +886,7 @@ describe('status-line.js', () => {
       expect(result).not.toContain('\n');
     });
 
-    test('omits LLM line when not in sections array', () => {
+    test('omits LLM line when not in sections array', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 0,
@@ -901,7 +901,7 @@ describe('status-line.js', () => {
       expect(result).not.toContain('Local LLM');
     });
 
-    test('omits LLM line when planningDir is not provided', () => {
+    test('omits LLM line when planningDir is not provided', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 0,
@@ -916,7 +916,7 @@ describe('status-line.js', () => {
       expect(result).not.toContain('Local LLM');
     });
 
-    test('formats large token counts with M suffix on second line', () => {
+    test('formats large token counts with M suffix on second line', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 200,
         fallback_count: 5,
@@ -934,7 +934,7 @@ describe('status-line.js', () => {
       expect(lines[1]).toContain('2.5M saved');
     });
 
-    test('shows session + lifetime with M suffix formatting', () => {
+    test('shows session + lifetime with M suffix formatting', async () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 200,
         fallback_count: 5,
@@ -964,16 +964,16 @@ describe('status-line.js', () => {
   });
 
   describe('DEFAULTS includes new sections', () => {
-    test('default sections include llm', () => {
+    test('default sections include llm', async () => {
       // llm section remains in defaults even though module was removed — renders nothing gracefully
       expect(DEFAULTS.sections).toContain('llm');
     });
 
-    test('default sections do not include milestone', () => {
+    test('default sections do not include milestone', async () => {
       expect(DEFAULTS.sections).not.toContain('milestone');
     });
 
-    test('default sections include hooks', () => {
+    test('default sections include hooks', async () => {
       expect(DEFAULTS.sections).toContain('hooks');
     });
   });
@@ -993,29 +993,29 @@ describe('status-line.js', () => {
       fsMod.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('returns null when no ROADMAP.md exists', () => {
+    test('returns null when no ROADMAP.md exists', async () => {
       expect(getMilestone(tmpDir)).toBeNull();
     });
 
-    test('extracts milestone name from ROADMAP.md', () => {
+    test('extracts milestone name from ROADMAP.md', async () => {
       fsMod.writeFileSync(pathMod.join(tmpDir, 'ROADMAP.md'),
         '# Roadmap\n\n## Milestone: MyApp v1.0\n\n### Phase 1\n');
       expect(getMilestone(tmpDir)).toBe('MyApp v1.0');
     });
 
-    test('skips completed milestones', () => {
+    test('skips completed milestones', async () => {
       fsMod.writeFileSync(pathMod.join(tmpDir, 'ROADMAP.md'),
         '# Roadmap\n\n## Milestone: MyApp v0.9 -- COMPLETED\n\n## Milestone: MyApp v1.0\n\n### Phase 1\n');
       expect(getMilestone(tmpDir)).toBe('MyApp v1.0');
     });
 
-    test('returns null when all milestones are completed', () => {
+    test('returns null when all milestones are completed', async () => {
       fsMod.writeFileSync(pathMod.join(tmpDir, 'ROADMAP.md'),
         '# Roadmap\n\n## Milestone: MyApp v0.9 -- COMPLETED\n\n## Milestone: MyApp v1.0 -- COMPLETED\n');
       expect(getMilestone(tmpDir)).toBeNull();
     });
 
-    test('returns null for ROADMAP.md without milestone header', () => {
+    test('returns null for ROADMAP.md without milestone header', async () => {
       fsMod.writeFileSync(pathMod.join(tmpDir, 'ROADMAP.md'),
         '# Roadmap\n\n## Phase 1\n\nSome content\n');
       expect(getMilestone(tmpDir)).toBeNull();
@@ -1023,12 +1023,12 @@ describe('status-line.js', () => {
   });
 
   describe('isHookServerRunning', () => {
-    test('returns false for a port with no listener', () => {
+    test('returns false for a port with no listener', async () => {
       // Use a random high port that's almost certainly not in use
       expect(isHookServerRunning(59999)).toBe(false);
     });
 
-    test('returns true when a server is listening', () => {
+    test('returns true when a server is listening', async () => {
       const netMod = require('net');
       const server = netMod.createServer();
       server.listen(0); // random available port
@@ -1056,7 +1056,7 @@ describe('status-line.js', () => {
       fsMod.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('shows milestone name in status line', () => {
+    test('shows milestone name in status line', async () => {
       fsMod.writeFileSync(pathMod.join(tmpDir, 'ROADMAP.md'),
         '# Roadmap\n\n## Milestone: PBR v3.0\n\n### Phase 1\n');
       const content = 'Phase: 1 of 5\nStatus: building';
@@ -1066,7 +1066,7 @@ describe('status-line.js', () => {
       expect(result).toContain('Phase 1/5');
     });
 
-    test('shows brand without milestone when no ROADMAP.md', () => {
+    test('shows brand without milestone when no ROADMAP.md', async () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['milestone', 'phase'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
@@ -1076,7 +1076,7 @@ describe('status-line.js', () => {
   });
 
   describe('buildStatusLine with hooks section', () => {
-    test('shows green filled circle with label when hook server is running', () => {
+    test('shows green filled circle with label when hook server is running', async () => {
       const cpMod = require('child_process');
       const spy = jest.spyOn(cpMod, 'execSync').mockReturnValue('1');
       const content = 'Phase: 1 of 5';
@@ -1086,7 +1086,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('shows dim empty circle with label when hook server is stopped', () => {
+    test('shows dim empty circle with label when hook server is stopped', async () => {
       const cpMod = require('child_process');
       const spy = jest.spyOn(cpMod, 'execSync').mockImplementation(() => {
         throw new Error('connection refused');
@@ -1098,7 +1098,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('shows red open circle when circuit breaker is open', () => {
+    test('shows red open circle when circuit breaker is open', async () => {
       const cpMod = require('child_process');
       const fsMod = require('fs');
       const pathMod = require('path');
@@ -1145,15 +1145,15 @@ describe('status-line.js', () => {
       });
     });
 
-    test('returns stopped when server is down and no circuit file', () => {
+    test('returns stopped when server is down and no circuit file', async () => {
       expect(getHookServerStatus(59998)).toBe('stopped');
     });
 
-    test('returns stopped when server is down and no planningDir', () => {
+    test('returns stopped when server is down and no planningDir', async () => {
       expect(getHookServerStatus(59998, null)).toBe('stopped');
     });
 
-    test('returns failed when circuit breaker is open', () => {
+    test('returns failed when circuit breaker is open', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hs-'));
       fsMod.writeFileSync(
         pathMod.join(tmpDir, '.hook-server-circuit.json'),
@@ -1166,7 +1166,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('returns stopped when circuit breaker cooldown expired', () => {
+    test('returns stopped when circuit breaker cooldown expired', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hs-'));
       fsMod.writeFileSync(
         pathMod.join(tmpDir, '.hook-server-circuit.json'),
@@ -1179,7 +1179,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('returns stopped when failures below threshold', () => {
+    test('returns stopped when failures below threshold', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hs-'));
       fsMod.writeFileSync(
         pathMod.join(tmpDir, '.hook-server-circuit.json'),
@@ -1194,7 +1194,7 @@ describe('status-line.js', () => {
   });
 
   describe('plan section display logic', () => {
-    test('shows Plan done/total in green when all plans complete', () => {
+    test('shows Plan done/total in green when all plans complete', async () => {
       const content = 'Phase: 2 of 5\nPlan: 3 of 3';
       const raw = buildStatusLine(content, null, DEFAULTS);
       const result = strip(raw);
@@ -1203,13 +1203,13 @@ describe('status-line.js', () => {
       expect(raw).toContain('\x1b[32mPlan 3/3');
     });
 
-    test('shows Plan done/total when in progress', () => {
+    test('shows Plan done/total when in progress', async () => {
       const content = 'Phase: 2 of 5\nPlan: 1 of 4';
       const result = strip(buildStatusLine(content, null, DEFAULTS));
       expect(result).toContain('Plan 1/4');
     });
 
-    test('shows Plan 0/N when no plans complete', () => {
+    test('shows Plan 0/N when no plans complete', async () => {
       const content = 'Phase: 1 of 5\nPlan: 0 of 3';
       const result = strip(buildStatusLine(content, null, DEFAULTS));
       expect(result).toContain('Plan 0/3');
@@ -1221,12 +1221,12 @@ describe('status-line.js', () => {
     const pathMod = require('path');
     const osMod = require('os');
 
-    test('getVersion reads package.json version', () => {
+    test('getVersion reads package.json version', async () => {
       const ver = getVersion();
       expect(ver).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    test('countTodos returns 0 when no pending dir', () => {
+    test('countTodos returns 0 when no pending dir', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       try {
         expect(countTodos(tmpDir)).toBe(0);
@@ -1235,7 +1235,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('countTodos counts .md files in pending/', () => {
+    test('countTodos counts .md files in pending/', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       const pending = pathMod.join(tmpDir, 'todos', 'pending');
       fsMod.mkdirSync(pending, { recursive: true });
@@ -1249,7 +1249,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('countQuickTasks counts dirs and detects open tasks', () => {
+    test('countQuickTasks counts dirs and detects open tasks', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       const quickDir = pathMod.join(tmpDir, 'quick');
       fsMod.mkdirSync(pathMod.join(quickDir, '001-done'), { recursive: true });
@@ -1264,12 +1264,12 @@ describe('status-line.js', () => {
       }
     });
 
-    test('countHookEntries counts from hooks.json', () => {
+    test('countHookEntries counts from hooks.json', async () => {
       const count = countHookEntries();
       expect(count).toBeGreaterThan(0);
     });
 
-    test('getCoverage reads coverage-summary.json', () => {
+    test('getCoverage reads coverage-summary.json', async () => {
       const cov = getCoverage();
       // May be null if no coverage file, or a number if present
       if (cov !== null) {
@@ -1279,7 +1279,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('getLastTestResult returns null when no cache file', () => {
+    test('getLastTestResult returns null when no cache file', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       try {
         expect(getLastTestResult(tmpDir)).toBeNull();
@@ -1288,7 +1288,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('getLastTestResult reads cached test data', () => {
+    test('getLastTestResult reads cached test data', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       fsMod.writeFileSync(pathMod.join(tmpDir, '.last-test.json'),
         JSON.stringify({ passed: 125, failed: 0, total: 125 }));
@@ -1301,7 +1301,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('getCiStatus returns null when no cache file', () => {
+    test('getCiStatus returns null when no cache file', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       try {
         expect(getCiStatus(tmpDir)).toBeNull();
@@ -1310,7 +1310,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('getCiStatus reads cached CI data', () => {
+    test('getCiStatus reads cached CI data', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       fsMod.writeFileSync(pathMod.join(tmpDir, '.ci-status.json'),
         JSON.stringify({ status: 'pass', branch: 'main' }));
@@ -1328,7 +1328,7 @@ describe('status-line.js', () => {
     const pathMod = require('path');
     const osMod = require('os');
 
-    test('renders dev line with version and quick tasks', () => {
+    test('renders dev line with version and quick tasks', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       const quickDir = pathMod.join(tmpDir, 'quick');
       fsMod.mkdirSync(pathMod.join(quickDir, '001-task'), { recursive: true });
@@ -1343,7 +1343,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('renders test failures in red', () => {
+    test('renders test failures in red', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       fsMod.writeFileSync(pathMod.join(tmpDir, '.last-test.json'),
         JSON.stringify({ passed: 123, failed: 2, total: 125 }));
@@ -1359,7 +1359,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('renders CI pass in green', () => {
+    test('renders CI pass in green', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       fsMod.writeFileSync(pathMod.join(tmpDir, '.ci-status.json'),
         JSON.stringify({ status: 'pass', branch: 'main' }));
@@ -1372,7 +1372,7 @@ describe('status-line.js', () => {
       }
     });
 
-    test('shows todo count when todos exist', () => {
+    test('shows todo count when todos exist', async () => {
       const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
       const pending = pathMod.join(tmpDir, 'todos', 'pending');
       fsMod.mkdirSync(pending, { recursive: true });

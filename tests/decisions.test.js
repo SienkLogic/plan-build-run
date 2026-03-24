@@ -32,34 +32,34 @@ describe('decisions CRUD', () => {
   });
 
   describe('slugify', () => {
-    test('lowercases and replaces non-alphanum with hyphens', () => {
+    test('lowercases and replaces non-alphanum with hyphens', async () => {
       expect(slugify('Use React for UI')).toBe('use-react-for-ui');
     });
 
-    test('trims leading/trailing hyphens', () => {
+    test('trims leading/trailing hyphens', async () => {
       expect(slugify('--hello--')).toBe('hello');
     });
 
-    test('collapses multiple hyphens', () => {
+    test('collapses multiple hyphens', async () => {
       expect(slugify('foo   bar   baz')).toBe('foo-bar-baz');
     });
 
-    test('truncates to 60 chars', () => {
+    test('truncates to 60 chars', async () => {
       const long = 'a'.repeat(100);
       expect(slugify(long).length).toBeLessThanOrEqual(60);
     });
 
-    test('handles empty string', () => {
+    test('handles empty string', async () => {
       expect(slugify('')).toBe('untitled');
     });
 
-    test('handles special characters', () => {
+    test('handles special characters', async () => {
       expect(slugify('Use C++ & Rust!')).toBe('use-c-rust');
     });
   });
 
   describe('recordDecision', () => {
-    test('creates decisions dir if missing', () => {
+    test('creates decisions dir if missing', async () => {
       const decisionsDir = path.join(planningDir, 'decisions');
       expect(fs.existsSync(decisionsDir)).toBe(false);
 
@@ -73,7 +73,7 @@ describe('decisions CRUD', () => {
       expect(fs.existsSync(decisionsDir)).toBe(true);
     });
 
-    test('creates file named {YYYY-MM-DD}-{slug}.md', () => {
+    test('creates file named {YYYY-MM-DD}-{slug}.md', async () => {
       const result = recordDecision(planningDir, {
         decision: 'Use TypeScript',
         rationale: 'Type safety',
@@ -90,7 +90,7 @@ describe('decisions CRUD', () => {
       expect(fs.existsSync(fullPath)).toBe(true);
     });
 
-    test('recorded file has YAML frontmatter with required fields', () => {
+    test('recorded file has YAML frontmatter with required fields', async () => {
       const result = recordDecision(planningDir, {
         decision: 'Use TypeScript',
         rationale: 'Type safety',
@@ -113,7 +113,7 @@ describe('decisions CRUD', () => {
       expect(content).toMatch(/tags:/);
     });
 
-    test('recorded file body contains required sections', () => {
+    test('recorded file body contains required sections', async () => {
       const result = recordDecision(planningDir, {
         decision: 'Use TypeScript',
         rationale: 'Type safety is important',
@@ -136,7 +136,7 @@ describe('decisions CRUD', () => {
       expect(content).toContain('Build step required');
     });
 
-    test('defaults for optional fields', () => {
+    test('defaults for optional fields', async () => {
       const result = recordDecision(planningDir, {
         decision: 'Use defaults',
         rationale: 'Testing defaults',
@@ -154,7 +154,7 @@ describe('decisions CRUD', () => {
       expect(content).toContain('None documented.');
     });
 
-    test('appends -N suffix for duplicate filenames', () => {
+    test('appends -N suffix for duplicate filenames', async () => {
       const opts = {
         decision: 'Same Decision',
         rationale: 'First',
@@ -192,7 +192,7 @@ describe('decisions CRUD', () => {
       });
     });
 
-    test('returns array of decision objects from frontmatter', () => {
+    test('returns array of decision objects from frontmatter', async () => {
       const list = listDecisions(planningDir);
       expect(Array.isArray(list)).toBe(true);
       expect(list.length).toBe(2);
@@ -206,31 +206,31 @@ describe('decisions CRUD', () => {
       expect(list[0]).toHaveProperty('path');
     });
 
-    test('filters by status', () => {
+    test('filters by status', async () => {
       const list = listDecisions(planningDir, { status: 'active' });
       expect(list.length).toBe(2);
     });
 
-    test('filters by phase', () => {
+    test('filters by phase', async () => {
       const list = listDecisions(planningDir, { phase: '05' });
       expect(list.length).toBe(1);
       expect(list[0].decision).toBe('Use React');
     });
 
-    test('filters by tag', () => {
+    test('filters by tag', async () => {
       const list = listDecisions(planningDir, { tag: 'database' });
       expect(list.length).toBe(1);
       expect(list[0].decision).toBe('Use PostgreSQL');
     });
 
-    test('returns empty array when no decisions dir', () => {
+    test('returns empty array when no decisions dir', async () => {
       const { tmp: tmp2, planningDir: pd2 } = makeTmpDir();
       const list = listDecisions(pd2);
       expect(list).toEqual([]);
       cleanup(tmp2);
     });
 
-    test('sorts by date descending', () => {
+    test('sorts by date descending', async () => {
       const list = listDecisions(planningDir);
       // Both created same day, so check order is stable
       expect(list.length).toBe(2);
@@ -238,7 +238,7 @@ describe('decisions CRUD', () => {
   });
 
   describe('getDecision', () => {
-    test('returns full decision content by slug', () => {
+    test('returns full decision content by slug', async () => {
       recordDecision(planningDir, {
         decision: 'Use React',
         rationale: 'Component model',
@@ -253,14 +253,14 @@ describe('decisions CRUD', () => {
       expect(result.path).toContain('use-react.md');
     });
 
-    test('returns null for non-existent slug', () => {
+    test('returns null for non-existent slug', async () => {
       const result = getDecision(planningDir, 'nonexistent');
       expect(result).toBeNull();
     });
   });
 
   describe('supersedeDecision', () => {
-    test('marks old decision as superseded and adds superseded_by', () => {
+    test('marks old decision as superseded and adds superseded_by', async () => {
       recordDecision(planningDir, {
         decision: 'Use React',
         rationale: 'Component model',
@@ -278,7 +278,7 @@ describe('decisions CRUD', () => {
       expect(decision.frontmatter.superseded_by).toBe('use-vue');
     });
 
-    test('returns null for non-existent slug', () => {
+    test('returns null for non-existent slug', async () => {
       const result = supersedeDecision(planningDir, 'nonexistent', 'new-slug');
       expect(result).toBeNull();
     });

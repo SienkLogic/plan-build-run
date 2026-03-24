@@ -48,7 +48,7 @@ function cleanup(tmp) {
 }
 
 describe('getDecisionBriefing', () => {
-  test('includes recent active decisions in briefing output', () => {
+  test('includes recent active decisions in briefing output', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       writeDecisionFile(planningDir, '2026-03-17-use-postgres.md', {
@@ -77,7 +77,7 @@ describe('getDecisionBriefing', () => {
     }
   });
 
-  test('excludes superseded decisions', () => {
+  test('excludes superseded decisions', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       writeDecisionFile(planningDir, '2026-03-17-use-redis.md', {
@@ -105,7 +105,7 @@ describe('getDecisionBriefing', () => {
     }
   });
 
-  test('limits to 5 most recent decisions', () => {
+  test('limits to 5 most recent decisions', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       for (let i = 0; i < 7; i++) {
@@ -134,7 +134,7 @@ describe('getDecisionBriefing', () => {
     }
   });
 
-  test('returns empty string when no decisions exist', () => {
+  test('returns empty string when no decisions exist', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       const result = getDecisionBriefing(planningDir);
@@ -144,7 +144,7 @@ describe('getDecisionBriefing', () => {
     }
   });
 
-  test('returns empty string when features.decision_journal is false', () => {
+  test('returns empty string when features.decision_journal is false', async () => {
     const { tmp, planningDir } = makeTempPlanning({ features: { decision_journal: false } });
     try {
       writeDecisionFile(planningDir, '2026-03-17-some-decision.md', {
@@ -163,7 +163,7 @@ describe('getDecisionBriefing', () => {
     }
   });
 
-  test('truncates long decision titles to 60 chars', () => {
+  test('truncates long decision titles to 60 chars', async () => {
     const { tmp, planningDir } = makeTempPlanning();
     try {
       const longTitle = 'A'.repeat(100);

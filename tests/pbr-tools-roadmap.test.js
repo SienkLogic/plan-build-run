@@ -81,7 +81,7 @@ describe('roadmapAnalyze', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns error when ROADMAP.md missing', () => {
+  test('returns error when ROADMAP.md missing', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     const result = roadmapAnalyze(planningDir);
@@ -110,7 +110,7 @@ describe('roadmapAnalyze', () => {
     expect(p3.depends_on).toContain(2);
   });
 
-  test('disk_status is no_directory when no phase dirs exist', () => {
+  test('disk_status is no_directory when no phase dirs exist', async () => {
     const planningDir = buildFixture(tmpDir);
     const result = roadmapAnalyze(planningDir);
     for (const phase of result.phases) {
@@ -118,7 +118,7 @@ describe('roadmapAnalyze', () => {
     }
   });
 
-  test('disk_status is empty when dir exists but no files', () => {
+  test('disk_status is empty when dir exists but no files', async () => {
     const planningDir = buildFixture(tmpDir);
     createPhaseDir(planningDir, '01-foundation');
     const result = roadmapAnalyze(planningDir);
@@ -126,7 +126,7 @@ describe('roadmapAnalyze', () => {
     expect(p1.disk_status).toBe('empty');
   });
 
-  test('disk_status is planned when PLAN files exist but no summaries', () => {
+  test('disk_status is planned when PLAN files exist but no summaries', async () => {
     const planningDir = buildFixture(tmpDir);
     createPhaseDir(planningDir, '01-foundation', {
       'PLAN-01.md': '---\nplan: "1-01"\n---\n',
@@ -139,7 +139,7 @@ describe('roadmapAnalyze', () => {
     expect(p1.summary_count).toBe(0);
   });
 
-  test('disk_status is partial when some summaries exist', () => {
+  test('disk_status is partial when some summaries exist', async () => {
     const planningDir = buildFixture(tmpDir);
     createPhaseDir(planningDir, '02-authentication', {
       'PLAN-01.md': '---\nplan: "2-01"\n---\n',
@@ -153,7 +153,7 @@ describe('roadmapAnalyze', () => {
     expect(p2.summary_count).toBe(1);
   });
 
-  test('disk_status is complete when all plans have summaries and verification passed', () => {
+  test('disk_status is complete when all plans have summaries and verification passed', async () => {
     const planningDir = buildFixture(tmpDir);
     createPhaseDir(planningDir, '01-foundation', {
       'PLAN-01.md': '---\nplan: "1-01"\n---\n',
@@ -165,14 +165,14 @@ describe('roadmapAnalyze', () => {
     expect(p1.disk_status).toBe('complete');
   });
 
-  test('identifies current_phase and next_phase from STATE.md', () => {
+  test('identifies current_phase and next_phase from STATE.md', async () => {
     const planningDir = buildFixture(tmpDir);
     const result = roadmapAnalyze(planningDir);
     expect(result.current_phase).toBe(2);
     expect(result.next_phase).toBe(3);
   });
 
-  test('computes aggregated stats', () => {
+  test('computes aggregated stats', async () => {
     const planningDir = buildFixture(tmpDir);
     createPhaseDir(planningDir, '01-foundation', {
       'PLAN-01.md': '---\n---\n',
@@ -190,14 +190,14 @@ describe('roadmapAnalyze', () => {
     expect(result.stats.phases_complete).toBeGreaterThanOrEqual(1);
   });
 
-  test('handles ROADMAP.md with \\r\\n line endings', () => {
+  test('handles ROADMAP.md with \\r\\n line endings', async () => {
     const crlfRoadmap = SAMPLE_ROADMAP.replace(/\n/g, '\r\n');
     const planningDir = buildFixture(tmpDir, { roadmap: crlfRoadmap });
     const result = roadmapAnalyze(planningDir);
     expect(result.phases.length).toBe(3);
   });
 
-  test('handles missing STATE.md gracefully', () => {
+  test('handles missing STATE.md gracefully', async () => {
     const planningDir = buildFixture(tmpDir, { state: false });
     const result = roadmapAnalyze(planningDir);
     expect(result.current_phase).toBeNull();
@@ -205,7 +205,7 @@ describe('roadmapAnalyze', () => {
     expect(result.phases.length).toBe(3);
   });
 
-  test('milestone field populated from parent heading', () => {
+  test('milestone field populated from parent heading', async () => {
     const planningDir = buildFixture(tmpDir);
     const result = roadmapAnalyze(planningDir);
     for (const phase of result.phases) {

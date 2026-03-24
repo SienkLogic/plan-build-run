@@ -38,7 +38,7 @@ describe('checkPlanValidationGate', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns null when active skill is not build', () => {
+  test('returns null when active skill is not build', async () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     const result = checkPlanValidationGate({
       tool_input: { subagent_type: 'pbr:executor' }
@@ -46,14 +46,14 @@ describe('checkPlanValidationGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when subagent_type is not pbr:executor', () => {
+  test('returns null when subagent_type is not pbr:executor', async () => {
     const result = checkPlanValidationGate({
       tool_input: { subagent_type: 'pbr:planner' }
     });
     expect(result).toBeNull();
   });
 
-  test('blocks when .plan-check.json is missing (depth: standard)', () => {
+  test('blocks when .plan-check.json is missing (depth: standard)', async () => {
     const result = checkPlanValidationGate({
       tool_input: { subagent_type: 'pbr:executor' }
     });
@@ -62,7 +62,7 @@ describe('checkPlanValidationGate', () => {
     expect(result.reason).toContain('.plan-check.json');
   });
 
-  test('blocks when .plan-check.json has status: issues_found', () => {
+  test('blocks when .plan-check.json has status: issues_found', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
     fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
       status: 'issues_found',
@@ -81,7 +81,7 @@ describe('checkPlanValidationGate', () => {
     expect(result.reason).toContain('blockers');
   });
 
-  test('returns null (allows) when .plan-check.json has status: passed', () => {
+  test('returns null (allows) when .plan-check.json has status: passed', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
     fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
       status: 'passed',
@@ -97,7 +97,7 @@ describe('checkPlanValidationGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns advisory warning (not block) when depth is quick and .plan-check.json missing', () => {
+  test('returns advisory warning (not block) when depth is quick and .plan-check.json missing', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
 
     const result = checkPlanValidationGate({
@@ -109,7 +109,7 @@ describe('checkPlanValidationGate', () => {
     expect(result.warning).toContain('quick');
   });
 
-  test('returns null when .inline-active signal file exists', () => {
+  test('returns null when .inline-active signal file exists', async () => {
     fs.writeFileSync(path.join(planningDir, '.inline-active'), '');
 
     const result = checkPlanValidationGate({
@@ -118,7 +118,7 @@ describe('checkPlanValidationGate', () => {
     expect(result).toBeNull();
   });
 
-  test('blocks when requirements_coverage has uncovered items (depth: standard)', () => {
+  test('blocks when requirements_coverage has uncovered items (depth: standard)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
     fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
       status: 'passed',
@@ -143,7 +143,7 @@ describe('checkPlanValidationGate', () => {
     expect(result.reason).toContain('implements');
   });
 
-  test('returns warning when requirements_coverage has uncovered items (depth: quick)', () => {
+  test('returns warning when requirements_coverage has uncovered items (depth: quick)', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
     const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
     fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
@@ -169,7 +169,7 @@ describe('checkPlanValidationGate', () => {
     expect(result.warning).toContain('REQ-X');
   });
 
-  test('allows when requirements_coverage has zero uncovered items', () => {
+  test('allows when requirements_coverage has zero uncovered items', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
     fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
       status: 'passed',
@@ -191,7 +191,7 @@ describe('checkPlanValidationGate', () => {
     expect(result).toBeNull();
   });
 
-  test('allows when requirements_coverage section is absent (backward compat)', () => {
+  test('allows when requirements_coverage section is absent (backward compat)', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
     fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
       status: 'passed',
@@ -207,7 +207,7 @@ describe('checkPlanValidationGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null on unexpected errors (fail open)', () => {
+  test('returns null on unexpected errors (fail open)', async () => {
     // Remove STATE.md so readCurrentPhase returns null
     fs.unlinkSync(path.join(planningDir, 'STATE.md'));
 

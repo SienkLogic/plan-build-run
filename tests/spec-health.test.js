@@ -52,7 +52,7 @@ describe('Phase 11 health checks', () => {
     return parsed;
   }
 
-  test('validate health output includes phase10 checks', () => {
+  test('validate health output includes phase10 checks', async () => {
     const health = getHealthOutput();
     expect(health).not.toBeNull();
     expect(health.phase10).toBeDefined();
@@ -64,7 +64,7 @@ describe('Phase 11 health checks', () => {
     // were removed with plan-build-run/bin/lib/ deletion
   });
 
-  test('phase10 entries each have name and status', () => {
+  test('phase10 entries each have name and status', async () => {
     const health = getHealthOutput();
     expect(health).not.toBeNull();
     for (const entry of health.phase10) {

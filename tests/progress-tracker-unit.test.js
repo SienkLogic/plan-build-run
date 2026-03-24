@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe('FAILURE_DECISIONS', () => {
-  test('matches expected failure types', () => {
+  test('matches expected failure types', async () => {
     // FAILURE_DECISIONS is a regex
     expect(FAILURE_DECISIONS.test('block')).toBe(true);
     expect(FAILURE_DECISIONS.test('error')).toBe(true);
@@ -44,19 +44,19 @@ describe('FAILURE_DECISIONS', () => {
 });
 
 describe('HOOK_HEALTH_MAX_ENTRIES', () => {
-  test('is a reasonable number', () => {
+  test('is a reasonable number', async () => {
     expect(HOOK_HEALTH_MAX_ENTRIES).toBeGreaterThan(0);
     expect(HOOK_HEALTH_MAX_ENTRIES).toBeLessThan(1000);
   });
 });
 
 describe('getHookHealthSummary', () => {
-  test('returns null when no hooks log', () => {
+  test('returns null when no hooks log', async () => {
     const result = getHookHealthSummary(planningDir);
     expect(result).toBeNull();
   });
 
-  test('returns null when no failures', () => {
+  test('returns null when no failures', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     const entries = [
       JSON.stringify({ hook: 'test', decision: 'allow' }),
@@ -67,7 +67,7 @@ describe('getHookHealthSummary', () => {
     expect(result).toBeNull();
   });
 
-  test('returns summary when failures found', () => {
+  test('returns summary when failures found', async () => {
     // getHookHealthSummary reads from hooks.jsonl (not dated log files)
     const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
     const entries = [
@@ -83,7 +83,7 @@ describe('getHookHealthSummary', () => {
     expect(text).toContain('validate-commit');
   });
 
-  test('identifies multiple failing hooks', () => {
+  test('identifies multiple failing hooks', async () => {
     const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
     const entries = [];
     for (let i = 0; i < 5; i++) {
@@ -98,14 +98,14 @@ describe('getHookHealthSummary', () => {
     expect(text).toContain('validate-commit: 5');
   });
 
-  test('handles malformed jsonl entries', () => {
+  test('handles malformed jsonl entries', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     fs.writeFileSync(hooksLog, 'not json\n{bad\n');
     const result = getHookHealthSummary(planningDir);
     expect(result).toBeNull();
   });
 
-  test('returns null for empty hooks log', () => {
+  test('returns null for empty hooks log', async () => {
     const hooksLog = getHooksLogPath(planningDir);
     fs.writeFileSync(hooksLog, '');
     const result = getHookHealthSummary(planningDir);
@@ -114,14 +114,14 @@ describe('getHookHealthSummary', () => {
 });
 
 describe('checkLearningsDeferrals', () => {
-  test('returns empty array when no learnings', () => {
+  test('returns empty array when no learnings', async () => {
     const result = checkLearningsDeferrals(planningDir);
     expect(Array.isArray(result)).toBe(true);
   });
 });
 
 describe('getEnrichedContext', () => {
-  test('is a function', () => {
+  test('is a function', async () => {
     expect(typeof getEnrichedContext).toBe('function');
   });
 
@@ -136,12 +136,12 @@ describe('getEnrichedContext', () => {
 });
 
 describe('detectOtherSessions', () => {
-  test('returns empty array when no sessions dir', () => {
+  test('returns empty array when no sessions dir', async () => {
     const result = detectOtherSessions(planningDir, 'session-1');
     expect(result).toEqual([]);
   });
 
-  test('returns empty array when only current session exists', () => {
+  test('returns empty array when only current session exists', async () => {
     const sessionsDir = path.join(planningDir, '.sessions');
     fs.mkdirSync(path.join(sessionsDir, 'session-1'), { recursive: true });
     fs.writeFileSync(path.join(sessionsDir, 'session-1', 'info.json'),
@@ -150,7 +150,7 @@ describe('detectOtherSessions', () => {
     expect(result).toEqual([]);
   });
 
-  test('detects other active sessions', () => {
+  test('detects other active sessions', async () => {
     const sessionsDir = path.join(planningDir, '.sessions');
     fs.mkdirSync(path.join(sessionsDir, 'session-1'), { recursive: true });
     fs.mkdirSync(path.join(sessionsDir, 'session-2'), { recursive: true });
@@ -164,7 +164,7 @@ describe('detectOtherSessions', () => {
     expect(result[0].sessionId).toBe('session-2');
   });
 
-  test('handles missing info.json gracefully', () => {
+  test('handles missing info.json gracefully', async () => {
     const sessionsDir = path.join(planningDir, '.sessions');
     fs.mkdirSync(path.join(sessionsDir, 'session-1'), { recursive: true });
     fs.mkdirSync(path.join(sessionsDir, 'session-2'), { recursive: true });

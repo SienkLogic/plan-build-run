@@ -572,7 +572,7 @@ function validateVerification(content, filePath) {
  * Kept separate from checkPlanWrite because STATE.md routing in the
  * dispatcher must happen AFTER roadmap sync.
  */
-function checkStateWrite(data) {
+async function checkStateWrite(data) {
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const basename = path.basename(filePath);
   if (basename !== 'STATE.md') return null;
@@ -582,7 +582,7 @@ function checkStateWrite(data) {
   const result = validateState(content, filePath);
 
   // Auto-fix frontmatter/body drift
-  const bodyFixed = syncStateBody(content, filePath);
+  const bodyFixed = await syncStateBody(content, filePath);
   if (bodyFixed) {
     content = bodyFixed.content;
     result.warnings.push(bodyFixed.message);
@@ -616,7 +616,7 @@ function checkStateWrite(data) {
  * @param {string} filePath - Absolute path to STATE.md
  * @returns {null|{content: string, message: string}} null if in sync, otherwise the fixed content + message
  */
-function syncStateBody(content, filePath) {
+async function syncStateBody(content, filePath) {
   if (!content.startsWith('---')) return null;
   const fmEnd = content.indexOf('---', 3);
   if (fmEnd === -1) return null;
@@ -696,7 +696,7 @@ function syncStateBody(content, filePath) {
   if (drifts.length === 0) return null;
 
   try {
-    lockedFileUpdate(filePath, () => updated);
+    await lockedFileUpdate(filePath, () => updated);
     logHook('check-plan-format', 'PostToolUse', 'body-sync', { drifts });
     return {
       content: updated,

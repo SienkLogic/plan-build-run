@@ -50,7 +50,7 @@ describe('CLI verify chain integration', () => {
     cleanup(tmpDir);
   });
 
-  test('verify plan-structure checks all 7 task elements', () => {
+  test('verify plan-structure checks all 7 task elements', async () => {
     // Plan with all 7 elements
     const fullPlan = [
       '---',
@@ -92,7 +92,7 @@ describe('CLI verify chain integration', () => {
     expect(output.warnings.length).toBe(0);
   });
 
-  test('verify plan-structure warns on missing read_first and acceptance_criteria', () => {
+  test('verify plan-structure warns on missing read_first and acceptance_criteria', async () => {
     // Plan with only 5 elements (missing read_first, acceptance_criteria)
     const partialPlan = [
       '---',
@@ -133,7 +133,7 @@ describe('CLI verify chain integration', () => {
     expect(warningText).toContain('acceptance_criteria');
   });
 
-  test('verify artifacts handles string-format must_haves', () => {
+  test('verify artifacts handles string-format must_haves', async () => {
     // Plan with string-format artifacts (PBR's actual format)
     const plan = [
       '---',
@@ -173,7 +173,7 @@ describe('CLI verify chain integration', () => {
     expect(output.total).toBe(1);
   });
 
-  test('all verify subcommands are accessible via CLI dispatch', () => {
+  test('all verify subcommands are accessible via CLI dispatch', async () => {
     // Each should return a usage error (no args), not "unknown command"
     const commands = [
       'verify summary',

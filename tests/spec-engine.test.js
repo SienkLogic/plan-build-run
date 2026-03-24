@@ -99,7 +99,7 @@ describe('spec-engine', () => {
   });
 
   describe('parsePlanToSpec()', () => {
-    test('extracts YAML frontmatter into structured object', () => {
+    test('extracts YAML frontmatter into structured object', async () => {
       const spec = specEngine.parsePlanToSpec(FIXTURE_PLAN);
       expect(spec.frontmatter).toBeDefined();
       expect(spec.frontmatter.phase).toBe('03-testing');
@@ -107,14 +107,14 @@ describe('spec-engine', () => {
       expect(spec.frontmatter.type).toBe('feature');
     });
 
-    test('extracts all XML task blocks into StructuredTask array', () => {
+    test('extracts all XML task blocks into StructuredTask array', async () => {
       const spec = specEngine.parsePlanToSpec(FIXTURE_PLAN);
       expect(spec.tasks).toBeDefined();
       expect(Array.isArray(spec.tasks)).toBe(true);
       expect(spec.tasks.length).toBe(2);
     });
 
-    test('each StructuredTask has required fields', () => {
+    test('each StructuredTask has required fields', async () => {
       const spec = specEngine.parsePlanToSpec(FIXTURE_PLAN);
       const task = spec.tasks[0];
       expect(task.id).toBe('03-01-T1');
@@ -130,7 +130,7 @@ describe('spec-engine', () => {
       expect(task.done).toBe('Utils module exports mergeConfig function');
     });
 
-    test('handles optional <feature> element', () => {
+    test('handles optional <feature> element', async () => {
       const spec = specEngine.parsePlanToSpec(FIXTURE_PLAN_WITH_FEATURE);
       const task = spec.tasks[0];
       expect(task.feature).toBeDefined();
@@ -148,7 +148,7 @@ describe('spec-engine', () => {
   });
 
   describe('parseTaskXml()', () => {
-    test('parses a single task block', () => {
+    test('parses a single task block', async () => {
       const block = `<task id="01-01-T1" type="auto" tdd="false" complexity="medium">
 <name>Test task</name>
 <files>
@@ -169,7 +169,7 @@ npm test
       expect(task.done).toBe('It works');
     });
 
-    test('handles empty files list', () => {
+    test('handles empty files list', async () => {
       const block = `<task id="01-01-T1" type="auto" tdd="false" complexity="simple">
 <name>Config only</name>
 <files>
@@ -187,7 +187,7 @@ echo ok
       expect(task.files.length).toBe(0);
     });
 
-    test('handles multiline action with nested content', () => {
+    test('handles multiline action with nested content', async () => {
       const block = `<task id="02-01-T1" type="auto" tdd="true" complexity="complex">
 <name>Complex task</name>
 <files>
@@ -214,7 +214,7 @@ npm test
   });
 
   describe('serializeSpec()', () => {
-    test('round-trips: parse then serialize produces equivalent tasks', () => {
+    test('round-trips: parse then serialize produces equivalent tasks', async () => {
       const spec = specEngine.parsePlanToSpec(FIXTURE_PLAN);
       const serialized = specEngine.serializeSpec(spec);
       const reParsed = specEngine.parsePlanToSpec(serialized);

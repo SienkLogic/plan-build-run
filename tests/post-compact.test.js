@@ -10,21 +10,21 @@ const { buildPostCompactContext, resetBudgetTracker, handleHttp } = require('../
 
 let tmpDir;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'post-compact-'));
 });
 
-afterEach(() => {
+afterEach(async () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 describe('buildPostCompactContext', () => {
-  test('returns empty string when STATE.md missing', () => {
+  test('returns empty string when STATE.md missing', async () => {
     const result = buildPostCompactContext(tmpDir);
     expect(result).toBe('');
   });
 
-  test('returns context with phase info', () => {
+  test('returns context with phase info', async () => {
     const stateContent = [
       '---',
       'version: 2',
@@ -46,7 +46,7 @@ describe('buildPostCompactContext', () => {
     expect(result).toContain('Read .planning/STATE.md');
   });
 
-  test('returns context with minimal STATE.md (graceful degradation)', () => {
+  test('returns context with minimal STATE.md (graceful degradation)', async () => {
     const stateContent = '---\n---\n';
     fs.writeFileSync(path.join(tmpDir, 'STATE.md'), stateContent, 'utf8');
 
@@ -59,7 +59,7 @@ describe('buildPostCompactContext', () => {
 });
 
 describe('resetBudgetTracker', () => {
-  test('deletes .context-tracker', () => {
+  test('deletes .context-tracker', async () => {
     const trackerPath = path.join(tmpDir, '.context-tracker');
     fs.writeFileSync(trackerPath, '{"skill":"test","reads":5}', 'utf8');
 
@@ -68,7 +68,7 @@ describe('resetBudgetTracker', () => {
     expect(fs.existsSync(trackerPath)).toBe(false);
   });
 
-  test('deletes .context-ledger.json', () => {
+  test('deletes .context-ledger.json', async () => {
     const ledgerPath = path.join(tmpDir, '.context-ledger.json');
     fs.writeFileSync(ledgerPath, '[{"file":"test.js"}]', 'utf8');
 
@@ -77,7 +77,7 @@ describe('resetBudgetTracker', () => {
     expect(fs.existsSync(ledgerPath)).toBe(false);
   });
 
-  test('handles missing files gracefully', () => {
+  test('handles missing files gracefully', async () => {
     const result = resetBudgetTracker(tmpDir);
     expect(result).toEqual({ trackerReset: false, ledgerReset: true });
     // Should not throw
@@ -85,17 +85,17 @@ describe('resetBudgetTracker', () => {
 });
 
 describe('handleHttp', () => {
-  test('returns null when no planningDir', () => {
+  test('returns null when no planningDir', async () => {
     const result = handleHttp({});
     expect(result).toBeNull();
   });
 
-  test('returns null when STATE.md missing', () => {
+  test('returns null when STATE.md missing', async () => {
     const result = handleHttp({ planningDir: tmpDir });
     expect(result).toBeNull();
   });
 
-  test('returns additionalContext when STATE.md exists', () => {
+  test('returns additionalContext when STATE.md exists', async () => {
     const stateContent = [
       '---',
       'version: 2',

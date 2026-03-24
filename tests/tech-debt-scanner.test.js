@@ -30,7 +30,7 @@ function generateLines(n) {
 }
 
 describe('scanTechDebt', () => {
-  test('returns empty result for empty directory', () => {
+  test('returns empty result for empty directory', async () => {
     const tmp = makeTmpDir();
     try {
       const result = scanTechDebt(tmp);
@@ -40,7 +40,7 @@ describe('scanTechDebt', () => {
     }
   });
 
-  test('detects large JS files exceeding maxLines threshold', () => {
+  test('detects large JS files exceeding maxLines threshold', async () => {
     const tmp = makeTmpDir();
     try {
       writeFile(tmp, 'src/big.js', generateLines(350));
@@ -60,7 +60,7 @@ describe('scanTechDebt', () => {
     }
   });
 
-  test('flags deeply nested files as complexity hotspots', () => {
+  test('flags deeply nested files as complexity hotspots', async () => {
     const tmp = makeTmpDir();
     try {
       // 6 levels deep (> default maxDepth of 5)
@@ -79,7 +79,7 @@ describe('scanTechDebt', () => {
     }
   });
 
-  test('excludes node_modules and .git directories', () => {
+  test('excludes node_modules and .git directories', async () => {
     const tmp = makeTmpDir();
     try {
       writeFile(tmp, 'node_modules/pkg/huge.js', generateLines(500));
@@ -96,7 +96,7 @@ describe('scanTechDebt', () => {
     }
   });
 
-  test('respects options.limit to cap results', () => {
+  test('respects options.limit to cap results', async () => {
     const tmp = makeTmpDir();
     try {
       // Create 8 large files

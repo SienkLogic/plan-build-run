@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe('historyAppend', () => {
-  test('appends to STATE.md existing ## History section', () => {
+  test('appends to STATE.md existing ## History section', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '# State\n\n## Current Position\nPhase 1\n\n## History\n\n### Phase: Setup\n_Completed: 2026-01-01_\n\nDone.\n\n---\n\n');
     const result = historyAppend({ type: 'phase', title: 'Build', body: 'Built it.' }, planningDir);
@@ -30,7 +30,7 @@ describe('historyAppend', () => {
     expect(content).toContain('Build');
   });
 
-  test('creates ## History section in STATE.md when missing', () => {
+  test('creates ## History section in STATE.md when missing', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State\n\n## Current Position\nPhase 1\n');
     const result = historyAppend({ type: 'milestone', title: 'v1.0', body: 'Shipped.' }, planningDir);
     expect(result.success).toBe(true);
@@ -39,14 +39,14 @@ describe('historyAppend', () => {
     expect(content).toContain('v1.0');
   });
 
-  test('falls back to HISTORY.md when STATE.md missing', () => {
+  test('falls back to HISTORY.md when STATE.md missing', async () => {
     const result = historyAppend({ type: 'phase', title: 'Init', body: 'Started.' }, planningDir);
     expect(result.success).toBe(true);
     expect(result.target).toContain('HISTORY.md');
     expect(fs.existsSync(path.join(planningDir, 'HISTORY.md'))).toBe(true);
   });
 
-  test('appends to existing HISTORY.md', () => {
+  test('appends to existing HISTORY.md', async () => {
     fs.writeFileSync(path.join(planningDir, 'HISTORY.md'), '# Project History\n\nOld entry\n');
     const result = historyAppend({ type: 'phase', title: 'New', body: 'New entry.' }, planningDir);
     expect(result.success).toBe(true);
@@ -54,7 +54,7 @@ describe('historyAppend', () => {
     expect(content).toContain('New');
   });
 
-  test('handles ## History before another section', () => {
+  test('handles ## History before another section', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '# State\n\n## History\n\n### Phase: First\n_Completed: 2026-01-01_\n\nDone.\n\n---\n\n## Session Continuity\nLast session\n');
     const result = historyAppend({ type: 'phase', title: 'Second', body: 'Also done.' }, planningDir);
@@ -66,11 +66,11 @@ describe('historyAppend', () => {
 });
 
 describe('historyLoad', () => {
-  test('returns null when no state or history file', () => {
+  test('returns null when no state or history file', async () => {
     expect(historyLoad(planningDir)).toBeNull();
   });
 
-  test('loads from STATE.md ## History section', () => {
+  test('loads from STATE.md ## History section', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '# State\n\n## History\n\n### Phase: Setup\n_Completed: 2026-01-01_\n\nDone.\n\n---\n\n');
     const result = historyLoad(planningDir);
@@ -80,7 +80,7 @@ describe('historyLoad', () => {
     expect(result.records[0].title).toBe('Setup');
   });
 
-  test('loads from legacy HISTORY.md', () => {
+  test('loads from legacy HISTORY.md', async () => {
     fs.writeFileSync(path.join(planningDir, 'HISTORY.md'),
       '## Phase: Init\n_Completed: 2026-01-01_\n\nStarted.\n\n---\n\n');
     const result = historyLoad(planningDir);
@@ -89,7 +89,7 @@ describe('historyLoad', () => {
     expect(result.records.length).toBe(1);
   });
 
-  test('falls back to HISTORY.md when STATE.md has no ## History', () => {
+  test('falls back to HISTORY.md when STATE.md has no ## History', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State\n\nNo history section here.\n');
     fs.writeFileSync(path.join(planningDir, 'HISTORY.md'),
       '## Phase: Legacy\n_Completed: 2026-01-01_\n\nOld stuff.\n\n---\n\n');
@@ -98,7 +98,7 @@ describe('historyLoad', () => {
     expect(result.source).toContain('HISTORY.md');
   });
 
-  test('loads multiple records', () => {
+  test('loads multiple records', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'),
       '# State\n\n## History\n\n### Phase: First\n_Completed: 2026-01-01_\n\nA.\n\n---\n\n### Milestone: v1.0\n_Completed: 2026-02-01_\n\nB.\n\n---\n\n');
     const result = historyLoad(planningDir);
@@ -107,7 +107,7 @@ describe('historyLoad', () => {
     expect(result.records[1].type).toBe('milestone');
   });
 
-  test('returns empty records when STATE.md has ## History but no records', () => {
+  test('returns empty records when STATE.md has ## History but no records', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State\n\n## History\n\nNothing yet.\n');
     // History section exists but no valid records
     const result = historyLoad(planningDir);

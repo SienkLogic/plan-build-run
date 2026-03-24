@@ -14,12 +14,12 @@ describe('install.js hook registration guards', () => {
     lines = src.split(/\r?\n/);
   });
 
-  test('install.js exists and is readable', () => {
+  test('install.js exists and is readable', async () => {
     expect(fs.existsSync(installJsPath)).toBe(true);
     expect(src.length).toBeGreaterThan(0);
   });
 
-  test('every addHookEntry() call has an fs.existsSync() guard within 15 lines', () => {
+  test('every addHookEntry() call has an fs.existsSync() guard within 15 lines', async () => {
     const unguarded = [];
 
     for (let i = 0; i < lines.length; i++) {
@@ -50,7 +50,7 @@ describe('install.js hook registration guards', () => {
     expect(totalCalls - 1).toBeGreaterThanOrEqual(15);
   });
 
-  test('each unique hook script referenced by directHookCmd has an existsSync check', () => {
+  test('each unique hook script referenced by directHookCmd has an existsSync check', async () => {
     // Extract the hook configuration section
     const startIdx = src.indexOf('// --- SessionStart:');
     const endIdx = src.indexOf('// Legacy pbr-context-monitor');
@@ -101,7 +101,7 @@ describe('install.js hook registration guards', () => {
     expect(uniqueScripts.length).toBeGreaterThanOrEqual(10);
   });
 
-  test('missing hook scripts produce skip warnings', () => {
+  test('missing hook scripts produce skip warnings', async () => {
     let existsSyncGuards = 0;
     let warningMessages = 0;
 
@@ -121,7 +121,7 @@ describe('install.js hook registration guards', () => {
     expect(warningMessages).toBeGreaterThanOrEqual(1);
   });
 
-  test('addHookEntry function validates identifier parameter', () => {
+  test('addHookEntry function validates identifier parameter', async () => {
     // Verify the addHookEntry function exists and takes expected parameters
     const fnMatch = src.match(/function addHookEntry\(([^)]+)\)/);
     expect(fnMatch).not.toBeNull();

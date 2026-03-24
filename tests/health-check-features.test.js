@@ -51,7 +51,7 @@ function parseOutput() {
 }
 
 describe('cmdValidateHealth — feature_status', () => {
-  test('outputs feature_status with enabled features marked healthy', () => {
+  test('outputs feature_status with enabled features marked healthy', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: {
@@ -72,7 +72,7 @@ describe('cmdValidateHealth — feature_status', () => {
     expect(out.feature_status.skip_rag).toEqual({ enabled: false, status: 'disabled' });
   });
 
-  test('outputs disabled status for features set to false', () => {
+  test('outputs disabled status for features set to false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: {
@@ -92,7 +92,7 @@ describe('cmdValidateHealth — feature_status', () => {
     expect(out.feature_status.skip_rag).toEqual({ enabled: false, status: 'disabled' });
   });
 
-  test('defaults enabled when features section is missing', () => {
+  test('defaults enabled when features section is missing', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ orchestrator_budget_pct: 25 }, null, 2));
 
@@ -108,7 +108,7 @@ describe('cmdValidateHealth — feature_status', () => {
     expect(out.feature_status.skip_rag.enabled).toBe(false);
   });
 
-  test('warns when orchestrator_budget_pct is above max (50)', () => {
+  test('warns when orchestrator_budget_pct is above max (50)', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { enhanced_session_start: true },
@@ -126,7 +126,7 @@ describe('cmdValidateHealth — feature_status', () => {
     expect(budgetWarning).toBeDefined();
   });
 
-  test('warns when orchestrator_budget_pct is below min (15)', () => {
+  test('warns when orchestrator_budget_pct is below min (15)', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { enhanced_session_start: true },
@@ -144,7 +144,7 @@ describe('cmdValidateHealth — feature_status', () => {
     expect(budgetWarning).toBeDefined();
   });
 
-  test('each feature_status entry has enabled (boolean) and status (string) fields', () => {
+  test('each feature_status entry has enabled (boolean) and status (string) fields', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: {

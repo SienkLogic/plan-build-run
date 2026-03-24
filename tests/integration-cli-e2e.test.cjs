@@ -47,7 +47,7 @@ describe('CLI: suggest-next', () => {
   let tmpDir;
   afterEach(() => { if (tmpDir) cleanup(tmpDir); });
 
-  test('returns build command for planned phase', () => {
+  test('returns build command for planned phase', async () => {
     tmpDir = createProject({
       state: '---\nstatus: planned\ncurrent_phase: 1\nplans_total: 1\nplans_complete: 0\n---\n',
       roadmap: [
@@ -77,7 +77,7 @@ describe('CLI: suggest-next', () => {
     assert.ok(output.reason, 'should have reason field');
   });
 
-  test('returns review/validate for built phase', () => {
+  test('returns review/validate for built phase', async () => {
     tmpDir = createProject({
       state: '---\nstatus: built\ncurrent_phase: 1\nplans_total: 1\nplans_complete: 1\n---\n',
       roadmap: [
@@ -106,7 +106,7 @@ describe('CLI: suggest-next', () => {
     );
   });
 
-  test('detects milestone boundary for verified phase', () => {
+  test('detects milestone boundary for verified phase', async () => {
     tmpDir = createProject({
       state: '---\nstatus: verified\ncurrent_phase: 2\nplans_total: 1\nplans_complete: 1\n---\n',
       roadmap: [
@@ -137,7 +137,7 @@ describe('CLI: suggest-next', () => {
     assert.ok(output.command, 'should have a command suggestion');
   });
 
-  test('respects config for routing', () => {
+  test('respects config for routing', async () => {
     tmpDir = createProject({
       state: '---\nstatus: planned\ncurrent_phase: 1\nplans_total: 1\nplans_complete: 0\n---\n',
       roadmap: [
@@ -172,7 +172,7 @@ describe('CLI: plan validate', () => {
   let tmpDir;
   afterEach(() => { if (tmpDir) cleanup(tmpDir); });
 
-  test('valid plan returns passed: true', () => {
+  test('valid plan returns passed: true', async () => {
     tmpDir = createProject({
       state: '---\nstatus: planned\ncurrent_phase: 1\n---\n',
       phases: {
@@ -216,7 +216,7 @@ describe('CLI: plan validate', () => {
     assert.strictEqual(output.passed, true, 'valid plan should pass');
   });
 
-  test('invalid plan reports errors with passed: false', () => {
+  test('invalid plan reports errors with passed: false', async () => {
     tmpDir = createProject({
       state: '---\nstatus: planned\ncurrent_phase: 1\n---\n',
       phases: {
@@ -245,7 +245,7 @@ describe('CLI: slug-generate', () => {
   let tmpDir;
   afterEach(() => { if (tmpDir) cleanup(tmpDir); });
 
-  test('basic text converts to slug', () => {
+  test('basic text converts to slug', async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cli-e2e-'));
     const result = runPbrTools(['slug-generate', 'Hello World Test'], tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -253,7 +253,7 @@ describe('CLI: slug-generate', () => {
     assert.strictEqual(output.slug, 'hello-world-test');
   });
 
-  test('special characters stripped from slug', () => {
+  test('special characters stripped from slug', async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cli-e2e-'));
     const result = runPbrTools(['slug-generate', 'Feature: Add @file support!'], tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
@@ -274,7 +274,7 @@ describe('CLI: @file: fallback for large payloads', () => {
   let tmpDir;
   afterEach(() => { if (tmpDir) cleanup(tmpDir); });
 
-  test('@file: triggers for init command with large state', () => {
+  test('@file: triggers for init command with large state', async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cli-e2e-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'phases'), { recursive: true });

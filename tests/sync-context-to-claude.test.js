@@ -87,32 +87,32 @@ Some overview text.
 `;
 
 describe('extractLockedDecisions', () => {
-  test('extracts locked decisions from CONTEXT.md table', () => {
+  test('extracts locked decisions from CONTEXT.md table', async () => {
     const decisions = extractLockedDecisions(CONTEXT_WITH_DECISIONS);
     expect(decisions).toHaveLength(2);
     expect(decisions[0]).toEqual({ decision: 'Use CommonJS', rationale: 'Cross-platform Node.js compat' });
     expect(decisions[1]).toEqual({ decision: 'Use logHook()', rationale: 'Consistent logging' });
   });
 
-  test('extracts locked decisions with CRLF line endings', () => {
+  test('extracts locked decisions with CRLF line endings', async () => {
     const decisions = extractLockedDecisions(CONTEXT_WITH_DECISIONS_CRLF);
     expect(decisions).toHaveLength(2);
     expect(decisions[0].decision).toBe('Use CommonJS');
   });
 
-  test('returns empty array when Locked Decisions table has no rows', () => {
+  test('returns empty array when Locked Decisions table has no rows', async () => {
     const decisions = extractLockedDecisions(CONTEXT_NO_DECISIONS);
     expect(decisions).toHaveLength(0);
   });
 
-  test('returns empty array when there is no Locked Decisions section', () => {
+  test('returns empty array when there is no Locked Decisions section', async () => {
     const decisions = extractLockedDecisions(CONTEXT_NO_LOCKED_SECTION);
     expect(decisions).toHaveLength(0);
   });
 });
 
 describe('buildSection', () => {
-  test('builds a markdown section from decisions', () => {
+  test('builds a markdown section from decisions', async () => {
     const decisions = [
       { decision: 'Use CommonJS', rationale: 'Cross-platform Node.js compat' },
       { decision: 'Use logHook()', rationale: 'Consistent logging' }
@@ -124,13 +124,13 @@ describe('buildSection', () => {
     expect(section).toContain('Use logHook()');
   });
 
-  test('returns empty string when decisions array is empty', () => {
+  test('returns empty string when decisions array is empty', async () => {
     expect(buildSection([])).toBe('');
   });
 });
 
 describe('syncContextToClaude', () => {
-  test('creates Locked Decisions section in CLAUDE.md when absent', () => {
+  test('creates Locked Decisions section in CLAUDE.md when absent', async () => {
     const cwd = makeTempDir();
     writePlanningContext(cwd, CONTEXT_WITH_DECISIONS);
     writeClaude(cwd, '# My Project\n\nSome content.\n');
@@ -145,7 +145,7 @@ describe('syncContextToClaude', () => {
     expect(claude).toContain('# My Project');
   });
 
-  test('updates existing Locked Decisions section without duplication', () => {
+  test('updates existing Locked Decisions section without duplication', async () => {
     const cwd = makeTempDir();
     writePlanningContext(cwd, CONTEXT_WITH_DECISIONS);
 
@@ -166,7 +166,7 @@ describe('syncContextToClaude', () => {
     expect(endMarkerCount).toBe(1);
   });
 
-  test('skips sync when Locked Decisions table is empty', () => {
+  test('skips sync when Locked Decisions table is empty', async () => {
     const cwd = makeTempDir();
     writePlanningContext(cwd, CONTEXT_NO_DECISIONS);
     writeClaude(cwd, '# My Project\n\nSome content.\n');
@@ -178,7 +178,7 @@ describe('syncContextToClaude', () => {
     expect(claude).not.toContain('### Locked Decisions (PBR)');
   });
 
-  test('handles CLAUDE.md not existing -- creates the file with the section', () => {
+  test('handles CLAUDE.md not existing -- creates the file with the section', async () => {
     const cwd = makeTempDir();
     writePlanningContext(cwd, CONTEXT_WITH_DECISIONS);
     // No CLAUDE.md written

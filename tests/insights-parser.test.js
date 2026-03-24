@@ -67,7 +67,7 @@ const SAMPLE_HTML = `<html><body>
 // --- parseInsightsHtml tests ---
 
 describe('parseInsightsHtml', () => {
-  test('extracts findings from HTML with headings and lists', () => {
+  test('extracts findings from HTML with headings and lists', async () => {
     const result = parseInsightsHtml(SAMPLE_HTML);
 
     expect(result).toHaveProperty('findings');
@@ -80,7 +80,7 @@ describe('parseInsightsHtml', () => {
     expect(result.metadata.totalFindings).toBe(result.findings.length);
   });
 
-  test('findings have required fields', () => {
+  test('findings have required fields', async () => {
     const { findings } = parseInsightsHtml(SAMPLE_HTML);
 
     for (const finding of findings) {
@@ -93,7 +93,7 @@ describe('parseInsightsHtml', () => {
     }
   });
 
-  test('all findings include "insights" tag', () => {
+  test('all findings include "insights" tag', async () => {
     const { findings } = parseInsightsHtml(SAMPLE_HTML);
 
     for (const finding of findings) {
@@ -101,35 +101,35 @@ describe('parseInsightsHtml', () => {
     }
   });
 
-  test('detects friction category from friction keywords', () => {
+  test('detects friction category from friction keywords', async () => {
     const { findings } = parseInsightsHtml(SAMPLE_HTML);
     const frictionFindings = findings.filter(f => f.category === 'friction');
     expect(frictionFindings.length).toBeGreaterThan(0);
   });
 
-  test('detects workflow category from workflow keywords', () => {
+  test('detects workflow category from workflow keywords', async () => {
     const { findings } = parseInsightsHtml(SAMPLE_HTML);
     const workflowFindings = findings.filter(f => f.category === 'workflow');
     expect(workflowFindings.length).toBeGreaterThan(0);
   });
 
-  test('returns empty findings for empty HTML', () => {
+  test('returns empty findings for empty HTML', async () => {
     const result = parseInsightsHtml('');
     expect(result.findings).toEqual([]);
     expect(result.metadata.totalFindings).toBe(0);
   });
 
-  test('returns empty findings for null/undefined input', () => {
+  test('returns empty findings for null/undefined input', async () => {
     expect(parseInsightsHtml(null).findings).toEqual([]);
     expect(parseInsightsHtml(undefined).findings).toEqual([]);
   });
 
-  test('returns empty findings for HTML with no extractable sections', () => {
+  test('returns empty findings for HTML with no extractable sections', async () => {
     const result = parseInsightsHtml('<html><body><p>Hi</p></body></html>');
     expect(result.findings).toEqual([]);
   });
 
-  test('truncates summaries longer than 200 chars', () => {
+  test('truncates summaries longer than 200 chars', async () => {
     const longText = 'A'.repeat(300);
     const html = `<h2>Test</h2><ul><li>${longText}</li></ul>`;
     const { findings } = parseInsightsHtml(html);
@@ -152,7 +152,7 @@ describe('insightsImport', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test('imports findings from HTML file into learnings and KNOWLEDGE.md', () => {
+  test('imports findings from HTML file into learnings and KNOWLEDGE.md', async () => {
     const planningDir = createMinimalKnowledge(tempDir);
     const htmlPath = path.join(tempDir, 'insights.html');
     fs.writeFileSync(htmlPath, SAMPLE_HTML, 'utf8');
@@ -191,7 +191,7 @@ describe('insightsImport', () => {
     }
   });
 
-  test('returns zero imports for empty HTML file', () => {
+  test('returns zero imports for empty HTML file', async () => {
     const planningDir = createMinimalKnowledge(tempDir);
     const htmlPath = path.join(tempDir, 'empty.html');
     fs.writeFileSync(htmlPath, '<html><body></body></html>', 'utf8');
@@ -205,19 +205,19 @@ describe('insightsImport', () => {
     expect(result.knowledgeUpdated).toBe(false);
   });
 
-  test('throws on missing HTML file', () => {
+  test('throws on missing HTML file', async () => {
     expect(() => {
       insightsImport(path.join(tempDir, 'nonexistent.html'), 'test-project', tempDir);
     }).toThrow(/not found/);
   });
 
-  test('throws on null htmlFilePath', () => {
+  test('throws on null htmlFilePath', async () => {
     expect(() => {
       insightsImport(null);
     }).toThrow(/required/);
   });
 
-  test('uses default project name from cwd basename', () => {
+  test('uses default project name from cwd basename', async () => {
     const planningDir = createMinimalKnowledge(tempDir);
     const htmlPath = path.join(tempDir, 'insights.html');
     fs.writeFileSync(htmlPath, SAMPLE_HTML, 'utf8');

@@ -46,7 +46,7 @@ function listFiles(dir) {
 // -----------------------------------------------------------------------
 
 describe('canonical plugins/pbr/ directory exists as derivative source', () => {
-  test('plugins/pbr/ has all required subdirectories', () => {
+  test('plugins/pbr/ has all required subdirectories', async () => {
     const requiredDirs = [
       'agents', 'commands', 'contexts', 'hooks',
       'references', 'scripts', 'skills', 'templates',
@@ -57,14 +57,14 @@ describe('canonical plugins/pbr/ directory exists as derivative source', () => {
     }
   });
 
-  test('plugins/pbr/ has approximately 280 files', () => {
+  test('plugins/pbr/ has approximately 280 files', async () => {
     const count = countFiles(PBR_DIR);
     // Allow some variance; summary says 280
     expect(count).toBeGreaterThanOrEqual(250);
     expect(count).toBeLessThanOrEqual(400);
   });
 
-  test('plugin manifest is valid JSON', () => {
+  test('plugin manifest is valid JSON', async () => {
     const manifest = path.join(PBR_DIR, '.claude-plugin', 'plugin.json');
     expect(fs.existsSync(manifest)).toBe(true);
     const content = fs.readFileSync(manifest, 'utf8');
@@ -83,13 +83,13 @@ describe('DERIV-01: codex-pbr derivative is fully populated', () => {
     }
   });
 
-  test('codex-pbr has 14 agent files', () => {
+  test('codex-pbr has 14 agent files', async () => {
     const agents = fs.readdirSync(path.join(CODEX_DIR, 'agents'))
       .filter(f => f.endsWith('.md'));
     expect(agents.length).toBe(17);
   });
 
-  test('codex-pbr has 28 command files', () => {
+  test('codex-pbr has 28 command files', async () => {
     const commands = fs.readdirSync(path.join(CODEX_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
     expect(commands.length).toBe(59);
@@ -101,7 +101,7 @@ describe('DERIV-01: codex-pbr derivative is fully populated', () => {
     expect(fs.existsSync(path.join(CODEX_DIR, 'README.md'))).toBe(true);
   });
 
-  test('codex-pbr agent frontmatter has no model/memory/tools', () => {
+  test('codex-pbr agent frontmatter has no model/memory/tools', async () => {
     const agentDir = path.join(CODEX_DIR, 'agents');
     const agents = fs.readdirSync(agentDir).filter(f => f.endsWith('.md'));
     for (const agent of agents) {
@@ -128,19 +128,19 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
     }
   });
 
-  test('cursor-pbr has 14 agent files', () => {
+  test('cursor-pbr has 14 agent files', async () => {
     const agents = fs.readdirSync(path.join(CURSOR_DIR, 'agents'))
       .filter(f => f.endsWith('.md'));
     expect(agents.length).toBe(17);
   });
 
-  test('cursor-pbr has 28 command files', () => {
+  test('cursor-pbr has 28 command files', async () => {
     const commands = fs.readdirSync(path.join(CURSOR_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
     expect(commands.length).toBe(59);
   });
 
-  test('cursor-pbr agents have model: sonnet in frontmatter', () => {
+  test('cursor-pbr agents have model: sonnet in frontmatter', async () => {
     const agentDir = path.join(CURSOR_DIR, 'agents');
     const agents = fs.readdirSync(agentDir).filter(f => f.endsWith('.md'));
     for (const agent of agents) {
@@ -149,7 +149,7 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
     }
   });
 
-  test('cursor-pbr agents have readonly: false in frontmatter', () => {
+  test('cursor-pbr agents have readonly: false in frontmatter', async () => {
     const agentDir = path.join(CURSOR_DIR, 'agents');
     const agents = fs.readdirSync(agentDir).filter(f => f.endsWith('.md'));
     for (const agent of agents) {
@@ -158,7 +158,7 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
     }
   });
 
-  test('cursor-pbr has hooks.json with path delegation to ../pbr/scripts/', () => {
+  test('cursor-pbr has hooks.json with path delegation to ../pbr/scripts/', async () => {
     const hooksPath = path.join(CURSOR_DIR, 'hooks', 'hooks.json');
     expect(fs.existsSync(hooksPath)).toBe(true);
     const content = fs.readFileSync(hooksPath, 'utf8');
@@ -174,7 +174,7 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
     expect(fs.existsSync(path.join(CURSOR_DIR, 'rules', 'pbr-workflow.mdc'))).toBe(true);
   });
 
-  test('cursor-pbr skills have no allowed-tools in frontmatter', () => {
+  test('cursor-pbr skills have no allowed-tools in frontmatter', async () => {
     const skillsDir = path.join(CURSOR_DIR, 'skills');
     if (!fs.existsSync(skillsDir)) return;
     const skillFiles = listFiles(skillsDir).filter(f => f.endsWith('SKILL.md'));
@@ -200,19 +200,19 @@ describe('DERIV-03: copilot-pbr derivative is fully populated', () => {
     }
   });
 
-  test('copilot-pbr has 14 agent files with .agent.md suffix', () => {
+  test('copilot-pbr has 14 agent files with .agent.md suffix', async () => {
     const agents = fs.readdirSync(path.join(COPILOT_DIR, 'agents'))
       .filter(f => f.endsWith('.agent.md'));
     expect(agents.length).toBe(17);
   });
 
-  test('copilot-pbr has 28 command files', () => {
+  test('copilot-pbr has 28 command files', async () => {
     const commands = fs.readdirSync(path.join(COPILOT_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
     expect(commands.length).toBe(59);
   });
 
-  test('copilot-pbr agent frontmatter has name and description only', () => {
+  test('copilot-pbr agent frontmatter has name and description only', async () => {
     const agentDir = path.join(COPILOT_DIR, 'agents');
     const agents = fs.readdirSync(agentDir).filter(f => f.endsWith('.agent.md'));
     for (const agent of agents) {
@@ -237,7 +237,7 @@ describe('DERIV-03: copilot-pbr derivative is fully populated', () => {
     expect(fs.existsSync(path.join(COPILOT_DIR, 'hooks', 'hooks.json'))).toBe(true);
   });
 
-  test('copilot-pbr skills have no allowed-tools or argument-hint in frontmatter', () => {
+  test('copilot-pbr skills have no allowed-tools or argument-hint in frontmatter', async () => {
     const skillsDir = path.join(COPILOT_DIR, 'skills');
     if (!fs.existsSync(skillsDir)) return;
     const skillFiles = listFiles(skillsDir).filter(f => f.endsWith('SKILL.md'));
@@ -265,7 +265,7 @@ describe('DERIV-05: no GSD branding leaks in any derivative', () => {
   ];
 
   for (const { name, dir } of derivativeDirs) {
-    test(`${name} contains no "get-shit-done" or "get shit done" references`, () => {
+    test(`${name} contains no "get-shit-done" or "get shit done" references`, async () => {
       const files = listFiles(dir).filter(f =>
         f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.js') || f.endsWith('.mdc')
       );
@@ -279,7 +279,7 @@ describe('DERIV-05: no GSD branding leaks in any derivative', () => {
       }
     });
 
-    test(`${name} contains no "/gsd:" command prefix`, () => {
+    test(`${name} contains no "/gsd:" command prefix`, async () => {
       const files = listFiles(dir).filter(f =>
         f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.mdc')
       );

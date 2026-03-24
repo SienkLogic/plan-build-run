@@ -20,7 +20,7 @@ function makeTempDir() {
 // --- Pattern round-trip ---
 
 describe('patterns: extract-then-query round-trip', () => {
-  test('extracted pattern can be queried back by name via tag filter', () => {
+  test('extracted pattern can be queried back by name via tag filter', async () => {
     const tmpDir = makeTempDir();
 
     try {
@@ -43,7 +43,7 @@ describe('patterns: extract-then-query round-trip', () => {
     }
   });
 
-  test('extracted pattern appears in patternList', () => {
+  test('extracted pattern appears in patternList', async () => {
     const tmpDir = makeTempDir();
 
     try {
@@ -65,7 +65,7 @@ describe('patterns: extract-then-query round-trip', () => {
     }
   });
 
-  test('update round-trip: extracting same pattern merges tags', () => {
+  test('update round-trip: extracting same pattern merges tags', async () => {
     const tmpDir = makeTempDir();
 
     try {
@@ -101,7 +101,7 @@ describe('patterns: extract-then-query round-trip', () => {
 // --- Template round-trip ---
 
 describe('templates: list-then-instantiate round-trip', () => {
-  test('lists auth-oauth template then instantiates it with params', () => {
+  test('lists auth-oauth template then instantiates it with params', async () => {
     const templates = templateList();
     expect(templates.map(t => t.name)).toContain('auth-oauth');
 
@@ -124,7 +124,7 @@ describe('templates: list-then-instantiate round-trip', () => {
     expect(result.content).not.toContain('{{session_store}}');
   });
 
-  test('crud-rest template generates 3 task blocks', () => {
+  test('crud-rest template generates 3 task blocks', async () => {
     const result = templateInstantiate('crud-rest', {
       resource_name: 'Product',
       fields: 'name,price,stock',
@@ -138,7 +138,7 @@ describe('templates: list-then-instantiate round-trip', () => {
     expect(result.content).toContain('mysql');
   });
 
-  test('instantiated crud-graphql output contains schema and resolvers references', () => {
+  test('instantiated crud-graphql output contains schema and resolvers references', async () => {
     const result = templateInstantiate('crud-graphql', {
       resource_name: 'Article',
       fields: 'title,content,author',
@@ -148,7 +148,7 @@ describe('templates: list-then-instantiate round-trip', () => {
     expect(result.content).toContain('<task');
   });
 
-  test('instantiated payments-stripe output references product model and webhook path', () => {
+  test('instantiated payments-stripe output references product model and webhook path', async () => {
     const result = templateInstantiate('payments-stripe', {
       product_model: 'Order',
       webhook_path: '/webhooks/stripe',
@@ -173,7 +173,7 @@ describe('learnings: ingest-from-two-projects-then-aggregate', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('aggregate identifies pattern appearing in 2+ projects', () => {
+  test('aggregate identifies pattern appearing in 2+ projects', async () => {
     const sharedSummary = 'Use connection pooling for database performance';
 
     learningsIngest({
@@ -205,7 +205,7 @@ describe('learnings: ingest-from-two-projects-then-aggregate', () => {
     expect(crossPattern.projects).toContain('proj-beta');
   });
 
-  test('top_insights include the most-occurring entry', () => {
+  test('top_insights include the most-occurring entry', async () => {
     learningsIngest({
       id: 'top-1',
       source_project: 'proj-a',

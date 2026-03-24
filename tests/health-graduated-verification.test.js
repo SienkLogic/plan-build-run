@@ -46,7 +46,7 @@ function parseOutput() {
 }
 
 describe('cmdValidateHealth — graduated_verification feature status', () => {
-  test('reports healthy when graduated_verification enabled and trust data exists', () => {
+  test('reports healthy when graduated_verification enabled and trust data exists', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'trust'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'trust', 'scores.json'),
@@ -66,7 +66,7 @@ describe('cmdValidateHealth — graduated_verification feature status', () => {
     });
   });
 
-  test('reports degraded when graduated_verification enabled but no trust data', () => {
+  test('reports degraded when graduated_verification enabled but no trust data', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { graduated_verification: true }
@@ -81,7 +81,7 @@ describe('cmdValidateHealth — graduated_verification feature status', () => {
     });
   });
 
-  test('reports disabled when graduated_verification is false', () => {
+  test('reports disabled when graduated_verification is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { graduated_verification: false }
@@ -98,7 +98,7 @@ describe('cmdValidateHealth — graduated_verification feature status', () => {
 });
 
 describe('cmdValidateHealth — self_verification feature status', () => {
-  test('reports healthy when self_verification enabled', () => {
+  test('reports healthy when self_verification enabled', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { self_verification: true }
@@ -113,7 +113,7 @@ describe('cmdValidateHealth — self_verification feature status', () => {
     });
   });
 
-  test('reports disabled when self_verification is false', () => {
+  test('reports disabled when self_verification is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { self_verification: false }
@@ -130,7 +130,7 @@ describe('cmdValidateHealth — self_verification feature status', () => {
 });
 
 describe('cmdValidateHealth — autonomy feature status', () => {
-  test('reports healthy with current level when autonomy.level is set', () => {
+  test('reports healthy with current level when autonomy.level is set', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         autonomy: { level: 'collaborative' }
@@ -145,7 +145,7 @@ describe('cmdValidateHealth — autonomy feature status', () => {
     });
   });
 
-  test('reports degraded when autonomy section missing (defaults to supervised)', () => {
+  test('reports degraded when autonomy section missing (defaults to supervised)', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         features: { graduated_verification: true }

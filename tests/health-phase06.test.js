@@ -28,7 +28,7 @@ beforeAll(() => {
 
 describe('health-phase06', () => {
   describe('checkConventionMemory', () => {
-    test('returns healthy when enabled and conventions exist', () => {
+    test('returns healthy when enabled and conventions exist', async () => {
       const { planning } = makeTempPlanning();
       const convDir = path.join(planning, 'conventions');
       fs.mkdirSync(convDir, { recursive: true });
@@ -42,7 +42,7 @@ describe('health-phase06', () => {
       expect(result.details.files).toBe(1);
     });
 
-    test('returns degraded when enabled but no conventions exist', () => {
+    test('returns degraded when enabled but no conventions exist', async () => {
       const { planning } = makeTempPlanning();
       // No conventions/ directory
 
@@ -54,7 +54,7 @@ describe('health-phase06', () => {
       expect(result.details.reason).toMatch(/no conventions/i);
     });
 
-    test('returns disabled when toggle is false', () => {
+    test('returns disabled when toggle is false', async () => {
       const { planning } = makeTempPlanning();
 
       const config = { features: { convention_memory: false } };
@@ -66,7 +66,7 @@ describe('health-phase06', () => {
   });
 
   describe('checkMentalModelSnapshots', () => {
-    test('returns healthy when enabled and snapshots exist', () => {
+    test('returns healthy when enabled and snapshots exist', async () => {
       const { planning } = makeTempPlanning();
       const snapDir = path.join(planning, 'sessions', 'snapshots');
       fs.mkdirSync(snapDir, { recursive: true });
@@ -81,7 +81,7 @@ describe('health-phase06', () => {
       expect(result.details.latest).toBe('2026-03-17T19-00-00.md');
     });
 
-    test('returns degraded when enabled but no snapshots', () => {
+    test('returns degraded when enabled but no snapshots', async () => {
       const { planning } = makeTempPlanning();
       // No sessions/snapshots/ directory
 
@@ -93,7 +93,7 @@ describe('health-phase06', () => {
       expect(result.details.reason).toMatch(/no snapshots/i);
     });
 
-    test('returns disabled when toggle is false', () => {
+    test('returns disabled when toggle is false', async () => {
       const { planning } = makeTempPlanning();
 
       const config = { features: { mental_model_snapshots: false } };
@@ -105,7 +105,7 @@ describe('health-phase06', () => {
   });
 
   describe('checkAll', () => {
-    test('returns array of both feature statuses', () => {
+    test('returns array of both feature statuses', async () => {
       const { planning } = makeTempPlanning();
       const convDir = path.join(planning, 'conventions');
       fs.mkdirSync(convDir, { recursive: true });

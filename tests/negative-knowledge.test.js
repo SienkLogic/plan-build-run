@@ -37,7 +37,7 @@ describe('negative-knowledge', () => {
   });
 
   describe('recordFailure', () => {
-    test('creates negative-knowledge directory if missing', () => {
+    test('creates negative-knowledge directory if missing', async () => {
       const nkDir = path.join(planningDir, 'negative-knowledge');
       expect(fs.existsSync(nkDir)).toBe(false);
 
@@ -52,7 +52,7 @@ describe('negative-knowledge', () => {
       expect(fs.existsSync(nkDir)).toBe(true);
     });
 
-    test('creates file named {YYYY-MM-DD}-{slug}.md', () => {
+    test('creates file named {YYYY-MM-DD}-{slug}.md', async () => {
       const result = recordFailure(planningDir, {
         title: 'Auth token expired',
         category: 'debug-finding',
@@ -68,7 +68,7 @@ describe('negative-knowledge', () => {
       expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-[\w-]+\.md$/);
     });
 
-    test('recorded file has YAML frontmatter with required fields', () => {
+    test('recorded file has YAML frontmatter with required fields', async () => {
       const result = recordFailure(planningDir, {
         title: 'Build broke',
         category: 'build-failure',
@@ -91,7 +91,7 @@ describe('negative-knowledge', () => {
       expect(content).toMatch(/src\/util\.ts/);
     });
 
-    test('recorded file body contains required sections', () => {
+    test('recorded file body contains required sections', async () => {
       const result = recordFailure(planningDir, {
         title: 'Verification gap',
         category: 'verification-gap',
@@ -110,7 +110,7 @@ describe('negative-knowledge', () => {
       expect(content).toContain('Used local stub');
     });
 
-    test('defaults whatWorked to pending message', () => {
+    test('defaults whatWorked to pending message', async () => {
       const result = recordFailure(planningDir, {
         title: 'Incomplete fix',
         category: 'plan-revision',
@@ -125,7 +125,7 @@ describe('negative-knowledge', () => {
   });
 
   describe('queryByFiles', () => {
-    test('returns entries whose files_involved overlaps with query paths', () => {
+    test('returns entries whose files_involved overlaps with query paths', async () => {
       recordFailure(planningDir, {
         title: 'JWT issue',
         category: 'debug-finding',
@@ -147,7 +147,7 @@ describe('negative-knowledge', () => {
       expect(results[0].title).toBe('JWT issue');
     });
 
-    test('returns empty array for unrelated files', () => {
+    test('returns empty array for unrelated files', async () => {
       recordFailure(planningDir, {
         title: 'Some failure',
         category: 'build-failure',
@@ -160,14 +160,14 @@ describe('negative-knowledge', () => {
       expect(results).toHaveLength(0);
     });
 
-    test('returns empty array when no entries exist', () => {
+    test('returns empty array when no entries exist', async () => {
       const results = queryByFiles(planningDir, ['anything.ts']);
       expect(results).toHaveLength(0);
     });
   });
 
   describe('listFailures', () => {
-    test('filters by category', () => {
+    test('filters by category', async () => {
       recordFailure(planningDir, {
         title: 'Build fail 1',
         category: 'build-failure',
@@ -189,7 +189,7 @@ describe('negative-knowledge', () => {
       expect(results[0].title).toBe('Build fail 1');
     });
 
-    test('filters by phase', () => {
+    test('filters by phase', async () => {
       recordFailure(planningDir, {
         title: 'Phase 3 fail',
         category: 'build-failure',
@@ -213,7 +213,7 @@ describe('negative-knowledge', () => {
       expect(results[0].title).toBe('Phase 3 fail');
     });
 
-    test('filters by status', () => {
+    test('filters by status', async () => {
       const r1 = recordFailure(planningDir, {
         title: 'Active fail',
         category: 'build-failure',
@@ -239,7 +239,7 @@ describe('negative-knowledge', () => {
       expect(activeResults.length).toBeGreaterThanOrEqual(1);
     });
 
-    test('returns all entries when no filters', () => {
+    test('returns all entries when no filters', async () => {
       recordFailure(planningDir, {
         title: 'Fail 1',
         category: 'build-failure',
@@ -262,7 +262,7 @@ describe('negative-knowledge', () => {
   });
 
   describe('resolveEntry', () => {
-    test('marks status as resolved', () => {
+    test('marks status as resolved', async () => {
       const result = recordFailure(planningDir, {
         title: 'To resolve',
         category: 'build-failure',

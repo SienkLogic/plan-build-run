@@ -17,7 +17,7 @@ describe('logInlineDecision', () => {
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('creates logs directory and writes JSONL entry', () => {
+  test('creates logs directory and writes JSONL entry', async () => {
     const decision = {
       inline: true,
       reason: undefined,
@@ -40,7 +40,7 @@ describe('logInlineDecision', () => {
     expect(entry.timestamp).toBeDefined();
   });
 
-  test('writes "delegate" decision when inline is false', () => {
+  test('writes "delegate" decision when inline is false', async () => {
     const decision = {
       inline: false,
       reason: 'file count 6 exceeds max 5',
@@ -57,7 +57,7 @@ describe('logInlineDecision', () => {
     expect(entry.reason).toBe('file count 6 exceeds max 5');
   });
 
-  test('appends to existing JSONL file', () => {
+  test('appends to existing JSONL file', async () => {
     const logsDir = path.join(tmpDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), '{"existing":"entry"}\n', 'utf8');

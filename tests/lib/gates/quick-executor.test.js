@@ -20,7 +20,7 @@ describe('checkQuickExecutorGate', () => {
     delete process.env.PBR_PROJECT_ROOT;
   });
 
-  test('returns null for non-executor agents', () => {
+  test('returns null for non-executor agents', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -29,14 +29,14 @@ describe('checkQuickExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when no .active-skill file', () => {
+  test('returns null when no .active-skill file', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
     const result = checkQuickExecutorGate(makeData('pbr:executor'));
     expect(result).toBeNull();
   });
 
-  test('returns null when active skill is not quick', () => {
+  test('returns null when active skill is not quick', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -45,7 +45,7 @@ describe('checkQuickExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('blocks when active skill is quick but no quick/ dir', () => {
+  test('blocks when active skill is quick but no quick/ dir', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -56,7 +56,7 @@ describe('checkQuickExecutorGate', () => {
     expect(result.reason).toContain('does not exist');
   });
 
-  test('blocks when quick/ dir exists but no PLAN.md', () => {
+  test('blocks when quick/ dir exists but no PLAN.md', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const taskDir = path.join(planningDir, 'quick', '001-task');
@@ -68,7 +68,7 @@ describe('checkQuickExecutorGate', () => {
     expect(result.reason).toContain('no PLAN.md found');
   });
 
-  test('returns null when quick task has a non-empty PLAN.md', () => {
+  test('returns null when quick task has a non-empty PLAN.md', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const taskDir = path.join(planningDir, 'quick', '001-task');

@@ -34,7 +34,7 @@ describe('post-write-dispatch handleHttp', () => {
     processEvent = mod.processEvent;
   });
 
-  test('exports handleHttp and processEvent', () => {
+  test('exports handleHttp and processEvent', async () => {
     expect(typeof handleHttp).toBe('function');
     expect(typeof processEvent).toBe('function');
   });

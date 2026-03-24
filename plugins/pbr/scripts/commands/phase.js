@@ -116,7 +116,7 @@ function _phaseFirstLastCommit(phaseNum, planningDir) {
  * @param {string[]} args - CLI args (args[0] is 'phase', args[1] is subcommand)
  * @param {object} ctx - { planningDir, output(), error() }
  */
-function handlePhase(args, ctx) {
+async function handlePhase(args, ctx) {
   const subcommand = args[1];
 
   if (subcommand === 'add') {
@@ -131,11 +131,11 @@ function handlePhase(args, ctx) {
     const addOpts = {};
     if (goal) addOpts.goal = goal;
     if (dependsOn) addOpts.dependsOn = dependsOn;
-    ctx.output(_phaseAdd(slug, afterPhase, ctx.planningDir, Object.keys(addOpts).length > 0 ? addOpts : undefined));
+    ctx.output(await _phaseAdd(slug, afterPhase, ctx.planningDir, Object.keys(addOpts).length > 0 ? addOpts : undefined));
   } else if (subcommand === 'remove') {
     const phaseNum = args[2];
     if (!phaseNum) { ctx.error('Usage: phase remove <phase_num>'); return; }
-    ctx.output(_phaseRemove(phaseNum, ctx.planningDir));
+    ctx.output(await _phaseRemove(phaseNum, ctx.planningDir));
   } else if (subcommand === 'list') {
     const statusIdx = args.indexOf('--status');
     const beforeIdx = args.indexOf('--before');
@@ -148,7 +148,7 @@ function handlePhase(args, ctx) {
   } else if (subcommand === 'complete') {
     const phaseNum = args[2];
     if (!phaseNum) { ctx.error('Usage: phase complete <phase_num>'); return; }
-    ctx.output(_phaseComplete(phaseNum, ctx.planningDir));
+    ctx.output(await _phaseComplete(phaseNum, ctx.planningDir));
   } else if (subcommand === 'insert') {
     const position = args[2];
     const slug = args[3];
@@ -160,7 +160,7 @@ function handlePhase(args, ctx) {
     const insertOpts = {};
     if (goal) insertOpts.goal = goal;
     if (dependsOn) insertOpts.dependsOn = dependsOn;
-    ctx.output(_phaseInsert(parseInt(position, 10), slug, ctx.planningDir, Object.keys(insertOpts).length > 0 ? insertOpts : undefined));
+    ctx.output(await _phaseInsert(parseInt(position, 10), slug, ctx.planningDir, Object.keys(insertOpts).length > 0 ? insertOpts : undefined));
   } else if (subcommand === 'commits-for') {
     const phaseNum = args[2];
     if (!phaseNum) { ctx.error('Usage: phase commits-for <N>'); return; }
@@ -180,7 +180,7 @@ function handlePhase(args, ctx) {
  * @param {string[]} args - CLI args (args[0] is 'compound', args[1] is subcommand)
  * @param {object} ctx - { planningDir, output(), error() }
  */
-function handleCompound(args, ctx) {
+async function handleCompound(args, ctx) {
   const subcommand = args[1];
 
   if (subcommand === 'init-phase') {
@@ -191,11 +191,11 @@ function handleCompound(args, ctx) {
     const goal = goalIdx !== -1 ? args[goalIdx + 1] : null;
     const depIdx = args.indexOf('--depends-on');
     const dependsOn = depIdx !== -1 ? args[depIdx + 1] : null;
-    ctx.output(_compoundInitPhase(phaseNum, slug, ctx.planningDir, { goal, dependsOn }));
+    ctx.output(await _compoundInitPhase(phaseNum, slug, ctx.planningDir, { goal, dependsOn }));
   } else if (subcommand === 'complete-phase') {
     const phaseNum = args[2];
     if (!phaseNum) { ctx.error('Usage: compound complete-phase <N>'); return; }
-    ctx.output(_compoundCompletePhase(phaseNum, ctx.planningDir));
+    ctx.output(await _compoundCompletePhase(phaseNum, ctx.planningDir));
   } else if (subcommand === 'init-milestone') {
     const version = args[2];
     if (!version) { ctx.error('Usage: compound init-milestone <version> [--name "..."] [--phases "N-M"]'); return; }
@@ -203,7 +203,7 @@ function handleCompound(args, ctx) {
     const name = nameIdx !== -1 ? args[nameIdx + 1] : null;
     const phasesIdx = args.indexOf('--phases');
     const phases = phasesIdx !== -1 ? args[phasesIdx + 1] : null;
-    ctx.output(_compoundInitMilestone(version, ctx.planningDir, { name, phases }));
+    ctx.output(await _compoundInitMilestone(version, ctx.planningDir, { name, phases }));
   } else {
     ctx.error('Usage: compound init-phase|complete-phase|init-milestone');
   }
@@ -215,7 +215,7 @@ function handleCompound(args, ctx) {
  * @param {string[]} args - CLI args (args[0] is 'init', args[1] is subcommand)
  * @param {object} ctx - { planningDir, output(), error() }
  */
-function handleInit(args, ctx) {
+async function handleInit(args, ctx) {
   const subcommand = args[1];
 
   if (subcommand === 'execute-phase') {
@@ -234,7 +234,7 @@ function handleInit(args, ctx) {
     if (!phase) { ctx.error('Usage: init verify-work <phase-number>'); return; }
     ctx.output(_initVerifyWork(phase, ctx.planningDir));
   } else if (subcommand === 'resume') {
-    ctx.output(_initResume(ctx.planningDir));
+    ctx.output(await _initResume(ctx.planningDir));
   } else if (subcommand === 'progress') {
     ctx.output(_initProgress(ctx.planningDir));
   } else if (subcommand === 'continue') {

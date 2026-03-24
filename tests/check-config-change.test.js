@@ -16,7 +16,7 @@ function cleanup(tmpDir) {
 
 describe('check-config-change', () => {
   describe('validateConfig', () => {
-    test('valid config returns no warnings', () => {
+    test('valid config returns no warnings', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: { structured_planning: true },
@@ -33,7 +33,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('missing required keys produces warnings', () => {
+    test('missing required keys produces warnings', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2
       });
@@ -48,7 +48,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('outdated version warns', () => {
+    test('outdated version warns', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 1,
         features: {},
@@ -64,7 +64,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('parallel conflict: enabled with max=1', () => {
+    test('parallel conflict: enabled with max=1', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: {},
@@ -81,7 +81,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('parallel conflict: disabled with sub-levels enabled', () => {
+    test('parallel conflict: disabled with sub-levels enabled', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: {},
@@ -98,7 +98,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('invalid model value warns', () => {
+    test('invalid model value warns', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: {},
@@ -114,7 +114,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('invalid JSON returns parse error', () => {
+    test('invalid JSON returns parse error', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-config-test-'));
       const configPath = path.join(tmpDir, 'config.json');
       fs.writeFileSync(configPath, '{ broken json');
@@ -128,7 +128,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('no models key skips model check', () => {
+    test('no models key skips model check', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: {},
@@ -144,7 +144,7 @@ describe('check-config-change', () => {
       }
     });
 
-    test('no parallelization key is fine', () => {
+    test('no parallelization key is fine', async () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: {},
@@ -172,7 +172,7 @@ describe('check-config-change', () => {
       process.chdir(originalCwd);
     });
 
-    test('finds .planning dir in current directory', () => {
+    test('finds .planning dir in current directory', async () => {
       const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-')));
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir);
@@ -183,7 +183,7 @@ describe('check-config-change', () => {
       expect(result).toBe(planningDir);
     });
 
-    test('returns null when no .planning dir exists', () => {
+    test('returns null when no .planning dir exists', async () => {
       const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-')));
       process.chdir(tmpDir);
       const result = findPlanningDir();

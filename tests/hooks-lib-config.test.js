@@ -53,7 +53,7 @@ afterAll(() => {
   fs.readFileSync.mockRestore();
 });
 
-afterEach(() => {
+afterEach(async () => {
   configClearCache();
 });
 
@@ -61,7 +61,7 @@ afterEach(() => {
 // 1. CONFIG_DEFAULTS
 // ---------------------------------------------------------------------------
 describe('CONFIG_DEFAULTS', () => {
-  it('is a plain object with expected top-level keys', () => {
+  it('is a plain object with expected top-level keys', async () => {
     expect(typeof CONFIG_DEFAULTS).toBe('object');
     expect(CONFIG_DEFAULTS).not.toBeNull();
     expect(CONFIG_DEFAULTS).toHaveProperty('version');
@@ -73,14 +73,14 @@ describe('CONFIG_DEFAULTS', () => {
     expect(CONFIG_DEFAULTS).toHaveProperty('safety');
   });
 
-  it('features sub-object has expected boolean flags', () => {
+  it('features sub-object has expected boolean flags', async () => {
     expect(typeof CONFIG_DEFAULTS.features).toBe('object');
     expect(CONFIG_DEFAULTS.features.structured_planning).toBe(true);
     expect(CONFIG_DEFAULTS.features.tdd_mode).toBe(false);
     expect(CONFIG_DEFAULTS.features.auto_continue).toBe(false);
   });
 
-  it('models.complexity_map has simple/medium/complex keys', () => {
+  it('models.complexity_map has simple/medium/complex keys', async () => {
     const cm = CONFIG_DEFAULTS.models.complexity_map;
     expect(cm).toHaveProperty('simple');
     expect(cm).toHaveProperty('medium');
@@ -92,19 +92,19 @@ describe('CONFIG_DEFAULTS', () => {
 // 2. configEnsureComplete
 // ---------------------------------------------------------------------------
 describe('configEnsureComplete', () => {
-  it('fills empty object with all defaults', () => {
+  it('fills empty object with all defaults', async () => {
     const result = configEnsureComplete({});
     expect(result.version).toBe(CONFIG_DEFAULTS.version);
     expect(result.depth).toBe(CONFIG_DEFAULTS.depth);
     expect(result.features.structured_planning).toBe(true);
   });
 
-  it('user values take precedence over defaults (scalar override)', () => {
+  it('user values take precedence over defaults (scalar override)', async () => {
     const result = configEnsureComplete({ depth: 'quick' });
     expect(result.depth).toBe('quick');
   });
 
-  it('nested objects merge recursively', () => {
+  it('nested objects merge recursively', async () => {
     const result = configEnsureComplete({ features: { tdd_mode: true } });
     // User override kept
     expect(result.features.tdd_mode).toBe(true);
@@ -112,7 +112,7 @@ describe('configEnsureComplete', () => {
     expect(result.features.structured_planning).toBe(true);
   });
 
-  it('deep-clones default objects (mutating result does not affect CONFIG_DEFAULTS)', () => {
+  it('deep-clones default objects (mutating result does not affect CONFIG_DEFAULTS)', async () => {
     const result = configEnsureComplete({});
     result.features.structured_planning = false;
     expect(CONFIG_DEFAULTS.features.structured_planning).toBe(true);
@@ -125,19 +125,19 @@ describe('configEnsureComplete', () => {
 describe('configLoad', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanupTmp(tmpDir);
   });
 
-  it('returns null when config.json is missing', () => {
+  it('returns null when config.json is missing', async () => {
     expect(configLoad(planningDir)).toBeNull();
   });
 
-  it('returns parsed object for valid config', () => {
+  it('returns parsed object for valid config', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
     const result = configLoad(planningDir);
     expect(result).not.toBeNull();
@@ -145,19 +145,19 @@ describe('configLoad', () => {
     // Canonical configLoad does NOT merge defaults — it returns raw parsed JSON
   });
 
-  it('returns null for malformed JSON', () => {
+  it('returns null for malformed JSON', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), '{ not valid json }}}');
     expect(configLoad(planningDir)).toBeNull();
   });
 
-  it('mtime-based caching returns same reference on second call', () => {
+  it('mtime-based caching returns same reference on second call', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
     const first = configLoad(planningDir);
     const second = configLoad(planningDir);
     expect(first).toBe(second); // same object reference
   });
 
-  it('cache invalidation on file modification returns fresh object', () => {
+  it('cache invalidation on file modification returns fresh object', async () => {
     const cfgPath = path.join(planningDir, 'config.json');
     fs.writeFileSync(cfgPath, JSON.stringify({ depth: 'quick' }));
     const first = configLoad(planningDir);
@@ -210,7 +210,7 @@ describe('configValidate', () => {
   // However, configValidate always reads config-schema.json from disk relative to lib/.
   // The schema file is at hooks/config-schema.json — we need it to exist.
 
-  it('valid config returns valid: true with no errors/warnings (using current schema_version)', () => {
+  it('valid config returns valid: true with no errors/warnings (using current schema_version)', async () => {
     // Use a minimal valid config with schema_version matching CURRENT_SCHEMA_VERSION (3)
     const cfg = { schema_version: 3, version: 2, mode: 'interactive', depth: 'standard' };
     const result = configValidate(cfg);
@@ -219,7 +219,7 @@ describe('configValidate', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('missing config.json returns error when reading from disk', () => {
+  it('missing config.json returns error when reading from disk', async () => {
     const { tmpDir, planningDir } = createTmpPlanning();
     try {
       const result = configValidate(null, planningDir);
@@ -232,7 +232,7 @@ describe('configValidate', () => {
     }
   });
 
-  it('invalid JSON returns error when reading from disk', () => {
+  it('invalid JSON returns error when reading from disk', async () => {
     const { tmpDir, planningDir } = createTmpPlanning();
     try {
       fs.writeFileSync(path.join(planningDir, 'config.json'), 'NOT JSON');
@@ -244,12 +244,12 @@ describe('configValidate', () => {
     }
   });
 
-  it('preloaded config object works (bypasses disk read for config)', () => {
+  it('preloaded config object works (bypasses disk read for config)', async () => {
     const result = configValidate({ schema_version: 3, version: 2 });
     expect(result.valid).toBe(true);
   });
 
-  it('strips _guide_* and _comment_* keys before validation', () => {
+  it('strips _guide_* and _comment_* keys before validation', async () => {
     const cfg = {
       schema_version: 3,
       version: 2,
@@ -261,7 +261,7 @@ describe('configValidate', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('future schema_version produces validation error', () => {
+  it('future schema_version produces validation error', async () => {
     const cfg = { schema_version: 999, version: 2 };
     const result = configValidate(cfg);
     // Canonical: schema validates enum [1,2,3], so 999 is an error not a warning
@@ -271,14 +271,14 @@ describe('configValidate', () => {
     ]));
   });
 
-  it('missing schema_version produces no migration warning (undefined is skipped)', () => {
+  it('missing schema_version produces no migration warning (undefined is skipped)', async () => {
     const cfg = { version: 2 };
     const result = configValidate(cfg);
     // Canonical: missing schema_version (undefined) skips the migration check
     expect(result.valid).toBe(true);
   });
 
-  it('old schema_version produces migration warning', () => {
+  it('old schema_version produces migration warning', async () => {
     const cfg = { schema_version: 0, version: 2 };
     const result = configValidate(cfg);
     expect(result.warnings).toEqual(expect.arrayContaining([
@@ -286,7 +286,7 @@ describe('configValidate', () => {
     ]));
   });
 
-  it('mode=autonomous with active gates produces error', () => {
+  it('mode=autonomous with active gates produces error', async () => {
     const cfg = {
       schema_version: 3,
       version: 2,
@@ -300,7 +300,7 @@ describe('configValidate', () => {
     ]));
   });
 
-  it('auto_continue=true with interactive mode produces warning', () => {
+  it('auto_continue=true with interactive mode produces warning', async () => {
     const cfg = {
       schema_version: 3,
       version: 2,
@@ -313,7 +313,7 @@ describe('configValidate', () => {
     ]));
   });
 
-  it('parallelization.enabled=false with plan_level=true produces warning', () => {
+  it('parallelization.enabled=false with plan_level=true produces warning', async () => {
     const cfg = {
       schema_version: 3,
       version: 2,
@@ -325,7 +325,7 @@ describe('configValidate', () => {
     ]));
   });
 
-  it('parallelization.max_concurrent_agents=1 with teams.coordination produces error', () => {
+  it('parallelization.max_concurrent_agents=1 with teams.coordination produces error', async () => {
     const cfg = {
       schema_version: 3,
       version: 2,
@@ -343,31 +343,31 @@ describe('configValidate', () => {
 // 6. resolveDepthProfile
 // ---------------------------------------------------------------------------
 describe('resolveDepthProfile', () => {
-  it('null config returns standard profile', () => {
+  it('null config returns standard profile', async () => {
     const { depth, profile } = resolveDepthProfile(null);
     expect(depth).toBe('standard');
     expect(profile).toEqual(DEPTH_PROFILE_DEFAULTS.standard);
   });
 
-  it('config with depth=quick returns quick defaults', () => {
+  it('config with depth=quick returns quick defaults', async () => {
     const { depth, profile } = resolveDepthProfile({ depth: 'quick' });
     expect(depth).toBe('quick');
     expect(profile['features.research_phase']).toBe(false);
   });
 
-  it('config with depth=comprehensive returns comprehensive defaults', () => {
+  it('config with depth=comprehensive returns comprehensive defaults', async () => {
     const { depth, profile } = resolveDepthProfile({ depth: 'comprehensive' });
     expect(depth).toBe('comprehensive');
     expect(profile['features.inline_verify']).toBe(true);
   });
 
-  it('unknown depth falls back to standard', () => {
+  it('unknown depth falls back to standard', async () => {
     const { depth, profile } = resolveDepthProfile({ depth: 'nonexistent' });
     expect(depth).toBe('nonexistent');
     expect(profile).toEqual(DEPTH_PROFILE_DEFAULTS.standard);
   });
 
-  it('user overrides in depth_profiles merge with built-in defaults', () => {
+  it('user overrides in depth_profiles merge with built-in defaults', async () => {
     const config = {
       depth: 'quick',
       depth_profiles: {
@@ -394,7 +394,7 @@ describe('DEPTH_PROFILE_DEFAULTS', () => {
     expect(DEPTH_PROFILE_DEFAULTS).toHaveProperty('comprehensive');
   });
 
-  it('each profile has expected feature flags', () => {
+  it('each profile has expected feature flags', async () => {
     for (const key of ['quick', 'standard', 'comprehensive']) {
       const p = DEPTH_PROFILE_DEFAULTS[key];
       // Keys contain dots (e.g., 'features.research_phase') — use `in` operator
@@ -411,28 +411,28 @@ describe('DEPTH_PROFILE_DEFAULTS', () => {
 describe('resolveConfig', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanupTmp(tmpDir);
   });
 
-  it('returns config with graduated_verification and self_verification defaulted to true', () => {
+  it('returns config with graduated_verification and self_verification defaulted to true', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({}));
     const cfg = resolveConfig(planningDir);
     expect(cfg.features.graduated_verification).toBe(true);
     expect(cfg.features.self_verification).toBe(true);
   });
 
-  it('returns config with autonomy.level defaulted to supervised', () => {
+  it('returns config with autonomy.level defaulted to supervised', async () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({}));
     const cfg = resolveConfig(planningDir);
     expect(cfg.autonomy.level).toBe('supervised');
   });
 
-  it('null configLoad result still returns usable object', () => {
+  it('null configLoad result still returns usable object', async () => {
     // No config.json in planningDir -> configLoad returns null
     const cfg = resolveConfig(planningDir);
     expect(cfg).toBeDefined();
@@ -445,7 +445,7 @@ describe('resolveConfig', () => {
 // 9. loadUserDefaults / saveUserDefaults / mergeUserDefaults
 // ---------------------------------------------------------------------------
 describe('loadUserDefaults', () => {
-  it('returns null when file is missing', () => {
+  it('returns null when file is missing', async () => {
     // USER_DEFAULTS_PATH likely does not point to an actual file in test
     // We mock existsSync for this specific path
     const origExists = fs.existsSync;
@@ -462,7 +462,7 @@ describe('loadUserDefaults', () => {
 });
 
 describe('saveUserDefaults', () => {
-  it('writes only portable keys to disk', () => {
+  it('writes only portable keys to disk', async () => {
     const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-save-defaults-')));
     const tmpPath = path.join(tmpDir, 'pbr-defaults.json');
 
@@ -525,7 +525,7 @@ describe('mergeUserDefaults', () => {
     expect(result.depth).toBe('quick'); // user fills gap
   });
 
-  it('nested objects merge recursively', () => {
+  it('nested objects merge recursively', async () => {
     const base = { features: { tdd_mode: true } };
     const userDef = { features: { auto_continue: true, tdd_mode: false } };
     const result = mergeUserDefaults(base, userDef);
@@ -533,7 +533,7 @@ describe('mergeUserDefaults', () => {
     expect(result.features.auto_continue).toBe(true); // user fills gap
   });
 
-  it('returns base unchanged when userDefaults is null', () => {
+  it('returns base unchanged when userDefaults is null', async () => {
     const base = { mode: 'interactive' };
     expect(mergeUserDefaults(base, null)).toEqual(base);
   });
@@ -543,7 +543,7 @@ describe('mergeUserDefaults', () => {
 // 10. configFormat
 // ---------------------------------------------------------------------------
 describe('configFormat', () => {
-  it('strips _guide_* and _comment_* keys from input', () => {
+  it('strips _guide_* and _comment_* keys from input', async () => {
     const cfg = {
       _guide_meta: ['old guide'],
       version: 2,
@@ -555,19 +555,19 @@ describe('configFormat', () => {
     expect(parsed.features._comment_foo).toBeUndefined();
   });
 
-  it('output is valid JSON', () => {
+  it('output is valid JSON', async () => {
     const output = configFormat({ version: 2 });
     expect(() => JSON.parse(output)).not.toThrow();
   });
 
-  it('contains guide comment keys in output', () => {
+  it('contains guide comment keys in output', async () => {
     const output = configFormat({ version: 2 });
     const parsed = JSON.parse(output);
     expect(parsed._guide_meta).toBeDefined();
     expect(Array.isArray(parsed._guide_meta)).toBe(true);
   });
 
-  it('applies section ordering from CONFIG_SECTIONS', () => {
+  it('applies section ordering from CONFIG_SECTIONS', async () => {
     const output = configFormat({ version: 2, depth: 'quick' });
     const keys = Object.keys(JSON.parse(output));
     // _guide_meta should come before _guide_core
@@ -583,29 +583,29 @@ describe('configFormat', () => {
 describe('configWrite', () => {
   let tmpDir, planningDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanupTmp(tmpDir);
   });
 
-  it('writes formatted config to disk', () => {
-    configWrite(planningDir, { version: 2, depth: 'quick' });
+  it('writes formatted config to disk', async () => {
+    await configWrite(planningDir, { version: 2, depth: 'quick' });
     const onDisk = fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8');
     const parsed = JSON.parse(onDisk);
     expect(parsed.depth).toBe('quick');
     expect(parsed._guide_meta).toBeDefined();
   });
 
-  it('clears cache after writing', () => {
+  it('clears cache after writing', async () => {
     // Pre-load cache
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
     const first = configLoad(planningDir);
 
     // Write overwrites
-    configWrite(planningDir, { depth: 'comprehensive' });
+    await configWrite(planningDir, { depth: 'comprehensive' });
 
     // Next load should get fresh data (cache was cleared by configWrite)
     const second = configLoad(planningDir);
@@ -618,7 +618,7 @@ describe('configWrite', () => {
 // 12. CONFIG_SECTIONS
 // ---------------------------------------------------------------------------
 describe('CONFIG_SECTIONS', () => {
-  it('is an array of section objects', () => {
+  it('is an array of section objects', async () => {
     expect(Array.isArray(CONFIG_SECTIONS)).toBe(true);
     expect(CONFIG_SECTIONS.length).toBeGreaterThan(5);
   });
@@ -638,7 +638,7 @@ describe('CONFIG_SECTIONS', () => {
 // 13. USER_DEFAULTS_PATH
 // ---------------------------------------------------------------------------
 describe('USER_DEFAULTS_PATH', () => {
-  it('is a string path ending with defaults.json', () => {
+  it('is a string path ending with defaults.json', async () => {
     expect(typeof USER_DEFAULTS_PATH).toBe('string');
     expect(USER_DEFAULTS_PATH.endsWith('defaults.json')).toBe(true);
   });

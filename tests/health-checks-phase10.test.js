@@ -52,7 +52,7 @@ describe('health-checks Phase 10', () => {
   });
 
   describe('checkAgentFeedbackLoop', () => {
-    test('returns healthy when feedback-loop.js loads and config toggle on', () => {
+    test('returns healthy when feedback-loop.js loads and config toggle on', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: { agent_feedback_loop: true }
       }));
@@ -65,7 +65,7 @@ describe('health-checks Phase 10', () => {
       expect(result.status).toBe('healthy');
     });
 
-    test('returns disabled when config toggle off', () => {
+    test('returns disabled when config toggle off', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: { agent_feedback_loop: false }
       }));
@@ -80,7 +80,7 @@ describe('health-checks Phase 10', () => {
   });
 
   describe('checkSessionMetrics', () => {
-    test('returns healthy when session-cleanup.js loads and sessions.jsonl exists', () => {
+    test('returns healthy when session-cleanup.js loads and sessions.jsonl exists', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: { session_metrics: true }
       }));
@@ -94,7 +94,7 @@ describe('health-checks Phase 10', () => {
       expect(result.status).toBe('healthy');
     });
 
-    test('returns healthy even when sessions.jsonl is missing (first run)', () => {
+    test('returns healthy even when sessions.jsonl is missing (first run)', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: { session_metrics: true }
       }));
@@ -108,7 +108,7 @@ describe('health-checks Phase 10', () => {
       expect(result.status).toBe('healthy');
     });
 
-    test('returns disabled when config toggle off', () => {
+    test('returns disabled when config toggle off', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: { session_metrics: false }
       }));
@@ -123,7 +123,7 @@ describe('health-checks Phase 10', () => {
   });
 
   describe('getAllPhase10Checks', () => {
-    test('returns array of check results including health checks', () => {
+    test('returns array of check results including health checks', async () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: {
           post_hoc_artifacts: true,

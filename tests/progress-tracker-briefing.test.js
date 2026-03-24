@@ -101,7 +101,7 @@ Status: building
 Plans: 2/4
 `;
 
-  test('returns structured briefing with phase indicator', () => {
+  test('returns structured briefing with phase indicator', async () => {
     writeState(sampleState);
     writeConfig({ features: { enhanced_session_start: true } });
 
@@ -112,21 +112,21 @@ Plans: 2/4
     expect(result).toMatch(/Phase\s+3\/7/);
   });
 
-  test('includes status in briefing', () => {
+  test('includes status in briefing', async () => {
     writeState(sampleState);
     const result = buildEnhancedBriefing(planningDir, { features: { enhanced_session_start: true } });
 
     expect(result).toContain('building');
   });
 
-  test('includes recent commit info', () => {
+  test('includes recent commit info', async () => {
     writeState(sampleState);
     const result = buildEnhancedBriefing(planningDir, { features: { enhanced_session_start: true } });
 
     expect(result).toMatch(/abc1234/);
   });
 
-  test('output is under 2500 chars (~500 tokens)', () => {
+  test('output is under 2500 chars (~500 tokens)', async () => {
     writeState(sampleState);
     const result = buildEnhancedBriefing(planningDir, { features: { enhanced_session_start: true } });
 
@@ -134,7 +134,7 @@ Plans: 2/4
     expect(result.length).toBeLessThanOrEqual(2500);
   });
 
-  test('returns null when features.enhanced_session_start is false', () => {
+  test('returns null when features.enhanced_session_start is false', async () => {
     writeState(sampleState);
     writeConfig({ features: { enhanced_session_start: false } });
 
@@ -143,7 +143,7 @@ Plans: 2/4
     expect(result).toBeNull();
   });
 
-  test('returns null when config is null (no config.json)', () => {
+  test('returns null when config is null (no config.json)', async () => {
     writeState(sampleState);
 
     const result = buildEnhancedBriefing(planningDir, null);
@@ -151,7 +151,7 @@ Plans: 2/4
     expect(result).toBeNull();
   });
 
-  test('produces minimal briefing when STATE.md is empty', () => {
+  test('produces minimal briefing when STATE.md is empty', async () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '', 'utf8');
     const result = buildEnhancedBriefing(planningDir, { features: { enhanced_session_start: true } });
 
@@ -161,7 +161,7 @@ Plans: 2/4
     expect(result).toContain('Git');
   });
 
-  test('includes pending decisions when present', () => {
+  test('includes pending decisions when present', async () => {
     writeState(sampleState);
     const decisionsDir = path.join(planningDir, 'decisions');
     fs.mkdirSync(decisionsDir, { recursive: true });
@@ -176,7 +176,7 @@ Plans: 2/4
     expect(result).toMatch(/pending/i);
   });
 
-  test('includes working set from .context-tracker when present', () => {
+  test('includes working set from .context-tracker when present', async () => {
     writeState(sampleState);
     fs.writeFileSync(
       path.join(planningDir, '.context-tracker'),
@@ -190,14 +190,14 @@ Plans: 2/4
     expect(result).toMatch(/auth\.js|working/i);
   });
 
-  test('default config (no features key) returns null', () => {
+  test('default config (no features key) returns null', async () => {
     writeState(sampleState);
     const result = buildEnhancedBriefing(planningDir, {});
 
     expect(result).toBeNull();
   });
 
-  test('logs audit evidence after successful briefing', () => {
+  test('logs audit evidence after successful briefing', async () => {
     writeState(sampleState);
     buildEnhancedBriefing(planningDir, { features: { enhanced_session_start: true } });
 

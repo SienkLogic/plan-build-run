@@ -20,13 +20,13 @@ describe('checkDebuggerAdvisory', () => {
     delete process.env.PBR_PROJECT_ROOT;
   });
 
-  test('returns null for non-debugger agents', () => {
+  test('returns null for non-debugger agents', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result).toBeNull();
   });
 
-  test('returns null when active skill is not debug', () => {
+  test('returns null when active skill is not debug', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -35,7 +35,7 @@ describe('checkDebuggerAdvisory', () => {
     expect(result).toBeNull();
   });
 
-  test('returns advisory when active skill is debug and debug/ dir missing', () => {
+  test('returns advisory when active skill is debug and debug/ dir missing', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -45,7 +45,7 @@ describe('checkDebuggerAdvisory', () => {
     expect(result).toContain('.planning/debug/');
   });
 
-  test('returns null when debug/ dir exists', () => {
+  test('returns null when debug/ dir exists', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
@@ -67,13 +67,13 @@ describe('checkCheckpointManifest', () => {
     delete process.env.PBR_PROJECT_ROOT;
   });
 
-  test('returns null for non-executor agents', () => {
+  test('returns null for non-executor agents', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const result = checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:planner' } });
     expect(result).toBeNull();
   });
 
-  test('returns null when active skill is not build', () => {
+  test('returns null when active skill is not build', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -82,7 +82,7 @@ describe('checkCheckpointManifest', () => {
     expect(result).toBeNull();
   });
 
-  test('warns when manifest is missing from phase dir', () => {
+  test('warns when manifest is missing from phase dir', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-test');
@@ -93,7 +93,7 @@ describe('checkCheckpointManifest', () => {
     expect(result).toContain('checkpoint-manifest');
   });
 
-  test('returns null when manifest exists', () => {
+  test('returns null when manifest exists', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-test');
@@ -118,20 +118,20 @@ describe('checkActiveSkillIntegrity', () => {
     delete process.env.PBR_PROJECT_ROOT;
   });
 
-  test('returns null for non-pbr agents', () => {
+  test('returns null for non-pbr agents', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'custom:agent' } });
     expect(result).toBeNull();
   });
 
-  test('warns when pbr agent spawns without .active-skill', () => {
+  test('warns when pbr agent spawns without .active-skill', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
     const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result).toContain('active-skill');
   });
 
-  test('returns null when .active-skill exists', () => {
+  test('returns null when .active-skill exists', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -140,13 +140,13 @@ describe('checkActiveSkillIntegrity', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when no .planning dir exists', () => {
+  test('returns null when no .planning dir exists', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:planner' } });
     expect(result).toBeNull();
   });
 
-  test('warns when .active-skill is older than 2 hours (stale lock)', () => {
+  test('warns when .active-skill is older than 2 hours (stale lock)', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -161,7 +161,7 @@ describe('checkActiveSkillIntegrity', () => {
     expect(result).toContain('build');
   });
 
-  test('returns null for exempt agents (pbr:researcher)', () => {
+  test('returns null for exempt agents (pbr:researcher)', async () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });

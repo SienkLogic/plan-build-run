@@ -26,22 +26,22 @@ afterEach(() => {
 });
 
 describe('checkQuality', () => {
-  test('returns null for no file_path', () => {
+  test('returns null for no file_path', async () => {
     expect(checkQuality({ tool_input: {} })).toBeNull();
   });
 
-  test('returns null for non-JS/TS files', () => {
+  test('returns null for non-JS/TS files', async () => {
     expect(checkQuality({ tool_input: { file_path: '/some/file.md' } })).toBeNull();
     expect(checkQuality({ tool_input: { file_path: '/some/file.json' } })).toBeNull();
     expect(checkQuality({ tool_input: { file_path: '/some/file.py' } })).toBeNull();
   });
 
-  test('returns null when no quality hooks are enabled', () => {
+  test('returns null when no quality hooks are enabled', async () => {
     const result = checkQuality({ tool_input: { file_path: '/some/file.js' } });
     expect(result).toBeNull();
   });
 
-  test('detects console.log when detectConsoleLogs is enabled', () => {
+  test('detects console.log when detectConsoleLogs is enabled', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'config.json'),
@@ -55,7 +55,7 @@ describe('checkQuality', () => {
     expect(result.output.additionalContext).toContain('Console.log');
   });
 
-  test('uses path field as fallback', () => {
+  test('uses path field as fallback', async () => {
     const result = checkQuality({ tool_input: { path: '/some/file.js' } });
     expect(result).toBeNull();
   });
@@ -72,25 +72,25 @@ describe('checkQuality', () => {
 });
 
 describe('loadHooksConfig', () => {
-  test('returns empty object when config.json missing', () => {
+  test('returns empty object when config.json missing', async () => {
     expect(loadHooksConfig(tmpDir)).toEqual({});
   });
 
-  test('returns empty object when config.json is invalid', () => {
+  test('returns empty object when config.json is invalid', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'bad json');
     expect(loadHooksConfig(tmpDir)).toEqual({});
   });
 
-  test('returns empty object when no hooks section', () => {
+  test('returns empty object when no hooks section', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({}));
     expect(loadHooksConfig(tmpDir)).toEqual({});
   });
 
-  test('returns hooks config when present', () => {
+  test('returns hooks config when present', async () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'config.json'),
@@ -102,11 +102,11 @@ describe('loadHooksConfig', () => {
 });
 
 describe('findLocalBin', () => {
-  test('returns null when binary not found', () => {
+  test('returns null when binary not found', async () => {
     expect(findLocalBin(tmpDir, 'nonexistent-tool')).toBeNull();
   });
 
-  test('finds binary in node_modules/.bin/', () => {
+  test('finds binary in node_modules/.bin/', async () => {
     const binDir = path.join(tmpDir, 'node_modules', '.bin');
     fs.mkdirSync(binDir, { recursive: true });
     const binName = process.platform === 'win32' ? 'test-tool.cmd' : 'test-tool';
@@ -118,17 +118,17 @@ describe('findLocalBin', () => {
 });
 
 describe('detectConsoleLogs', () => {
-  test('returns null for non-existent file', () => {
+  test('returns null for non-existent file', async () => {
     expect(detectConsoleLogs('/nonexistent/file.js')).toBeNull();
   });
 
-  test('returns null when no console.log found', () => {
+  test('returns null when no console.log found', async () => {
     const filePath = path.join(tmpDir, 'clean.js');
     fs.writeFileSync(filePath, 'const x = 1;\nreturn x;\n');
     expect(detectConsoleLogs(filePath)).toBeNull();
   });
 
-  test('detects console.log', () => {
+  test('detects console.log', async () => {
     const filePath = path.join(tmpDir, 'messy.js');
     fs.writeFileSync(filePath, 'const x = 1;\nconsole.log(x);\n');
     const result = detectConsoleLogs(filePath);
@@ -136,13 +136,13 @@ describe('detectConsoleLogs', () => {
     expect(result).toContain('1 console.log');
   });
 
-  test('skips commented console.log', () => {
+  test('skips commented console.log', async () => {
     const filePath = path.join(tmpDir, 'commented.js');
     fs.writeFileSync(filePath, '// console.log("debug")\nconst x = 1;\n');
     expect(detectConsoleLogs(filePath)).toBeNull();
   });
 
-  test('reports multiple console.log with truncation', () => {
+  test('reports multiple console.log with truncation', async () => {
     const filePath = path.join(tmpDir, 'many.js');
     const lines = [];
     for (let i = 0; i < 5; i++) {
@@ -154,7 +154,7 @@ describe('detectConsoleLogs', () => {
     expect(result).toContain('...and 2 more');
   });
 
-  test('shows line numbers in output', () => {
+  test('shows line numbers in output', async () => {
     const filePath = path.join(tmpDir, 'numbered.js');
     fs.writeFileSync(filePath, 'const a = 1;\nconsole.log(a);\nconst b = 2;\n');
     const result = detectConsoleLogs(filePath);

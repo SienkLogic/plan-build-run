@@ -46,13 +46,13 @@ describe('user-confirmation-gate', () => {
     return { tool_input: { subagent_type: 'pbr:general', description } };
   }
 
-  test('returns null when no .planning dir exists', () => {
+  test('returns null when no .planning dir exists', async () => {
     process.env.PBR_PROJECT_ROOT = path.join(tmpDir, 'nonexistent');
     const result = checkUserConfirmationGate(makeData('complete milestone'));
     expect(result).toBeNull();
   });
 
-  test('returns null when operation is not gated', () => {
+  test('returns null when operation is not gated', async () => {
     writeConfig({
       milestone_complete: { requires: 'askuser', blocking: true }
     });
@@ -61,7 +61,7 @@ describe('user-confirmation-gate', () => {
     expect(result).toBeNull();
   });
 
-  test('blocks when gated operation lacks signal file', () => {
+  test('blocks when gated operation lacks signal file', async () => {
     writeConfig({
       milestone_complete: { requires: 'askuser', blocking: true }
     });
@@ -71,7 +71,7 @@ describe('user-confirmation-gate', () => {
     expect(result.reason).toContain('milestone_complete');
   });
 
-  test('passes when signal file exists', () => {
+  test('passes when signal file exists', async () => {
     writeConfig({
       milestone_complete: { requires: 'askuser', blocking: true }
     });
@@ -81,7 +81,7 @@ describe('user-confirmation-gate', () => {
     expect(result).toBeNull();
   });
 
-  test('returns warning for non-blocking gate', () => {
+  test('returns warning for non-blocking gate', async () => {
     writeConfig({
       phase_skip: { requires: 'askuser', blocking: false }
     });

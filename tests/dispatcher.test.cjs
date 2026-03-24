@@ -28,21 +28,21 @@ describe('dispatcher error paths', () => {
   });
 
   // No command
-  test('no-command invocation prints usage and exits non-zero', () => {
+  test('no-command invocation prints usage and exits non-zero', async () => {
     const result = runPbrTools('', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Usage:'), `Expected "Usage:" in stderr, got: ${result.error}`);
   });
 
   // Unknown command
-  test('unknown command produces clear error and exits non-zero', () => {
+  test('unknown command produces clear error and exits non-zero', async () => {
     const result = runPbrTools('nonexistent-cmd', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown command'), `Expected "Unknown command" in stderr, got: ${result.error}`);
   });
 
   // --cwd= form with valid directory
-  test('--cwd= form overrides working directory', () => {
+  test('--cwd= form overrides working directory', async () => {
     // Create STATE.md in tmpDir so state load can find it
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
@@ -53,91 +53,91 @@ describe('dispatcher error paths', () => {
   });
 
   // --cwd= with empty value
-  test('--cwd= with empty value produces error', () => {
+  test('--cwd= with empty value produces error', async () => {
     const result = runPbrTools('--cwd= state load', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Missing value for --cwd'), `Expected "Missing value for --cwd" in stderr, got: ${result.error}`);
   });
 
   // --cwd with nonexistent path
-  test('--cwd with invalid path produces error', () => {
+  test('--cwd with invalid path produces error', async () => {
     const result = runPbrTools('--cwd /nonexistent/path/xyz state load', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Invalid --cwd'), `Expected "Invalid --cwd" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: template
-  test('template unknown subcommand errors', () => {
+  test('template unknown subcommand errors', async () => {
     const result = runPbrTools('template bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown template subcommand'), `Expected "Unknown template subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: frontmatter
-  test('frontmatter unknown subcommand errors', () => {
+  test('frontmatter unknown subcommand errors', async () => {
     const result = runPbrTools('frontmatter bogus file.md', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown frontmatter subcommand'), `Expected "Unknown frontmatter subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: verify
-  test('verify unknown subcommand errors', () => {
+  test('verify unknown subcommand errors', async () => {
     const result = runPbrTools('verify bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown verify subcommand'), `Expected "Unknown verify subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: phases
-  test('phases unknown subcommand errors', () => {
+  test('phases unknown subcommand errors', async () => {
     const result = runPbrTools('phases bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown phases subcommand'), `Expected "Unknown phases subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: roadmap
-  test('roadmap unknown subcommand errors', () => {
+  test('roadmap unknown subcommand errors', async () => {
     const result = runPbrTools('roadmap bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown roadmap subcommand'), `Expected "Unknown roadmap subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: requirements
-  test('requirements unknown subcommand errors', () => {
+  test('requirements unknown subcommand errors', async () => {
     const result = runPbrTools('requirements bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown requirements subcommand'), `Expected "Unknown requirements subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: phase
-  test('phase unknown subcommand errors', () => {
+  test('phase unknown subcommand errors', async () => {
     const result = runPbrTools('phase bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown phase subcommand'), `Expected "Unknown phase subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: milestone
-  test('milestone unknown subcommand errors', () => {
+  test('milestone unknown subcommand errors', async () => {
     const result = runPbrTools('milestone bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown milestone subcommand'), `Expected "Unknown milestone subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: validate
-  test('validate unknown subcommand errors', () => {
+  test('validate unknown subcommand errors', async () => {
     const result = runPbrTools('validate bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown validate subcommand'), `Expected "Unknown validate subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: todo
-  test('todo unknown subcommand errors', () => {
+  test('todo unknown subcommand errors', async () => {
     const result = runPbrTools('todo bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown todo subcommand'), `Expected "Unknown todo subcommand" in stderr, got: ${result.error}`);
   });
 
   // Unknown subcommand: init
-  test('init unknown workflow errors', () => {
+  test('init unknown workflow errors', async () => {
     const result = runPbrTools('init bogus', tmpDir);
     assert.strictEqual(result.success, false, 'Should exit non-zero');
     assert.ok(result.error.includes('Unknown init workflow'), `Expected "Unknown init workflow" in stderr, got: ${result.error}`);
@@ -158,7 +158,7 @@ describe('dispatcher routing branches', () => {
   });
 
   // find-phase
-  test('find-phase locates phase directory by number', () => {
+  test('find-phase locates phase directory by number', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test-phase');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -168,7 +168,7 @@ describe('dispatcher routing branches', () => {
   });
 
   // init resume
-  test('init resume returns valid JSON', () => {
+  test('init resume returns valid JSON', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n## Current Position\n\nPhase: 1 of 1 (Test)\nPlan: 01-01 complete\nStatus: Ready\nLast activity: 2026-01-01\n\nProgress: [##########] 100%\n\n## Session Continuity\n\nLast session: 2026-01-01\nStopped at: Test\nResume file: None\n'
@@ -181,7 +181,7 @@ describe('dispatcher routing branches', () => {
   });
 
   // init verify-work
-  test('init verify-work returns valid JSON', () => {
+  test('init verify-work returns valid JSON', async () => {
     // Create STATE.md
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
@@ -205,7 +205,7 @@ describe('dispatcher routing branches', () => {
   });
 
   // roadmap update-plan-progress
-  test('roadmap update-plan-progress updates phase progress', () => {
+  test('roadmap update-plan-progress updates phase progress', async () => {
     // Create ROADMAP.md with progress table
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -229,7 +229,7 @@ describe('dispatcher routing branches', () => {
   });
 
   // state (no subcommand) — default load
-  test('state with no subcommand calls cmdStateLoad', () => {
+  test('state with no subcommand calls cmdStateLoad', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n## Current Position\n\nPhase: 1 of 1 (Test)\nPlan: 01-01 complete\nStatus: Ready\nLast activity: 2026-01-01\n\nProgress: [##########] 100%\n\n## Session Continuity\n\nLast session: 2026-01-01\nStopped at: Test\nResume file: None\n'
@@ -242,7 +242,7 @@ describe('dispatcher routing branches', () => {
   });
 
   // summary-extract
-  test('summary-extract parses SUMMARY.md frontmatter', () => {
+  test('summary-extract parses SUMMARY.md frontmatter', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
     fs.mkdirSync(phaseDir, { recursive: true });
 

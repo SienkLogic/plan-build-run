@@ -19,7 +19,7 @@ const runScript = (toolInput) => _run({ tool_input: toolInput }, { cwd: CLEAN_CW
 
 describe('validate-task.js', () => {
   describe('valid Task calls', () => {
-    test('valid call with description and pbr subagent_type passes silently', () => {
+    test('valid call with description and pbr subagent_type passes silently', async () => {
       const result = runScript({
         description: 'Run planner agent',
         subagent_type: 'pbr:planner'
@@ -31,7 +31,7 @@ describe('validate-task.js', () => {
       }
     });
 
-    test('valid call with short description passes silently', () => {
+    test('valid call with short description passes silently', async () => {
       const result = runScript({
         description: 'Execute tests',
         subagent_type: 'pbr:executor'
@@ -43,7 +43,7 @@ describe('validate-task.js', () => {
       }
     });
 
-    test('all known pbr agent types pass', () => {
+    test('all known pbr agent types pass', async () => {
       const knownAgents = [
         'researcher', 'planner', 'plan-checker', 'executor', 'verifier',
         'integration-checker', 'debugger', 'codebase-mapper', 'synthesizer', 'general'
@@ -63,7 +63,7 @@ describe('validate-task.js', () => {
   });
 
   describe('missing description', () => {
-    test('warns when description is missing', () => {
+    test('warns when description is missing', async () => {
       const result = runScript({
         subagent_type: 'pbr:planner'
       });
@@ -71,7 +71,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('without a description');
     });
 
-    test('warns when description is empty string', () => {
+    test('warns when description is empty string', async () => {
       const result = runScript({
         description: '',
         subagent_type: 'pbr:planner'
@@ -80,7 +80,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('without a description');
     });
 
-    test('warns when description is whitespace only', () => {
+    test('warns when description is whitespace only', async () => {
       const result = runScript({
         description: '   ',
         subagent_type: 'pbr:planner'
@@ -91,7 +91,7 @@ describe('validate-task.js', () => {
   });
 
   describe('overly long description', () => {
-    test('warns when description exceeds 100 chars', () => {
+    test('warns when description exceeds 100 chars', async () => {
       const longDesc = 'a'.repeat(101);
       const result = runScript({
         description: longDesc,
@@ -102,7 +102,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('3-5 words');
     });
 
-    test('does not warn at exactly 100 chars', () => {
+    test('does not warn at exactly 100 chars', async () => {
       const exactDesc = 'a'.repeat(100);
       const result = runScript({
         description: exactDesc,
@@ -117,7 +117,7 @@ describe('validate-task.js', () => {
   });
 
   describe('invalid pbr subagent_type', () => {
-    test('warns on unknown pbr agent type', () => {
+    test('warns on unknown pbr agent type', async () => {
       const result = runScript({
         description: 'Test agent',
         subagent_type: 'pbr:unknown-agent'
@@ -127,7 +127,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('pbr:unknown-agent');
     });
 
-    test('warns on pbr: with typo in agent name', () => {
+    test('warns on pbr: with typo in agent name', async () => {
       const result = runScript({
         description: 'Test agent',
         subagent_type: 'pbr:plannerr'
@@ -150,7 +150,7 @@ describe('validate-task.js', () => {
       fs.rmSync(pbrCwd, { recursive: true, force: true });
     });
 
-    test('non-pbr subagent_type is blocked by enforce-pbr-workflow gate', () => {
+    test('non-pbr subagent_type is blocked by enforce-pbr-workflow gate', async () => {
       // Run in a cwd that has .planning/ so checkNonPbrAgent triggers
       const input = JSON.stringify({ tool_input: {
         description: 'Run custom agent',
@@ -175,7 +175,7 @@ describe('validate-task.js', () => {
       expect(output).not.toContain('Unknown pbr agent');
     });
 
-    test('no subagent_type passes when description has no pbr mention', () => {
+    test('no subagent_type passes when description has no pbr mention', async () => {
       const result = runScript({
         description: 'Run a task'
       });
@@ -188,7 +188,7 @@ describe('validate-task.js', () => {
   });
 
   describe('pbr: in description without subagent_type', () => {
-    test('warns when description mentions pbr: but no subagent_type set', () => {
+    test('warns when description mentions pbr: but no subagent_type set', async () => {
       const result = runScript({
         description: 'Spawn pbr:planner for phase 1'
       });
@@ -239,45 +239,45 @@ describe('validate-task.js', () => {
       }
     }
 
-    test('non-executor agents pass even in quick context', () => {
+    test('non-executor agents pass even in quick context', async () => {
       makeQuickEnv({ activeSkill: 'quick' });
       const result = runInDir({ description: 'Plan task', subagent_type: 'pbr:planner' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
 
-    test('executor passes when no .active-skill file exists', () => {
+    test('executor passes when no .active-skill file exists', async () => {
       fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
 
-    test('executor passes when active skill is not quick', () => {
+    test('executor passes when active skill is not quick', async () => {
       makeQuickEnv({ activeSkill: 'build' });
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
 
-    test('blocks executor when active skill is quick but no quick/ dir', () => {
+    test('blocks executor when active skill is quick but no quick/ dir', async () => {
       makeQuickEnv({ activeSkill: 'quick' });
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(2);
       expect(result.output).toContain('does not exist');
     });
 
-    test('blocks executor when quick/ dir exists but no PLAN.md', () => {
+    test('blocks executor when quick/ dir exists but no PLAN.md', async () => {
       makeQuickEnv({ activeSkill: 'quick', quickDirs: { '001-test-task': false } });
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(2);
       expect(result.output).toContain('no PLAN.md found');
     });
 
-    test('executor passes when quick task has PLAN.md', () => {
+    test('executor passes when quick task has PLAN.md', async () => {
       makeQuickEnv({ activeSkill: 'quick', quickDirs: { '001-test-task': true } });
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
 
-    test('executor passes with no .planning dir at all', () => {
+    test('executor passes with no .planning dir at all', async () => {
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(0);
     });
@@ -330,7 +330,7 @@ describe('validate-task.js', () => {
       }
     }
 
-    test('allows executor when phase dir is empty (speculative planning support)', () => {
+    test('allows executor when phase dir is empty (speculative planning support)', async () => {
       makeBuildEnv({
         activeSkill: 'build',
         phaseDir: '01-setup',
@@ -341,7 +341,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('passes executor when active skill is build and PLAN.md exists', () => {
+    test('passes executor when active skill is build and PLAN.md exists', async () => {
       makeBuildEnv({
         activeSkill: 'build',
         phaseDir: '01-setup',
@@ -352,7 +352,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('passes when active skill is not build', () => {
+    test('passes when active skill is not build', async () => {
       makeBuildEnv({
         activeSkill: 'review',
         phaseDir: '01-setup',
@@ -363,7 +363,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('passes non-executor agents even in build context', () => {
+    test('passes non-executor agents even in build context', async () => {
       makeBuildEnv({
         activeSkill: 'build',
         phaseDir: '01-setup',
@@ -374,7 +374,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('passes when no .active-skill file exists', () => {
+    test('passes when no .active-skill file exists', async () => {
       makeBuildEnv({
         phaseDir: '01-setup',
         hasPlan: false,
@@ -406,7 +406,7 @@ describe('validate-task.js', () => {
       }
     }
 
-    test('blocks executor when active skill is plan', () => {
+    test('blocks executor when active skill is plan', async () => {
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
@@ -415,7 +415,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('Plan skill cannot spawn executors');
     });
 
-    test('passes planner when active skill is plan', () => {
+    test('passes planner when active skill is plan', async () => {
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
@@ -423,7 +423,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('passes researcher when active skill is plan', () => {
+    test('passes researcher when active skill is plan', async () => {
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
@@ -474,7 +474,7 @@ describe('validate-task.js', () => {
       }
     }
 
-    test('blocks planner when active-skill is review and no VERIFICATION.md', () => {
+    test('blocks planner when active-skill is review and no VERIFICATION.md', async () => {
       makeReviewEnv({
         activeSkill: 'review',
         phaseDir: '01-setup',
@@ -487,7 +487,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('VERIFICATION.md');
     });
 
-    test('allows planner when VERIFICATION.md exists', () => {
+    test('allows planner when VERIFICATION.md exists', async () => {
       makeReviewEnv({
         activeSkill: 'review',
         phaseDir: '01-setup',
@@ -498,7 +498,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('returns null when active-skill is not review', () => {
+    test('returns null when active-skill is not review', async () => {
       makeReviewEnv({
         activeSkill: 'build',
         phaseDir: '01-setup',
@@ -509,7 +509,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('returns null when subagent_type is not pbr:planner', () => {
+    test('returns null when subagent_type is not pbr:planner', async () => {
       makeReviewEnv({
         activeSkill: 'review',
         phaseDir: '01-setup',
@@ -552,7 +552,7 @@ describe('validate-task.js', () => {
       }
     }
 
-    test('blocks verifier when no SUMMARY.md', () => {
+    test('blocks verifier when no SUMMARY.md', async () => {
       makeEnv({
         activeSkill: 'review',
         phaseDir: '01-test',
@@ -563,7 +563,7 @@ describe('validate-task.js', () => {
       expect(result.output).toContain('SUMMARY');
     });
 
-    test('allows verifier when SUMMARY.md exists', () => {
+    test('allows verifier when SUMMARY.md exists', async () => {
       makeEnv({
         activeSkill: 'review',
         phaseDir: '01-test',
@@ -574,7 +574,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows verifier when SUMMARY-01-01.md exists', () => {
+    test('allows verifier when SUMMARY-01-01.md exists', async () => {
       makeEnv({
         activeSkill: 'review',
         phaseDir: '01-test',
@@ -585,7 +585,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows non-verifier agents in review', () => {
+    test('allows non-verifier agents in review', async () => {
       makeEnv({
         activeSkill: 'review',
         phaseDir: '01-test',
@@ -595,7 +595,7 @@ describe('validate-task.js', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows verifier when skill is not review', () => {
+    test('allows verifier when skill is not review', async () => {
       makeEnv({
         activeSkill: 'build',
         phaseDir: '01-test',
@@ -675,7 +675,7 @@ Status: built
       }
     }
 
-    test('blocks when a phase lacks VERIFICATION.md', () => {
+    test('blocks when a phase lacks VERIFICATION.md', async () => {
       makeEnv({
         activeSkill: 'milestone',
         stateContent: STATE_CONTENT,
@@ -691,7 +691,7 @@ Status: built
       expect(result.output).toContain('VERIFICATION.md');
     });
 
-    test('allows when all phases have VERIFICATION.md', () => {
+    test('allows when all phases have VERIFICATION.md', async () => {
       makeEnv({
         activeSkill: 'milestone',
         stateContent: STATE_CONTENT,
@@ -705,7 +705,7 @@ Status: built
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows non-milestone skill', () => {
+    test('allows non-milestone skill', async () => {
       makeEnv({
         activeSkill: 'build',
         stateContent: STATE_CONTENT,
@@ -719,7 +719,7 @@ Status: built
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows non-general/planner agents', () => {
+    test('allows non-general/planner agents', async () => {
       makeEnv({
         activeSkill: 'milestone',
         stateContent: STATE_CONTENT,
@@ -733,7 +733,7 @@ Status: built
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows non-complete operations', () => {
+    test('allows non-complete operations', async () => {
       makeEnv({
         activeSkill: 'milestone',
         stateContent: STATE_CONTENT,
@@ -845,7 +845,7 @@ Status: built
 
     const STATE_PHASE_2 = '# State\nPhase: 2 of 2 (Second)\nStatus: building';
 
-    test('blocks executor when dependent phase lacks VERIFICATION.md', () => {
+    test('blocks executor when dependent phase lacks VERIFICATION.md', async () => {
       makeEnv({
         activeSkill: 'build',
         stateContent: STATE_PHASE_2,
@@ -861,7 +861,7 @@ Status: built
       expect(result.output).toContain('VERIFICATION.md');
     });
 
-    test('allows executor when dependent phase has VERIFICATION.md', () => {
+    test('allows executor when dependent phase has VERIFICATION.md', async () => {
       makeEnv({
         activeSkill: 'build',
         stateContent: STATE_PHASE_2,
@@ -875,7 +875,7 @@ Status: built
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows when no dependencies', () => {
+    test('allows when no dependencies', async () => {
       makeEnv({
         activeSkill: 'build',
         stateContent: STATE_PHASE_2,
@@ -889,7 +889,7 @@ Status: built
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows when depends-on line absent', () => {
+    test('allows when depends-on line absent', async () => {
       makeEnv({
         activeSkill: 'build',
         stateContent: STATE_PHASE_2,
@@ -903,7 +903,7 @@ Status: built
       expect(result.exitCode).toBe(0);
     });
 
-    test('allows non-build skill', () => {
+    test('allows non-build skill', async () => {
       makeEnv({
         activeSkill: 'review',
         stateContent: STATE_PHASE_2,
@@ -971,20 +971,20 @@ Status: built
       }
     }
 
-    test('VERIFICATION.md with status: passed allows milestone completion', () => {
+    test('VERIFICATION.md with status: passed allows milestone completion', async () => {
       makeEnv({ verificationContent: '---\nstatus: passed\n---\n# Verification\nAll good.' });
       const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
       expect(result.exitCode).toBe(0);
     });
 
-    test('VERIFICATION.md with status: gaps_found blocks milestone completion', () => {
+    test('VERIFICATION.md with status: gaps_found blocks milestone completion', async () => {
       makeEnv({ verificationContent: '---\nstatus: gaps_found\n---\n# Verification\nGaps exist.' });
       const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
       expect(result.exitCode).toBe(2);
       expect(result.output).toContain('gaps_found');
     });
 
-    test('VERIFICATION.md without frontmatter (unknown status) allows completion', () => {
+    test('VERIFICATION.md without frontmatter (unknown status) allows completion', async () => {
       makeEnv({ verificationContent: '# Verification\nNo frontmatter here.' });
       const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
       expect(result.exitCode).toBe(0);
@@ -1038,7 +1038,7 @@ Status: built
       }
     }
 
-    test('blocks milestone complete when no signal file', () => {
+    test('blocks milestone complete when no signal file', async () => {
       makeEnv({
         activeSkill: 'milestone',
         gatesConfig: { milestone_complete: { requires: 'askuser', blocking: true } }
@@ -1048,7 +1048,7 @@ Status: built
       expect(result.output).toContain('milestone_complete');
     });
 
-    test('allows milestone complete when signal file present', () => {
+    test('allows milestone complete when signal file present', async () => {
       makeEnv({
         activeSkill: 'milestone',
         gatesConfig: { milestone_complete: { requires: 'askuser', blocking: true } },
@@ -1060,7 +1060,7 @@ Status: built
   });
 
   describe('error handling', () => {
-    test('handles missing TOOL_INPUT gracefully', () => {
+    test('handles missing TOOL_INPUT gracefully', async () => {
       const input = JSON.stringify({});
       try {
         const result = execSync(`node "${SCRIPT}"`, {
@@ -1077,7 +1077,7 @@ Status: built
       }
     });
 
-    test('handles malformed JSON gracefully', () => {
+    test('handles malformed JSON gracefully', async () => {
       try {
         execSync(`node "${SCRIPT}"`, {
           input: 'not json at all',
@@ -1092,7 +1092,7 @@ Status: built
       }
     });
 
-    test('handles empty input gracefully', () => {
+    test('handles empty input gracefully', async () => {
       try {
         execSync(`node "${SCRIPT}"`, {
           input: '',

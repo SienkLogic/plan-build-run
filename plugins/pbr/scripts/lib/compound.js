@@ -26,7 +26,7 @@ const { lockedFileUpdate } = require('./core');
  * @param {object} [options] - { goal, dependsOn }
  * @returns {object} Result with success, phase, slug, directory, roadmap_updated, state_updated
  */
-function compoundInitPhase(phaseNum, slug, planningDir, options) {
+async function compoundInitPhase(phaseNum, slug, planningDir, options) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const opts = options || {};
   const partial = { dir_created: false, roadmap_updated: false, state_updated: false };
@@ -49,7 +49,7 @@ function compoundInitPhase(phaseNum, slug, planningDir, options) {
   // Create phase directory + update ROADMAP.md via phaseAdd
   let addResult;
   try {
-    addResult = phaseAdd(slug, null, dir, opts);
+    addResult = await phaseAdd(slug, null, dir, opts);
     partial.dir_created = true;
     partial.roadmap_updated = addResult.roadmap_updated || false;
   } catch (err) {
@@ -58,7 +58,7 @@ function compoundInitPhase(phaseNum, slug, planningDir, options) {
 
   // Update STATE.md
   try {
-    statePatch(JSON.stringify({
+    await statePatch(JSON.stringify({
       current_phase: String(phaseNum),
       status: 'planned',
       phase_slug: slug
@@ -70,7 +70,7 @@ function compoundInitPhase(phaseNum, slug, planningDir, options) {
 
   // Recalculate progress
   try {
-    stateUpdateProgress(dir);
+    await stateUpdateProgress(dir);
   } catch (_err) {
     // Non-fatal: progress update is best-effort
   }
@@ -92,7 +92,7 @@ function compoundInitPhase(phaseNum, slug, planningDir, options) {
  * @param {string} [planningDir] - Path to .planning directory
  * @returns {object} Result with success, summaries_found, plus phaseComplete fields
  */
-function compoundCompletePhase(phaseNum, planningDir) {
+async function compoundCompletePhase(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
 
   // Validate .planning/ exists
@@ -126,7 +126,7 @@ function compoundCompletePhase(phaseNum, planningDir) {
   // Delegate to phaseComplete for ROADMAP + STATE updates
   let result;
   try {
-    result = phaseComplete(phaseNum, dir);
+    result = await phaseComplete(phaseNum, dir);
   } catch (err) {
     return { success: false, error: `phaseComplete failed: ${err.message}` };
   }
@@ -143,7 +143,7 @@ function compoundCompletePhase(phaseNum, planningDir) {
  * @param {object} [options] - { name, phases }
  * @returns {object} Result with success, version, archive_dir, roadmap_backed_up, etc.
  */
-function compoundInitMilestone(version, planningDir, options) {
+async function compoundInitMilestone(version, planningDir, options) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const _opts = options || {};
 
@@ -190,7 +190,7 @@ function compoundInitMilestone(version, planningDir, options) {
   const statePath = path.join(dir, 'STATE.md');
   if (fs.existsSync(statePath)) {
     try {
-      lockedFileUpdate(statePath, (content) => {
+      await lockedFileUpdate(statePath, (content) => {
         return updateFrontmatterField(content, 'last_milestone_version', version);
       });
       stateUpdated = true;

@@ -56,7 +56,7 @@ describe('session-metrics (Phase 10-03)', () => {
       expect(result).toContain('5');
     });
 
-    test('includes compliance score (plans_verified / plans_executed)', () => {
+    test('includes compliance score (plans_verified / plans_executed)', async () => {
       const result = formatSessionMetrics({
         duration_min: 10,
         agents_spawned: 2,
@@ -71,7 +71,7 @@ describe('session-metrics (Phase 10-03)', () => {
       expect(result).toContain('75%');
     });
 
-    test('handles zero-duration gracefully (session < 1 second)', () => {
+    test('handles zero-duration gracefully (session < 1 second)', async () => {
       const result = formatSessionMetrics({
         duration_min: 0,
         agents_spawned: 0,
@@ -89,7 +89,7 @@ describe('session-metrics (Phase 10-03)', () => {
       expect(result).toContain('0%');
     });
 
-    test('compliance is 100% when all plans verified', () => {
+    test('compliance is 100% when all plans verified', async () => {
       const result = formatSessionMetrics({
         duration_min: 5,
         agents_spawned: 1,

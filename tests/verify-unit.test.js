@@ -71,7 +71,7 @@ function getJSON() {
 // cmdValidateHealth -- config parse failure
 // ---------------------------------------------------------------------------
 describe('cmdValidateHealth -- config edge cases', () => {
-  test('handles malformed config.json without crashing', () => {
+  test('handles malformed config.json without crashing', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'PROJECT.md'),
       '## What This Is\nTest\n## Core Value\nTest\n## Requirements\nNone');
@@ -82,7 +82,7 @@ describe('cmdValidateHealth -- config edge cases', () => {
     expect(out).toContain('parse error');
   });
 
-  test('reports missing config.json as warning W003', () => {
+  test('reports missing config.json as warning W003', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'PROJECT.md'),
       '## What This Is\nTest\n## Core Value\nTest\n## Requirements\nNone');
@@ -93,7 +93,7 @@ describe('cmdValidateHealth -- config edge cases', () => {
     expect(out).toContain('config.json not found');
   });
 
-  test('returns correct status when .planning dir missing', () => {
+  test('returns correct status when .planning dir missing', async () => {
     const emptyTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-verify-empty-'));
     try { cmdValidateHealth(emptyTmp, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -102,7 +102,7 @@ describe('cmdValidateHealth -- config edge cases', () => {
     fs.rmSync(emptyTmp, { recursive: true, force: true });
   });
 
-  test('reports missing PROJECT.md as error E002', () => {
+  test('reports missing PROJECT.md as error E002', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
     // No PROJECT.md
@@ -111,7 +111,7 @@ describe('cmdValidateHealth -- config edge cases', () => {
     expect(out).toContain('E002');
   });
 
-  test('reports missing ROADMAP.md as error E003', () => {
+  test('reports missing ROADMAP.md as error E003', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'PROJECT.md'),
       '## What This Is\nTest\n## Core Value\nTest\n## Requirements\nNone');
@@ -122,7 +122,7 @@ describe('cmdValidateHealth -- config edge cases', () => {
     expect(out).toContain('E003');
   });
 
-  test('reports missing STATE.md as error E004', () => {
+  test('reports missing STATE.md as error E004', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'PROJECT.md'),
       '## What This Is\nTest\n## Core Value\nTest\n## Requirements\nNone');
@@ -133,7 +133,7 @@ describe('cmdValidateHealth -- config edge cases', () => {
     expect(out).toContain('E004');
   });
 
-  test('validates invalid model_profile', () => {
+  test('validates invalid model_profile', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'PROJECT.md'),
       '## What This Is\nTest\n## Core Value\nTest\n## Requirements\nNone');
@@ -157,21 +157,21 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
   }
 
-  test('reports regression_prevention feature status', () => {
+  test('reports regression_prevention feature status', async () => {
     setupHealthProject({ depth: 'standard', features: { regression_prevention: true } });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('regression_prevention');
   });
 
-  test('reports security_scanning feature status', () => {
+  test('reports security_scanning feature status', async () => {
     setupHealthProject({ depth: 'standard', features: { security_scanning: true } });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('security_scanning');
   });
 
-  test('reports decision_journal as healthy when directory exists', () => {
+  test('reports decision_journal as healthy when directory exists', async () => {
     setupHealthProject({ depth: 'standard', features: { decision_journal: true } });
     fs.mkdirSync(path.join(planningDir, 'decisions'), { recursive: true });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -180,7 +180,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('healthy');
   });
 
-  test('reports decision_journal as degraded when directory missing', () => {
+  test('reports decision_journal as degraded when directory missing', async () => {
     setupHealthProject({ depth: 'standard', features: { decision_journal: true } });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -188,7 +188,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('degraded');
   });
 
-  test('reports negative_knowledge as healthy when directory exists', () => {
+  test('reports negative_knowledge as healthy when directory exists', async () => {
     setupHealthProject({ depth: 'standard', features: { negative_knowledge: true } });
     fs.mkdirSync(path.join(planningDir, 'negative-knowledge'), { recursive: true });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -197,7 +197,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('healthy');
   });
 
-  test('reports living_requirements as healthy when REQUIREMENTS.md has REQ-IDs', () => {
+  test('reports living_requirements as healthy when REQUIREMENTS.md has REQ-IDs', async () => {
     setupHealthProject({ depth: 'standard', features: { living_requirements: true } });
     fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'),
       '# Requirements\n\nREQ-F-001: Feature one\nREQ-F-002: Feature two\n');
@@ -207,7 +207,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('healthy');
   });
 
-  test('reports living_requirements as degraded when REQUIREMENTS.md missing', () => {
+  test('reports living_requirements as degraded when REQUIREMENTS.md missing', async () => {
     setupHealthProject({ depth: 'standard', features: { living_requirements: true } });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -215,7 +215,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('degraded');
   });
 
-  test('reports graduated_verification as degraded without trust data', () => {
+  test('reports graduated_verification as degraded without trust data', async () => {
     setupHealthProject({ depth: 'standard', features: { graduated_verification: true } });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -223,7 +223,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('degraded');
   });
 
-  test('reports graduated_verification as healthy with trust data', () => {
+  test('reports graduated_verification as healthy with trust data', async () => {
     setupHealthProject({ depth: 'standard', features: { graduated_verification: true } });
     fs.mkdirSync(path.join(planningDir, 'trust'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'trust', 'scores.json'), '{}');
@@ -233,7 +233,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
     expect(out).toContain('healthy');
   });
 
-  test('warns about missing nyquist_validation key', () => {
+  test('warns about missing nyquist_validation key', async () => {
     setupHealthProject({ depth: 'standard', workflow: {} });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -246,7 +246,7 @@ describe('cmdValidateHealth -- feature health reporting', () => {
 // cmdVerifyPhaseCompleteness -- edge cases
 // ---------------------------------------------------------------------------
 describe('cmdVerifyPhaseCompleteness -- edge cases', () => {
-  test('phase with no plans returns empty plan_count', () => {
+  test('phase with no plans returns empty plan_count', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     try { cmdVerifyPhaseCompleteness(tmpDir, '1', false); } catch (_e) { /* exit */ }
     const json = getJSON();
@@ -272,7 +272,7 @@ describe('cmdVerifyPhaseCompleteness -- edge cases', () => {
     expect(json.incomplete_plans).toContain('01-02');
   });
 
-  test('nonexistent phase returns error', () => {
+  test('nonexistent phase returns error', async () => {
     try { cmdVerifyPhaseCompleteness(tmpDir, '99', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('not found');
@@ -283,7 +283,7 @@ describe('cmdVerifyPhaseCompleteness -- edge cases', () => {
 // cmdVerifySummary -- deeper checks
 // ---------------------------------------------------------------------------
 describe('cmdVerifySummary -- deeper edge cases', () => {
-  test('detects missing files referenced in summary', () => {
+  test('detects missing files referenced in summary', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     // Reference files that do not exist
@@ -295,7 +295,7 @@ describe('cmdVerifySummary -- deeper edge cases', () => {
     expect(json.checks.files_created.missing.length).toBeGreaterThan(0);
   });
 
-  test('reports not_found self-check when section missing', () => {
+  test('reports not_found self-check when section missing', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     fs.writeFileSync(summaryPath, '---\nphase: 01\n---\n# Summary\n\nNo self-check section.\n');
@@ -304,7 +304,7 @@ describe('cmdVerifySummary -- deeper edge cases', () => {
     expect(json.checks.self_check).toBe('not_found');
   });
 
-  test('detects passed self-check', () => {
+  test('detects passed self-check', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     fs.writeFileSync(summaryPath,
@@ -314,7 +314,7 @@ describe('cmdVerifySummary -- deeper edge cases', () => {
     expect(json.checks.self_check).toBe('passed');
   });
 
-  test('handles zero-length check count', () => {
+  test('handles zero-length check count', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     fs.writeFileSync(summaryPath, '---\n---\n# Summary\n## Self-Check: PASSED\n');
@@ -328,7 +328,7 @@ describe('cmdVerifySummary -- deeper edge cases', () => {
 // cmdVerifyPlanStructure -- additional edge cases
 // ---------------------------------------------------------------------------
 describe('cmdVerifyPlanStructure -- additional checks', () => {
-  test('valid plan with all task elements passes', () => {
+  test('valid plan with all task elements passes', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     const content = [
@@ -368,7 +368,7 @@ describe('cmdVerifyPlanStructure -- additional checks', () => {
     expect(json.tasks[0].hasDone).toBe(true);
   });
 
-  test('reports no tasks as warning', () => {
+  test('reports no tasks as warning', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     const content = [
@@ -395,7 +395,7 @@ describe('cmdVerifyPlanStructure -- additional checks', () => {
     ]));
   });
 
-  test('multiple tasks are parsed correctly', () => {
+  test('multiple tasks are parsed correctly', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     const content = [
@@ -428,13 +428,13 @@ describe('cmdVerifyPlanStructure -- additional checks', () => {
 // cmdVerifyArtifacts -- edge cases
 // ---------------------------------------------------------------------------
 describe('cmdVerifyArtifacts -- edge cases', () => {
-  test('reports file not found for missing plan', () => {
+  test('reports file not found for missing plan', async () => {
     try { cmdVerifyArtifacts(tmpDir, 'nonexistent-plan.md', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('not found');
   });
 
-  test('reports no artifacts found when must_haves.artifacts is empty', () => {
+  test('reports no artifacts found when must_haves.artifacts is empty', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, '---\nmust_haves:\n    artifacts: []\n---\n');
@@ -443,7 +443,7 @@ describe('cmdVerifyArtifacts -- edge cases', () => {
     expect(out).toContain('No must_haves.artifacts');
   });
 
-  test('validates artifact that exists on disk', () => {
+  test('validates artifact that exists on disk', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     const artDir = path.join(tmpDir, 'src');
@@ -457,7 +457,7 @@ describe('cmdVerifyArtifacts -- edge cases', () => {
     expect(json.total).toBe(1);
   });
 
-  test('reports missing artifact file', () => {
+  test('reports missing artifact file', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, '---\nmust_haves:\n    artifacts:\n      - "src/missing.js"\n---\n');
@@ -473,7 +473,7 @@ describe('cmdVerifyArtifacts -- edge cases', () => {
 // cmdValidateConsistency -- edge cases
 // ---------------------------------------------------------------------------
 describe('cmdValidateConsistency -- edge cases', () => {
-  test('handles missing ROADMAP.md', () => {
+  test('handles missing ROADMAP.md', async () => {
     fs.unlinkSync(path.join(planningDir, 'ROADMAP.md'));
     try { cmdValidateConsistency(tmpDir, false); } catch (_e) { /* exit */ }
     const json = getJSON();
@@ -481,14 +481,14 @@ describe('cmdValidateConsistency -- edge cases', () => {
     expect(json.errors).toEqual(expect.arrayContaining([expect.stringContaining('ROADMAP.md not found')]));
   });
 
-  test('passes with consistent phase setup', () => {
+  test('passes with consistent phase setup', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     try { cmdValidateConsistency(tmpDir, false); } catch (_e) { /* exit */ }
     const json = getJSON();
     expect(json.passed).toBe(true);
   });
 
-  test('warns about phases on disk but not in ROADMAP', () => {
+  test('warns about phases on disk but not in ROADMAP', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
     fs.mkdirSync(path.join(planningDir, 'phases', '02-extra'), { recursive: true });
     // ROADMAP only mentions phase 1
@@ -502,7 +502,7 @@ describe('cmdValidateConsistency -- edge cases', () => {
 // cmdVerifyReferences -- edge cases
 // ---------------------------------------------------------------------------
 describe('cmdVerifyReferences -- deeper checks', () => {
-  test('finds valid backtick file references', () => {
+  test('finds valid backtick file references', async () => {
     const refFile = path.join(planningDir, 'phases', '01-foundation', 'REF.md');
     fs.mkdirSync(path.dirname(refFile), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -515,7 +515,7 @@ describe('cmdVerifyReferences -- deeper checks', () => {
     expect(json.missing).toHaveLength(0);
   });
 
-  test('reports missing backtick file references', () => {
+  test('reports missing backtick file references', async () => {
     const refFile = path.join(planningDir, 'phases', '01-foundation', 'REF.md');
     fs.mkdirSync(path.dirname(refFile), { recursive: true });
     fs.writeFileSync(refFile, 'See `src/nonexistent.js` for details.\n');
@@ -525,7 +525,7 @@ describe('cmdVerifyReferences -- deeper checks', () => {
     expect(json.missing.length).toBeGreaterThan(0);
   });
 
-  test('handles file not found', () => {
+  test('handles file not found', async () => {
     try { cmdVerifyReferences(tmpDir, 'nonexistent.md', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('not found');
@@ -536,7 +536,7 @@ describe('cmdVerifyReferences -- deeper checks', () => {
 // cmdVerifyKeyLinks -- edge cases
 // ---------------------------------------------------------------------------
 describe('cmdVerifyKeyLinks -- edge cases', () => {
-  test('handles plan with no key_links', () => {
+  test('handles plan with no key_links', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, '---\nmust_haves:\n    key_links: []\n---\n');
@@ -545,7 +545,7 @@ describe('cmdVerifyKeyLinks -- edge cases', () => {
     expect(out).toContain('No must_haves.key_links');
   });
 
-  test('handles descriptive string key_links', () => {
+  test('handles descriptive string key_links', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, '---\nmust_haves:\n    key_links:\n      - "All components are wired together"\n---\n');
@@ -560,7 +560,7 @@ describe('cmdVerifyKeyLinks -- edge cases', () => {
 // cmdVerifyCommits -- edge cases
 // ---------------------------------------------------------------------------
 describe('cmdVerifyCommits -- deeper checks', () => {
-  test('validates commit hashes against tmpDir (not a git repo)', () => {
+  test('validates commit hashes against tmpDir (not a git repo)', async () => {
     const { execSync } = require('child_process');
     let head;
     try {
@@ -574,7 +574,7 @@ describe('cmdVerifyCommits -- deeper checks', () => {
     expect(typeof json.all_valid).toBe('boolean');
   });
 
-  test('reports invalid commit hashes', () => {
+  test('reports invalid commit hashes', async () => {
     try { cmdVerifyCommits(tmpDir, ['0000000', 'aaaaaaa'], false); } catch (_e) { /* exit */ }
     const json = getJSON();
     expect(json.all_valid).toBe(false);
@@ -587,7 +587,7 @@ describe('cmdVerifyCommits -- deeper checks', () => {
 // cmdVerifySummary -- self-check detection (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdVerifySummary -- self-check detection', () => {
-  test('detects failed self-check section', () => {
+  test('detects failed self-check section', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     fs.writeFileSync(summaryPath,
@@ -599,7 +599,7 @@ describe('cmdVerifySummary -- self-check detection', () => {
     expect(json.errors).toEqual(expect.arrayContaining([expect.stringContaining('Self-check')]));
   });
 
-  test('handles summary with no file references', () => {
+  test('handles summary with no file references', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     fs.writeFileSync(summaryPath,
@@ -611,7 +611,7 @@ describe('cmdVerifySummary -- self-check detection', () => {
     expect(json.checks.self_check).toBe('passed');
   });
 
-  test('handles nonexistent summary file', () => {
+  test('handles nonexistent summary file', async () => {
     try { cmdVerifySummary(tmpDir, '.planning/phases/99-missing/SUMMARY.md', 2, false); } catch (_e) { /* exit */ }
     const json = getJSON();
     expect(json.passed).toBe(false);
@@ -624,7 +624,7 @@ describe('cmdVerifySummary -- self-check detection', () => {
 // cmdVerifyPlanStructure -- frontmatter validation (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdVerifyPlanStructure -- frontmatter validation', () => {
-  test('reports missing required frontmatter fields', () => {
+  test('reports missing required frontmatter fields', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, '---\nphase: "01"\nplan: "01"\n---\n<task type="code"><name>T</name><action>A</action><verify>V</verify><done>D</done></task>');
@@ -638,7 +638,7 @@ describe('cmdVerifyPlanStructure -- frontmatter validation', () => {
     expect(json.errors.some(e => e.includes('must_haves'))).toBe(true);
   });
 
-  test('warns about wave > 1 with empty depends_on', () => {
+  test('warns about wave > 1 with empty depends_on', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, [
@@ -654,7 +654,7 @@ describe('cmdVerifyPlanStructure -- frontmatter validation', () => {
     expect(json.warnings).toEqual(expect.arrayContaining([expect.stringContaining('Wave > 1')]));
   });
 
-  test('errors on checkpoint task with autonomous true', () => {
+  test('errors on checkpoint task with autonomous true', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, [
@@ -671,7 +671,7 @@ describe('cmdVerifyPlanStructure -- frontmatter validation', () => {
     expect(json.errors).toEqual(expect.arrayContaining([expect.stringContaining('checkpoint')]));
   });
 
-  test('warns about task missing action/verify/done elements', () => {
+  test('warns about task missing action/verify/done elements', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, [
@@ -690,7 +690,7 @@ describe('cmdVerifyPlanStructure -- frontmatter validation', () => {
     expect(json.errors).toEqual(expect.arrayContaining([expect.stringContaining('missing <done>')]));
   });
 
-  test('nonexistent plan file returns error', () => {
+  test('nonexistent plan file returns error', async () => {
     try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/99-missing/PLAN.md', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('not found');
@@ -701,7 +701,7 @@ describe('cmdVerifyPlanStructure -- frontmatter validation', () => {
 // cmdVerifyPhaseCompleteness -- additional edge cases (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdVerifyPhaseCompleteness -- additional edge cases', () => {
-  test('reports orphan summaries without matching plans', () => {
+  test('reports orphan summaries without matching plans', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-99-SUMMARY.md'), '---\n---\n');
@@ -710,7 +710,7 @@ describe('cmdVerifyPhaseCompleteness -- additional edge cases', () => {
     expect(json.orphan_summaries).toContain('01-99');
   });
 
-  test('all plans have summaries reports complete', () => {
+  test('all plans have summaries reports complete', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\n---\n');
@@ -730,7 +730,7 @@ describe('cmdVerifyPhaseCompleteness -- additional edge cases', () => {
 // cmdValidateConsistency -- deeper checks (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdValidateConsistency -- deeper checks', () => {
-  test('detects gap in phase numbering', () => {
+  test('detects gap in phase numbering', async () => {
     fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
     fs.mkdirSync(path.join(planningDir, 'phases', '03-third'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
@@ -740,7 +740,7 @@ describe('cmdValidateConsistency -- deeper checks', () => {
     expect(out).toContain('Gap in phase numbering');
   });
 
-  test('detects plan numbering gap within a phase', () => {
+  test('detects plan numbering gap within a phase', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\nwave: 1\n---\n');
@@ -750,7 +750,7 @@ describe('cmdValidateConsistency -- deeper checks', () => {
     expect(out).toContain('Gap in plan numbering');
   });
 
-  test('detects summary without matching plan', () => {
+  test('detects summary without matching plan', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\nwave: 1\n---\n');
@@ -761,7 +761,7 @@ describe('cmdValidateConsistency -- deeper checks', () => {
     expect(out).toContain('no matching PLAN');
   });
 
-  test('warns about missing wave in plan frontmatter', () => {
+  test('warns about missing wave in plan frontmatter', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\nphase: "01"\n---\n');
@@ -770,7 +770,7 @@ describe('cmdValidateConsistency -- deeper checks', () => {
     expect(out).toContain("missing 'wave'");
   });
 
-  test('missing phases directory does not crash', () => {
+  test('missing phases directory does not crash', async () => {
     fs.rmSync(path.join(planningDir, 'phases'), { recursive: true, force: true });
     try { cmdValidateConsistency(tmpDir, false); } catch (_e) { /* exit */ }
     const json = getJSON();
@@ -783,7 +783,7 @@ describe('cmdValidateConsistency -- deeper checks', () => {
 // cmdVerifyReferences -- @-references (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdVerifyReferences -- @-reference patterns', () => {
-  test('detects @path/to/file references that exist', () => {
+  test('detects @path/to/file references that exist', async () => {
     const refFile = path.join(planningDir, 'phases', '01-foundation', 'NOTES.md');
     fs.mkdirSync(path.dirname(refFile), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, 'lib'), { recursive: true });
@@ -795,7 +795,7 @@ describe('cmdVerifyReferences -- @-reference patterns', () => {
     expect(json.found).toBe(1);
   });
 
-  test('detects @path/to/file references that are missing', () => {
+  test('detects @path/to/file references that are missing', async () => {
     const refFile = path.join(planningDir, 'phases', '01-foundation', 'NOTES.md');
     fs.mkdirSync(path.dirname(refFile), { recursive: true });
     fs.writeFileSync(refFile, 'See @lib/nonexistent.js and @config/missing.json for help.\n');
@@ -810,7 +810,7 @@ describe('cmdVerifyReferences -- @-reference patterns', () => {
 // cmdVerifyKeyLinks -- file-based (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdVerifyKeyLinks -- file-based key_links', () => {
-  test('validates key_link with file paths', () => {
+  test('validates key_link with file paths', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -824,7 +824,7 @@ describe('cmdVerifyKeyLinks -- file-based key_links', () => {
     expect(json.links[0]).toHaveProperty('description');
   });
 
-  test('handles plan not found', () => {
+  test('handles plan not found', async () => {
     try { cmdVerifyKeyLinks(tmpDir, 'nonexistent-plan.md', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('not found');
@@ -842,7 +842,7 @@ describe('cmdValidateHealth -- comprehensive feature evaluation', () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
   }
 
-  test('healthy project with all required files reports overall healthy', () => {
+  test('healthy project with all required files reports overall healthy', async () => {
     setupHealthProject({ depth: 'standard' });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -850,7 +850,7 @@ describe('cmdValidateHealth -- comprehensive feature evaluation', () => {
     expect(out).not.toContain('broken');
   });
 
-  test('multiple features all reported', () => {
+  test('multiple features all reported', async () => {
     setupHealthProject({
       depth: 'standard',
       features: {
@@ -868,14 +868,14 @@ describe('cmdValidateHealth -- comprehensive feature evaluation', () => {
     expect(out).toContain('security_scanning');
   });
 
-  test('empty features object causes no crash', () => {
+  test('empty features object causes no crash', async () => {
     setupHealthProject({ depth: 'standard', features: {} });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out).toContain('healthy');
   });
 
-  test('warns about missing nyquist_validation workflow key', () => {
+  test('warns about missing nyquist_validation workflow key', async () => {
     setupHealthProject({ depth: 'standard', workflow: { node_repair_budget: 2 } });
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
@@ -887,7 +887,7 @@ describe('cmdValidateHealth -- comprehensive feature evaluation', () => {
 // Additional assertion depth (NEW)
 // ---------------------------------------------------------------------------
 describe('cmdVerifySummary -- commit hash extraction', () => {
-  test('detects existing commit hashes in summary', () => {
+  test('detects existing commit hashes in summary', async () => {
     const summaryPath = path.join(planningDir, 'phases', '01-foundation', 'SUMMARY.md');
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
     // Use a hash that exists in this git repo (HEAD of the real project)
@@ -909,7 +909,7 @@ describe('cmdVerifySummary -- commit hash extraction', () => {
 });
 
 describe('cmdVerifyPlanStructure -- frontmatter field inventory', () => {
-  test('reports all frontmatter fields present', () => {
+  test('reports all frontmatter fields present', async () => {
     const planPath = path.join(planningDir, 'phases', '01-foundation', 'PLAN.md');
     fs.mkdirSync(path.dirname(planPath), { recursive: true });
     fs.writeFileSync(planPath, [
@@ -933,7 +933,7 @@ describe('cmdVerifyPlanStructure -- frontmatter field inventory', () => {
 });
 
 describe('cmdValidateConsistency -- plan frontmatter checks', () => {
-  test('reports consistent plans with wave field present', () => {
+  test('reports consistent plans with wave field present', async () => {
     const phaseDir = path.join(planningDir, 'phases', '01-foundation');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\nwave: 1\n---\n');

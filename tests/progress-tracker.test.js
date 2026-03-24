@@ -42,13 +42,13 @@ describe('progress-tracker.js', () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
   }
 
-  test('exits silently when no .planning directory', () => {
+  test('exits silently when no .planning directory', async () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     const output = run();
     expect(output).toBe('');
   });
 
-  test('outputs additionalContext when .planning exists', () => {
+  test('outputs additionalContext when .planning exists', async () => {
     writeState('# Project State\n\n## Current Position\nPhase: 2 of 5\nStatus: building\n');
 
     const output = run();
@@ -57,7 +57,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('[Plan-Build-Run Project Detected]');
   });
 
-  test('extracts Current Position from STATE.md', () => {
+  test('extracts Current Position from STATE.md', async () => {
     writeState('# Project State\n\n## Current Position\nPhase: 3 of 8 (API)\nPlan: 1 of 2\nStatus: built\n\n## Other Section\nStuff\n');
 
     const output = run();
@@ -66,7 +66,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('built');
   });
 
-  test('extracts Blockers when not "None"', () => {
+  test('extracts Blockers when not "None"', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n\n## Blockers/Concerns\n- Database migration failing\n- API key missing\n');
 
     const output = run();
@@ -74,7 +74,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('Database migration failing');
   });
 
-  test('skips Blockers section when it says None', () => {
+  test('skips Blockers section when it says None', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n\n## Blockers/Concerns\nNone yet\n');
 
     const output = run();
@@ -82,7 +82,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).not.toContain('Blockers:');
   });
 
-  test('extracts Session Continuity section', () => {
+  test('extracts Session Continuity section', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n\n## Session Continuity\nLast session: 2026-02-10\nStopped at: Building auth middleware\n');
 
     const output = run();
@@ -90,7 +90,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('Last session: 2026-02-10');
   });
 
-  test('shows message when STATE.md is missing', () => {
+  test('shows message when STATE.md is missing', async () => {
     // .planning exists but no STATE.md
     const output = run();
     const parsed = JSON.parse(output);
@@ -98,7 +98,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('/pbr:new-project');
   });
 
-  test('reads config.json depth and mode', () => {
+  test('reads config.json depth and mode', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     writeConfig({ depth: 'comprehensive', mode: 'autonomous' });
 
@@ -108,7 +108,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('mode=autonomous');
   });
 
-  test('handles malformed config.json gracefully', () => {
+  test('handles malformed config.json gracefully', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     fs.writeFileSync(path.join(planningDir, 'config.json'), 'not json');
 
@@ -118,7 +118,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('[Plan-Build-Run Project Detected]');
   });
 
-  test('detects .continue-here.md files in phase directories', () => {
+  test('detects .continue-here.md files in phase directories', async () => {
     writeState('# State\n\n## Current Position\nPhase: 2 of 5\n');
     const phasesDir = path.join(planningDir, 'phases');
     const phaseDir = path.join(phasesDir, '02-auth');
@@ -131,7 +131,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('/pbr:resume-work');
   });
 
-  test('detects stale .auto-next signal older than 10 minutes', () => {
+  test('detects stale .auto-next signal older than 10 minutes', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     const signalPath = path.join(planningDir, '.auto-next');
     fs.writeFileSync(signalPath, '/pbr:execute-phase 1');
@@ -145,7 +145,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('Stale .auto-next signal');
   });
 
-  test('does not warn about fresh .auto-next signal', () => {
+  test('does not warn about fresh .auto-next signal', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     fs.writeFileSync(path.join(planningDir, '.auto-next'), '/pbr:execute-phase 1');
     // Fresh file -- no backdating
@@ -155,7 +155,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).not.toContain('Stale .auto-next');
   });
 
-  test('includes PBR workflow directive', () => {
+  test('includes PBR workflow directive', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
 
     const output = run();
@@ -166,7 +166,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('/pbr:do');
   });
 
-  test('counts project notes', () => {
+  test('counts project notes', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     const notesDir = path.join(planningDir, 'notes');
     fs.mkdirSync(notesDir, { recursive: true });
@@ -178,7 +178,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('2 project');
   });
 
-  test('logs injected decision to hook log', () => {
+  test('logs injected decision to hook log', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
 
     run();
@@ -191,7 +191,7 @@ describe('progress-tracker.js', () => {
     expect(entry.decision).toBe('injected');
   });
 
-  test('logs skipped decision when no state', () => {
+  test('logs skipped decision when no state', async () => {
     // .planning exists but no STATE.md -- still outputs context (with "No STATE.md found" message)
     // The hook logs 'injected' because it still builds context
     const output = run();
@@ -199,7 +199,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toBeDefined();
   });
 
-  test('limits extracted sections to 5 lines', () => {
+  test('limits extracted sections to 5 lines', async () => {
     const longSection = Array.from({ length: 10 }, (_, i) => `Line ${i + 1}`).join('\n');
     writeState(`# State\n\n## Current Position\n${longSection}\n\n## Other\nStuff\n`);
 
@@ -211,7 +211,7 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).not.toContain('Line 6');
   });
 
-  test('does NOT inject Accumulated Context section', () => {
+  test('does NOT inject Accumulated Context section', async () => {
     writeState(`# Project State
 
 ## Current Position
@@ -257,7 +257,7 @@ Resume file: None
     fs.writeFileSync(logPath, lines.join('\n') + '\n');
   }
 
-  test('shows hook health summary when failures exist in log', () => {
+  test('shows hook health summary when failures exist in log', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     writeHookLog([
       { ts: '2026-02-18T10:00:00Z', hook: 'check-plan-format', event: 'PostToolUse', decision: 'block' },
@@ -274,7 +274,7 @@ Resume file: None
     expect(parsed.additionalContext).toContain('validate-commit: 1');
   });
 
-  test('does not show hook health when no failures', () => {
+  test('does not show hook health when no failures', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     writeHookLog([
       { ts: '2026-02-18T10:00:00Z', hook: 'validate-commit', event: 'PreToolUse', decision: 'allow' },
@@ -286,7 +286,7 @@ Resume file: None
     expect(parsed.additionalContext).not.toContain('Hook health:');
   });
 
-  test('does not show hook health when no log file exists', () => {
+  test('does not show hook health when no log file exists', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     // No hooks.jsonl written
 
@@ -295,7 +295,7 @@ Resume file: None
     expect(parsed.additionalContext).not.toContain('Hook health:');
   });
 
-  test('handles malformed lines in hook log gracefully', () => {
+  test('handles malformed lines in hook log gracefully', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
     fs.writeFileSync(logPath, 'not json\n{"ts":"2026-02-18","hook":"validate-commit","event":"PreToolUse","decision":"block"}\n');
@@ -306,7 +306,7 @@ Resume file: None
     expect(parsed.additionalContext).toContain('1 failure in last 2 entries');
   });
 
-  test('recognizes all failure decision types', () => {
+  test('recognizes all failure decision types', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     writeHookLog([
       { ts: '2026-02-18T10:00:00Z', hook: 'hook-a', event: 'E', decision: 'block' },
@@ -322,7 +322,7 @@ Resume file: None
     expect(parsed.additionalContext).toContain('6 failures in last 6 entries');
   });
 
-  test('limits hook health to last 50 entries', () => {
+  test('limits hook health to last 50 entries', async () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     // Write 60 entries: first 10 are failures, last 50 are passes
     const entries = [];
@@ -340,7 +340,7 @@ Resume file: None
     expect(parsed.additionalContext).not.toContain('Hook health:');
   });
 
-  test('does NOT inject Milestone section', () => {
+  test('does NOT inject Milestone section', async () => {
     writeState(`# Project State
 
 ## Current Position
@@ -455,7 +455,7 @@ describe('tryLaunchHookServer (via isolated helper)', () => {
     return JSON.parse(output.trim());
   }
 
-  test('skips launch when hook_server.enabled is false', () => {
+  test('skips launch when hook_server.enabled is false', async () => {
     const result = runHelper({ hook_server: { enabled: false, port: 19836 } });
     expect(result.skipped).toBe(true);
   });
@@ -477,7 +477,7 @@ describe('tryLaunchHookServer (via isolated helper)', () => {
     });
   });
 
-  test('spawns hook-server.js when port is free', () => {
+  test('spawns hook-server.js when port is free', async () => {
     // Use a port in the high test range, very unlikely to be in use
     const port = 19895;
     const result = runHelper({ hook_server: { enabled: true, port } });

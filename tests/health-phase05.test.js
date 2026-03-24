@@ -52,7 +52,7 @@ function parseOutput() {
 // ─── decision_journal ────────────────────────────────────────────────────────
 
 describe('phase05_features — decision_journal', () => {
-  test('healthy when enabled and decisions/ dir exists', () => {
+  test('healthy when enabled and decisions/ dir exists', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: true } }));
@@ -64,7 +64,7 @@ describe('phase05_features — decision_journal', () => {
     });
   });
 
-  test('degraded when enabled but decisions/ dir missing', () => {
+  test('degraded when enabled but decisions/ dir missing', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: true } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -74,7 +74,7 @@ describe('phase05_features — decision_journal', () => {
     });
   });
 
-  test('disabled when toggle is false', () => {
+  test('disabled when toggle is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: false } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -88,7 +88,7 @@ describe('phase05_features — decision_journal', () => {
 // ─── negative_knowledge ──────────────────────────────────────────────────────
 
 describe('phase05_features — negative_knowledge', () => {
-  test('healthy when enabled and negative-knowledge/ dir exists', () => {
+  test('healthy when enabled and negative-knowledge/ dir exists', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { negative_knowledge: true } }));
@@ -99,7 +99,7 @@ describe('phase05_features — negative_knowledge', () => {
     });
   });
 
-  test('degraded when enabled but negative-knowledge/ dir missing', () => {
+  test('degraded when enabled but negative-knowledge/ dir missing', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { negative_knowledge: true } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -109,7 +109,7 @@ describe('phase05_features — negative_knowledge', () => {
     });
   });
 
-  test('disabled when toggle is false', () => {
+  test('disabled when toggle is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { negative_knowledge: false } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -123,7 +123,7 @@ describe('phase05_features — negative_knowledge', () => {
 // ─── living_requirements ─────────────────────────────────────────────────────
 
 describe('phase05_features — living_requirements', () => {
-  test('healthy when enabled and REQUIREMENTS.md has REQ- patterns', () => {
+  test('healthy when enabled and REQUIREMENTS.md has REQ- patterns', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),
       '# Requirements\n\n- REQ-F-001: Build the thing\n- REQ-F-002: Test the thing\n');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
@@ -135,7 +135,7 @@ describe('phase05_features — living_requirements', () => {
     });
   });
 
-  test('degraded when enabled but REQUIREMENTS.md missing', () => {
+  test('degraded when enabled but REQUIREMENTS.md missing', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { living_requirements: true } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -145,7 +145,7 @@ describe('phase05_features — living_requirements', () => {
     });
   });
 
-  test('degraded when REQUIREMENTS.md exists but has no REQ- patterns', () => {
+  test('degraded when REQUIREMENTS.md exists but has no REQ- patterns', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),
       '# Requirements\n\nNo requirements defined yet.\n');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
@@ -157,7 +157,7 @@ describe('phase05_features — living_requirements', () => {
     });
   });
 
-  test('disabled when toggle is false', () => {
+  test('disabled when toggle is false', async () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { living_requirements: false } }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
@@ -186,7 +186,7 @@ describe('Phase 05 audit evidence', () => {
     process.cwd = origCwd;
   });
 
-  test('decision extraction writes audit log with feature and action fields', () => {
+  test('decision extraction writes audit log with feature and action fields', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: true } }));
@@ -230,7 +230,7 @@ describe('Phase 05 audit evidence', () => {
 // ─── Combined output ─────────────────────────────────────────────────────────
 
 describe('phase05_features — combined', () => {
-  test('includes all 3 features in phase05_features section', () => {
+  test('includes all 3 features in phase05_features section', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),

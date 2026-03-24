@@ -60,7 +60,7 @@ describe('Plugin component sync', () => {
   // Commands that are static pages (no skill reference or process steps)
   const STATIC_COMMANDS = ['join-discord'];
 
-  test('every plugin skill has a matching command in plugins/pbr/commands/', () => {
+  test('every plugin skill has a matching command in plugins/pbr/commands/', async () => {
     const skills = listSkills(path.join(PLUGIN, 'skills'));
     const commands = listCommands(path.join(PLUGIN, 'commands'));
 
@@ -71,7 +71,7 @@ describe('Plugin component sync', () => {
     expect(missing).toEqual([]);
   });
 
-  test('every plugin command either references a valid skill or is self-contained', () => {
+  test('every plugin command either references a valid skill or is self-contained', async () => {
     const skills = listSkills(path.join(PLUGIN, 'skills'));
     const commands = listCommands(path.join(PLUGIN, 'commands'));
     const invalid = [];
@@ -103,7 +103,7 @@ describe('Plugin component sync', () => {
     expect(invalid).toEqual([]);
   });
 
-  test('direct command descriptions match their skill descriptions', () => {
+  test('direct command descriptions match their skill descriptions', async () => {
     // Only check commands that map directly to same-named skills.
     // Alias commands (e.g., discuss-phase -> discuss) have different
     // descriptions intentionally.

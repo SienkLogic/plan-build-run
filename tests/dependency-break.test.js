@@ -39,7 +39,7 @@ function cleanup(tmpDir) {
 }
 
 describe('checkDependencyBreaks', () => {
-  test('returns empty array when no downstream plans exist', () => {
+  test('returns empty array when no downstream plans exist', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const phase3Dir = createPhaseDir(planningDir, 3, 'core');
@@ -52,7 +52,7 @@ describe('checkDependencyBreaks', () => {
     }
   });
 
-  test('returns empty array when downstream plan has no dependency_fingerprints', () => {
+  test('returns empty array when downstream plan has no dependency_fingerprints', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const phase3Dir = createPhaseDir(planningDir, 3, 'core');
@@ -72,7 +72,7 @@ describe('checkDependencyBreaks', () => {
     }
   });
 
-  test('returns empty array when fingerprint matches (still fresh)', () => {
+  test('returns empty array when fingerprint matches (still fresh)', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const summaryContent = '# Summary\nPhase 3 complete.';
@@ -94,7 +94,7 @@ describe('checkDependencyBreaks', () => {
     }
   });
 
-  test('returns break when fingerprint mismatches (stale)', () => {
+  test('returns break when fingerprint mismatches (stale)', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const summaryContent = '# Summary\nPhase 3 complete — UPDATED.';
@@ -122,7 +122,7 @@ describe('checkDependencyBreaks', () => {
     }
   });
 
-  test('returns only stale plans when multiple downstream exist', () => {
+  test('returns only stale plans when multiple downstream exist', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const summaryContent = '# Summary\nPhase 3 done.';
@@ -164,7 +164,7 @@ describe('checkDependencyBreaks', () => {
     }
   });
 
-  test('returns empty array when changed phase has no SUMMARY.md', () => {
+  test('returns empty array when changed phase has no SUMMARY.md', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       // Phase 3 exists as a directory but has no SUMMARY.md
@@ -186,7 +186,7 @@ describe('checkDependencyBreaks', () => {
 });
 
 describe('computeFingerprint', () => {
-  test('returns 8-char hex string', () => {
+  test('returns 8-char hex string', async () => {
     const { tmpDir, planningDir } = createTempPlanning();
     try {
       const filePath = path.join(planningDir, 'test.md');
@@ -198,7 +198,7 @@ describe('computeFingerprint', () => {
     }
   });
 
-  test('returns null for missing file', () => {
+  test('returns null for missing file', async () => {
     const fp = computeFingerprint('/nonexistent/path/file.md');
     expect(fp).toBeNull();
   });

@@ -16,19 +16,19 @@ const {
 describe('state-queue.cjs', () => {
   let tmpDir;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-queue-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   const planningDir = () => path.join(tmpDir, '.planning');
 
   describe('stateEnqueue', () => {
-    test('writes a JSON file to .state-queue directory', () => {
+    test('writes a JSON file to .state-queue directory', async () => {
       const result = stateEnqueue('status', 'building', planningDir());
       expect(result.success).toBe(true);
       expect(result.file).toBeTruthy();
@@ -47,7 +47,7 @@ describe('state-queue.cjs', () => {
   });
 
   describe('stateEnqueueBatch', () => {
-    test('writes a single file with multiple fields', () => {
+    test('writes a single file with multiple fields', async () => {
       const result = stateEnqueueBatch(
         { status: 'building', plans_complete: '2' },
         planningDir()
@@ -94,7 +94,7 @@ describe('state-queue.cjs', () => {
       );
     }
 
-    test('applies queued updates and removes queue files', () => {
+    test('applies queued updates and removes queue files', async () => {
       createStateMd();
 
       // Enqueue 3 updates
@@ -102,7 +102,7 @@ describe('state-queue.cjs', () => {
       stateEnqueue('plans_complete', '3', planningDir());
       stateEnqueue('progress_percent', '60', planningDir());
 
-      const result = stateDrain(planningDir());
+      const result = await stateDrain(planningDir());
       expect(result.success).toBe(true);
       expect(result.processed).toBe(3);
 
@@ -120,21 +120,21 @@ describe('state-queue.cjs', () => {
       expect(remaining.length).toBe(0);
     });
 
-    test('with empty queue returns processed: 0', () => {
+    test('with empty queue returns processed: 0', async () => {
       createStateMd();
       // Create empty queue dir
       fs.mkdirSync(path.join(planningDir(), STATE_QUEUE_DIR), { recursive: true });
 
-      const result = stateDrain(planningDir());
+      const result = await stateDrain(planningDir());
       expect(result.success).toBe(true);
       expect(result.processed).toBe(0);
     });
 
-    test('with no queue dir returns processed: 0', () => {
+    test('with no queue dir returns processed: 0', async () => {
       createStateMd();
       // Don't create the queue dir at all
 
-      const result = stateDrain(planningDir());
+      const result = await stateDrain(planningDir());
       expect(result.success).toBe(true);
       expect(result.processed).toBe(0);
     });

@@ -24,7 +24,7 @@ describe('generateOnboardingGuide', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('generates guide with project overview from PROJECT.md', () => {
+  test('generates guide with project overview from PROJECT.md', async () => {
     const projectContent = `# My Test Project
 
 ## What This Is
@@ -42,7 +42,7 @@ Testing the onboarding generator.
     expect(overview.content).toMatch(/My Test Project|test project/i);
   });
 
-  test('generates guide with phase roadmap summary from ROADMAP.md', () => {
+  test('generates guide with phase roadmap summary from ROADMAP.md', async () => {
     const roadmapContent = `# Roadmap
 
 ## Phase 1: Setup
@@ -62,7 +62,7 @@ Goal: Deploy to production
     expect(phasesSection.content).toMatch(/Phase/);
   });
 
-  test('generates guide with key decisions from CONTEXT.md', () => {
+  test('generates guide with key decisions from CONTEXT.md', async () => {
     const contextContent = `# Context
 
 ## Locked Decisions
@@ -80,7 +80,7 @@ Goal: Deploy to production
     expect(decisionsSection.content).toMatch(/TypeScript|Postgres|decision/i);
   });
 
-  test('generates guide with conventions section when .planning/conventions/ exists', () => {
+  test('generates guide with conventions section when .planning/conventions/ exists', async () => {
     const conventionsDir = path.join(tmpDir, 'conventions');
     fs.mkdirSync(conventionsDir, { recursive: true });
     fs.writeFileSync(path.join(conventionsDir, 'naming.md'), '# Naming Conventions\n\nUse camelCase for functions.\n');
@@ -90,7 +90,7 @@ Goal: Deploy to production
     expect(conventionsSection).toBeDefined();
   });
 
-  test('renders full markdown document from sections', () => {
+  test('renders full markdown document from sections', async () => {
     fs.writeFileSync(path.join(tmpDir, 'ROADMAP.md'), '# Roadmap\n## Phase 1: Test\n- [ ] plan\n');
     const config = { features: { team_onboarding: true } };
     const result = generateOnboardingGuide(tmpDir, config);
@@ -98,7 +98,7 @@ Goal: Deploy to production
     expect(result.markdown).toMatch(/Getting Started/i);
   });
 
-  test('returns disabled stub when features.team_onboarding is false', () => {
+  test('returns disabled stub when features.team_onboarding is false', async () => {
     const config = { features: { team_onboarding: false } };
     const result = generateOnboardingGuide(tmpDir, config);
     expect(result.enabled).toBe(false);

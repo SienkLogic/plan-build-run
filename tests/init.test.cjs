@@ -19,7 +19,7 @@ describe('init commands', () => {
     cleanup(tmpDir);
   });
 
-  test('init execute-phase returns file paths', () => {
+  test('init execute-phase returns file paths', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-01-PLAN.md'), '# Plan');
@@ -33,7 +33,7 @@ describe('init commands', () => {
     assert.strictEqual(output.config_path, '.planning/config.json');
   });
 
-  test('init plan-phase returns file paths', () => {
+  test('init plan-phase returns file paths', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-CONTEXT.md'), '# Phase Context');
@@ -54,7 +54,7 @@ describe('init commands', () => {
     assert.strictEqual(output.uat_path, '.planning/phases/03-api/03-UAT.md');
   });
 
-  test('init progress returns file paths', () => {
+  test('init progress returns file paths', async () => {
     const result = runPbrTools('init progress', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -65,7 +65,7 @@ describe('init commands', () => {
     assert.strictEqual(output.config_path, '.planning/config.json');
   });
 
-  test('init phase-op returns core and optional phase file paths', () => {
+  test('init phase-op returns core and optional phase file paths', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-CONTEXT.md'), '# Phase Context');
@@ -86,7 +86,7 @@ describe('init commands', () => {
     assert.strictEqual(output.uat_path, '.planning/phases/03-api/03-UAT.md');
   });
 
-  test('init plan-phase omits optional paths if files missing', () => {
+  test('init plan-phase omits optional paths if files missing', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -100,7 +100,7 @@ describe('init commands', () => {
 
   // ── phase_req_ids extraction (fix for #684) ──────────────────────────────
 
-  test('init plan-phase extracts phase_req_ids from ROADMAP', () => {
+  test('init plan-phase extracts phase_req_ids from ROADMAP', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -114,7 +114,7 @@ describe('init commands', () => {
     assert.strictEqual(output.phase_req_ids, 'CP-01, CP-02, CP-03');
   });
 
-  test('init plan-phase strips brackets from phase_req_ids', () => {
+  test('init plan-phase strips brackets from phase_req_ids', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -128,7 +128,7 @@ describe('init commands', () => {
     assert.strictEqual(output.phase_req_ids, 'CP-01, CP-02');
   });
 
-  test('init plan-phase returns null phase_req_ids when Requirements line is absent', () => {
+  test('init plan-phase returns null phase_req_ids when Requirements line is absent', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -142,7 +142,7 @@ describe('init commands', () => {
     assert.strictEqual(output.phase_req_ids, null);
   });
 
-  test('init plan-phase returns null phase_req_ids when ROADMAP is absent', () => {
+  test('init plan-phase returns null phase_req_ids when ROADMAP is absent', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
 
     const result = runPbrTools('init plan-phase 3', tmpDir);
@@ -152,7 +152,7 @@ describe('init commands', () => {
     assert.strictEqual(output.phase_req_ids, null);
   });
 
-  test('init execute-phase extracts phase_req_ids from ROADMAP', () => {
+  test('init execute-phase extracts phase_req_ids from ROADMAP', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-01-PLAN.md'), '# Plan');
@@ -168,7 +168,7 @@ describe('init commands', () => {
     assert.strictEqual(output.phase_req_ids, 'EX-01, EX-02');
   });
 
-  test('init plan-phase returns null phase_req_ids when value is TBD', () => {
+  test('init plan-phase returns null phase_req_ids when value is TBD', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '03-api'), { recursive: true });
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
@@ -182,7 +182,7 @@ describe('init commands', () => {
     assert.strictEqual(output.phase_req_ids, null, 'TBD placeholder should return null');
   });
 
-  test('init execute-phase returns null phase_req_ids when Requirements line is absent', () => {
+  test('init execute-phase returns null phase_req_ids when Requirements line is absent', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-01-PLAN.md'), '# Plan');
@@ -214,7 +214,7 @@ describe('cmdInitTodos', () => {
     cleanup(tmpDir);
   });
 
-  test('empty pending dir returns zero count', () => {
+  test('empty pending dir returns zero count', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'todos', 'pending'), { recursive: true });
 
     const result = runPbrTools('init todos', tmpDir);
@@ -226,7 +226,7 @@ describe('cmdInitTodos', () => {
     assert.strictEqual(output.pending_dir_exists, true);
   });
 
-  test('missing pending dir returns zero count', () => {
+  test('missing pending dir returns zero count', async () => {
     const result = runPbrTools('init todos', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -236,7 +236,7 @@ describe('cmdInitTodos', () => {
     assert.strictEqual(output.pending_dir_exists, false);
   });
 
-  test('multiple todos with fields are read correctly', () => {
+  test('multiple todos with fields are read correctly', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -259,7 +259,7 @@ describe('cmdInitTodos', () => {
     assert.strictEqual(task1.path, '.planning/todos/pending/task-1.md');
   });
 
-  test('area filter returns only matching todos', () => {
+  test('area filter returns only matching todos', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -278,7 +278,7 @@ describe('cmdInitTodos', () => {
     }
   });
 
-  test('area filter miss returns zero count', () => {
+  test('area filter miss returns zero count', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -292,7 +292,7 @@ describe('cmdInitTodos', () => {
     assert.strictEqual(output.area_filter, 'nonexistent');
   });
 
-  test('malformed file uses defaults', () => {
+  test('malformed file uses defaults', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -309,7 +309,7 @@ describe('cmdInitTodos', () => {
     assert.strictEqual(todo.created, 'unknown');
   });
 
-  test('non-md files are ignored', () => {
+  test('non-md files are ignored', async () => {
     const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
     fs.mkdirSync(pendingDir, { recursive: true });
 
@@ -340,7 +340,7 @@ describe('cmdInitMilestoneOp', () => {
     cleanup(tmpDir);
   });
 
-  test('no phase directories returns zero counts', () => {
+  test('no phase directories returns zero counts', async () => {
     const result = runPbrTools('init milestone-op', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -350,7 +350,7 @@ describe('cmdInitMilestoneOp', () => {
     assert.strictEqual(output.all_phases_complete, false);
   });
 
-  test('multiple phases with no summaries', () => {
+  test('multiple phases with no summaries', async () => {
     const phase1 = path.join(tmpDir, '.planning', 'phases', '01-setup');
     const phase2 = path.join(tmpDir, '.planning', 'phases', '02-api');
     fs.mkdirSync(phase1, { recursive: true });
@@ -367,7 +367,7 @@ describe('cmdInitMilestoneOp', () => {
     assert.strictEqual(output.all_phases_complete, false);
   });
 
-  test('mix of complete and incomplete phases', () => {
+  test('mix of complete and incomplete phases', async () => {
     const phase1 = path.join(tmpDir, '.planning', 'phases', '01-setup');
     const phase2 = path.join(tmpDir, '.planning', 'phases', '02-api');
     fs.mkdirSync(phase1, { recursive: true });
@@ -385,7 +385,7 @@ describe('cmdInitMilestoneOp', () => {
     assert.strictEqual(output.all_phases_complete, false);
   });
 
-  test('all phases complete', () => {
+  test('all phases complete', async () => {
     const phase1 = path.join(tmpDir, '.planning', 'phases', '01-setup');
     fs.mkdirSync(phase1, { recursive: true });
     fs.writeFileSync(path.join(phase1, '01-01-PLAN.md'), '# Plan');
@@ -400,7 +400,7 @@ describe('cmdInitMilestoneOp', () => {
     assert.strictEqual(output.all_phases_complete, true);
   });
 
-  test('archive directory scanning', () => {
+  test('archive directory scanning', async () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'archive', 'v1.0'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.planning', 'archive', 'v0.9'), { recursive: true });
 
@@ -412,7 +412,7 @@ describe('cmdInitMilestoneOp', () => {
     assert.strictEqual(output.archived_milestones.length, 2);
   });
 
-  test('no archive directory returns empty', () => {
+  test('no archive directory returns empty', async () => {
     const result = runPbrTools('init milestone-op', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -437,7 +437,7 @@ describe('cmdInitPhaseOp fallback', () => {
     cleanup(tmpDir);
   });
 
-  test('normal path with existing directory', () => {
+  test('normal path with existing directory', async () => {
     const phaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
     fs.mkdirSync(phaseDir, { recursive: true });
     fs.writeFileSync(path.join(phaseDir, '03-CONTEXT.md'), '# Context');
@@ -457,7 +457,7 @@ describe('cmdInitPhaseOp fallback', () => {
     assert.strictEqual(output.has_plans, true);
   });
 
-  test('fallback to ROADMAP when no directory exists', () => {
+  test('fallback to ROADMAP when no directory exists', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\n### Phase 5: Widget Builder\n**Goal:** Build widgets\n**Plans:** TBD\n'
@@ -475,7 +475,7 @@ describe('cmdInitPhaseOp fallback', () => {
     assert.strictEqual(output.has_plans, false);
   });
 
-  test('neither directory nor roadmap entry returns not found', () => {
+  test('neither directory nor roadmap entry returns not found', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'ROADMAP.md'),
       '# Roadmap\n\n### Phase 1: Setup\n**Goal:** Setup project\n**Plans:** TBD\n'
@@ -505,7 +505,7 @@ describe('cmdInitProgress', () => {
     cleanup(tmpDir);
   });
 
-  test('no phases returns empty state', () => {
+  test('no phases returns empty state', async () => {
     const result = runPbrTools('init progress', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -517,7 +517,7 @@ describe('cmdInitProgress', () => {
     assert.strictEqual(output.has_work_in_progress, false);
   });
 
-  test('multiple phases with mixed statuses', () => {
+  test('multiple phases with mixed statuses', async () => {
     // Phase 01: complete (has plan + summary)
     const phase1 = path.join(tmpDir, '.planning', 'phases', '01-setup');
     fs.mkdirSync(phase1, { recursive: true });
@@ -556,7 +556,7 @@ describe('cmdInitProgress', () => {
     assert.strictEqual(p1.summary_count, 1);
   });
 
-  test('researched status detected correctly', () => {
+  test('researched status detected correctly', async () => {
     const phase1 = path.join(tmpDir, '.planning', 'phases', '01-setup');
     fs.mkdirSync(phase1, { recursive: true });
     fs.writeFileSync(path.join(phase1, '01-RESEARCH.md'), '# Research');
@@ -571,7 +571,7 @@ describe('cmdInitProgress', () => {
     assert.strictEqual(output.current_phase.number, '01');
   });
 
-  test('all phases complete returns no current or next', () => {
+  test('all phases complete returns no current or next', async () => {
     const phase1 = path.join(tmpDir, '.planning', 'phases', '01-setup');
     fs.mkdirSync(phase1, { recursive: true });
     fs.writeFileSync(path.join(phase1, '01-01-PLAN.md'), '# Plan');
@@ -586,7 +586,7 @@ describe('cmdInitProgress', () => {
     assert.strictEqual(output.next_phase, null);
   });
 
-  test('paused_at detected from STATE.md', () => {
+  test('paused_at detected from STATE.md', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\n**Paused At:** Phase 2, Task 3 — implementing auth\n'
@@ -600,7 +600,7 @@ describe('cmdInitProgress', () => {
     assert.ok(output.paused_at.includes('Phase 2, Task 3'), 'paused_at should contain pause location');
   });
 
-  test('no paused_at when STATE.md has no pause line', () => {
+  test('no paused_at when STATE.md has no pause line', async () => {
     fs.writeFileSync(
       path.join(tmpDir, '.planning', 'STATE.md'),
       '# Project State\n\nSome content without pause.\n'
@@ -629,7 +629,7 @@ describe('cmdInitQuick', () => {
     cleanup(tmpDir);
   });
 
-  test('with description generates slug and task_dir', () => {
+  test('with description generates slug and task_dir', async () => {
     const result = runPbrTools('init quick "Fix login bug"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -640,7 +640,7 @@ describe('cmdInitQuick', () => {
     assert.strictEqual(output.description, 'Fix login bug');
   });
 
-  test('without description returns null slug and task_dir', () => {
+  test('without description returns null slug and task_dir', async () => {
     const result = runPbrTools('init quick', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -651,7 +651,7 @@ describe('cmdInitQuick', () => {
     assert.strictEqual(output.next_num, 1);
   });
 
-  test('next number increments from existing entries', () => {
+  test('next number increments from existing entries', async () => {
     const quickDir = path.join(tmpDir, '.planning', 'quick');
     fs.mkdirSync(path.join(quickDir, '1-old-task'), { recursive: true });
     fs.mkdirSync(path.join(quickDir, '3-another-task'), { recursive: true });
@@ -663,7 +663,7 @@ describe('cmdInitQuick', () => {
     assert.strictEqual(output.next_num, 4);
   });
 
-  test('long description truncates slug to 40 chars', () => {
+  test('long description truncates slug to 40 chars', async () => {
     const result = runPbrTools('init quick "This is a very long description that should get truncated to forty characters maximum"', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -687,7 +687,7 @@ describe('cmdInitMapCodebase', () => {
     cleanup(tmpDir);
   });
 
-  test('no codebase dir returns empty', () => {
+  test('no codebase dir returns empty', async () => {
     const result = runPbrTools('init map-codebase', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -697,7 +697,7 @@ describe('cmdInitMapCodebase', () => {
     assert.strictEqual(output.codebase_dir_exists, false);
   });
 
-  test('with existing maps lists md files only', () => {
+  test('with existing maps lists md files only', async () => {
     const codebaseDir = path.join(tmpDir, '.planning', 'codebase');
     fs.mkdirSync(codebaseDir, { recursive: true });
     fs.writeFileSync(path.join(codebaseDir, 'STACK.md'), '# Stack');
@@ -714,7 +714,7 @@ describe('cmdInitMapCodebase', () => {
     assert.ok(output.existing_maps.includes('ARCHITECTURE.md'), 'Should include ARCHITECTURE.md');
   });
 
-  test('empty codebase dir returns no maps', () => {
+  test('empty codebase dir returns no maps', async () => {
     const codebaseDir = path.join(tmpDir, '.planning', 'codebase');
     fs.mkdirSync(codebaseDir, { recursive: true });
 
@@ -743,7 +743,7 @@ describe('cmdInitNewProject', () => {
     cleanup(tmpDir);
   });
 
-  test('greenfield project with no code', () => {
+  test('greenfield project with no code', async () => {
     const result = runPbrTools('init new-project', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -754,7 +754,7 @@ describe('cmdInitNewProject', () => {
     assert.strictEqual(output.needs_codebase_map, false);
   });
 
-  test('brownfield with package.json detected', () => {
+  test('brownfield with package.json detected', async () => {
     fs.writeFileSync(path.join(tmpDir, 'package.json'), '{"name":"test"}');
 
     const result = runPbrTools('init new-project', tmpDir);
@@ -766,7 +766,7 @@ describe('cmdInitNewProject', () => {
     assert.strictEqual(output.needs_codebase_map, true);
   });
 
-  test('brownfield with codebase map does not need map', () => {
+  test('brownfield with codebase map does not need map', async () => {
     fs.writeFileSync(path.join(tmpDir, 'package.json'), '{"name":"test"}');
     fs.mkdirSync(path.join(tmpDir, '.planning', 'codebase'), { recursive: true });
 
@@ -778,7 +778,7 @@ describe('cmdInitNewProject', () => {
     assert.strictEqual(output.needs_codebase_map, false);
   });
 
-  test('planning_exists flag is correct', () => {
+  test('planning_exists flag is correct', async () => {
     const result = runPbrTools('init new-project', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -802,7 +802,7 @@ describe('cmdInitNewMilestone', () => {
     cleanup(tmpDir);
   });
 
-  test('returns expected fields', () => {
+  test('returns expected fields', async () => {
     const result = runPbrTools('init new-milestone', tmpDir);
     assert.ok(result.success, `Command failed: ${result.error}`);
 
@@ -818,7 +818,7 @@ describe('cmdInitNewMilestone', () => {
     assert.strictEqual(output.state_path, '.planning/STATE.md');
   });
 
-  test('file existence flags reflect actual state', () => {
+  test('file existence flags reflect actual state', async () => {
     // Default: no STATE.md, ROADMAP.md, or PROJECT.md
     const result1 = runPbrTools('init new-milestone', tmpDir);
     assert.ok(result1.success, `Command failed: ${result1.error}`);

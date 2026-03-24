@@ -96,11 +96,11 @@ function setupTestProject(opts = {}) {
   return planningDir;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-phase-ops-'));
 });
 
-afterEach(() => {
+afterEach(async () => {
   try {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   } catch (_e) { /* ignore cleanup errors */ }
@@ -109,9 +109,9 @@ afterEach(() => {
 // === phaseAdd tests ===
 
 describe('phaseAdd', () => {
-  test('basic add appends phase 4 after existing 3', () => {
+  test('basic add appends phase 4 after existing 3', async () => {
     const planningDir = setupTestProject();
-    const result = phaseAdd('deployment', null, planningDir);
+    const result = await phaseAdd('deployment', null, planningDir);
 
     expect(result.phase).toBe(4);
     expect(result.slug).toBe('deployment');
@@ -125,9 +125,9 @@ describe('phaseAdd', () => {
     expect(roadmap).toContain('| 4. Deployment |');
   });
 
-  test('add with --goal and --depends-on updates ROADMAP.md', () => {
+  test('add with --goal and --depends-on updates ROADMAP.md', async () => {
     const planningDir = setupTestProject();
-    const result = phaseAdd('monitoring', null, planningDir, {
+    const result = await phaseAdd('monitoring', null, planningDir, {
       goal: 'Add monitoring and alerting',
       dependsOn: '3'
     });
@@ -142,28 +142,28 @@ describe('phaseAdd', () => {
     expect(roadmap).toContain('**Depends on:** Phase 3');
   });
 
-  test('add to empty project creates phase 1', () => {
+  test('add to empty project creates phase 1', async () => {
     const planningDir = setupTestProject({ phaseCount: 0, noRoadmap: true, noState: true });
-    const result = phaseAdd('initial', null, planningDir);
+    const result = await phaseAdd('initial', null, planningDir);
 
     expect(result.phase).toBe(1);
     expect(result.directory).toBe('01-initial');
     expect(fs.existsSync(result.path)).toBe(true);
   });
 
-  test('backward compat: call without options object does not crash', () => {
+  test('backward compat: call without options object does not crash', async () => {
     const planningDir = setupTestProject();
     // Call with only 3 args (no options) — backward compatible signature
-    const result = phaseAdd('extra', null, planningDir);
+    const result = await phaseAdd('extra', null, planningDir);
 
     expect(result.phase).toBe(4);
     expect(result.goal).toBeNull();
     expect(result.depends_on).toBeNull();
   });
 
-  test('add with --after inserts and renumbers', () => {
+  test('add with --after inserts and renumbers', async () => {
     const planningDir = setupTestProject();
-    const result = phaseAdd('middleware', '1', planningDir, { goal: 'Add middleware layer' });
+    const result = await phaseAdd('middleware', '1', planningDir, { goal: 'Add middleware layer' });
 
     expect(result.phase).toBe(2);
     expect(result.renumbered).toBe(true);
@@ -180,9 +180,9 @@ describe('phaseAdd', () => {
 // === phaseInsert tests ===
 
 describe('phaseInsert', () => {
-  test('insert at position 2 with 3 existing phases renumbers correctly', () => {
+  test('insert at position 2 with 3 existing phases renumbers correctly', async () => {
     const planningDir = setupTestProject();
-    const result = phaseInsert(2, 'new-feature', planningDir, { goal: 'New feature' });
+    const result = await phaseInsert(2, 'new-feature', planningDir, { goal: 'New feature' });
 
     expect(result.phase).toBe(2);
     expect(result.directory).toBe('02-new-feature');
@@ -198,9 +198,9 @@ describe('phaseInsert', () => {
     expect(dirs).toContain('04-testing');
   });
 
-  test('insert at position 1 shifts all existing phases', () => {
+  test('insert at position 1 shifts all existing phases', async () => {
     const planningDir = setupTestProject();
-    const result = phaseInsert(1, 'bootstrap', planningDir);
+    const result = await phaseInsert(1, 'bootstrap', planningDir);
 
     expect(result.phase).toBe(1);
     expect(result.renumbered_count).toBe(3); // all 3 shifted
@@ -213,9 +213,9 @@ describe('phaseInsert', () => {
     expect(dirs[3]).toBe('04-testing');
   });
 
-  test('ROADMAP.md renumbering on insert', () => {
+  test('ROADMAP.md renumbering on insert', async () => {
     const planningDir = setupTestProject();
-    phaseInsert(2, 'auth', planningDir, { goal: 'Authentication' });
+    await phaseInsert(2, 'auth', planningDir, { goal: 'Authentication' });
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     // Old Phase 2 should now be Phase 3
@@ -226,27 +226,27 @@ describe('phaseInsert', () => {
     expect(roadmap).toContain('### Phase 2: Auth');
   });
 
-  test('STATE.md current_phase shifts when insert at or before current', () => {
+  test('STATE.md current_phase shifts when insert at or before current', async () => {
     const planningDir = setupTestProject({ currentPhase: 2 });
-    phaseInsert(2, 'auth', planningDir);
+    await phaseInsert(2, 'auth', planningDir);
 
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     // current_phase was 2, insert at 2 means current should become 3
     expect(stateContent).toMatch(/current_phase:\s*3/);
   });
 
-  test('STATE.md current_phase unchanged when insert after current', () => {
+  test('STATE.md current_phase unchanged when insert after current', async () => {
     const planningDir = setupTestProject({ currentPhase: 2 });
-    phaseInsert(3, 'post-test', planningDir);
+    await phaseInsert(3, 'post-test', planningDir);
 
     const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     // current_phase was 2, insert at 3 should not change it
     expect(stateContent).toMatch(/current_phase:\s*2/);
   });
 
-  test('dependency references updated in ROADMAP.md', () => {
+  test('dependency references updated in ROADMAP.md', async () => {
     const planningDir = setupTestProject();
-    phaseInsert(2, 'auth', planningDir);
+    await phaseInsert(2, 'auth', planningDir);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     // The old "Depends on: Phase 2" for Testing should now say "Phase 3"
@@ -257,9 +257,9 @@ describe('phaseInsert', () => {
     }
   });
 
-  test('invalid position returns error', () => {
+  test('invalid position returns error', async () => {
     const planningDir = setupTestProject();
-    const result = phaseInsert(0, 'bad', planningDir);
+    const result = await phaseInsert(0, 'bad', planningDir);
     expect(result.error).toBeDefined();
     expect(result.error).toContain('positive integer');
   });
@@ -268,10 +268,10 @@ describe('phaseInsert', () => {
 // === phaseRemove tests ===
 
 describe('phaseRemove (enhanced)', () => {
-  test('remove future empty phase updates ROADMAP.md', () => {
+  test('remove future empty phase updates ROADMAP.md', async () => {
     const planningDir = setupTestProject({ currentPhase: 1 });
     // Phase 3 (testing) is empty and future, should be removable
-    const result = phaseRemove('3', planningDir);
+    const result = await phaseRemove('3', planningDir);
 
     expect(result.removed).toBe(true);
     expect(result.roadmap_updated).toBe(true);
@@ -282,15 +282,15 @@ describe('phaseRemove (enhanced)', () => {
     expect(roadmap).not.toContain('| 3. Testing |');
   });
 
-  test('refuse to remove current phase', () => {
+  test('refuse to remove current phase', async () => {
     const planningDir = setupTestProject({ currentPhase: 2 });
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
 
     expect(result.removed).toBe(false);
     expect(result.error).toContain('current active phase');
   });
 
-  test('refuse to remove completed phase with passing verification', () => {
+  test('refuse to remove completed phase with passing verification', async () => {
     const planningDir = setupTestProject({ currentPhase: 2 });
     // Add a passing VERIFICATION.md to phase 1
     const phase1Dir = path.join(planningDir, 'phases', '01-setup');
@@ -302,15 +302,15 @@ describe('phaseRemove (enhanced)', () => {
       'Verification passed.'
     ].join('\n'), 'utf8');
 
-    const result = phaseRemove('1', planningDir);
+    const result = await phaseRemove('1', planningDir);
     expect(result.removed).toBe(false);
     expect(result.error).toContain('passed verification');
   });
 
-  test('STATE.md current_phase adjusted when removing phase before current', () => {
+  test('STATE.md current_phase adjusted when removing phase before current', async () => {
     const planningDir = setupTestProject({ currentPhase: 3 });
     // Remove phase 2 (empty, not current)
-    const result = phaseRemove('2', planningDir);
+    const result = await phaseRemove('2', planningDir);
 
     expect(result.removed).toBe(true);
     expect(result.state_updated).toBe(true);
@@ -320,9 +320,9 @@ describe('phaseRemove (enhanced)', () => {
     expect(stateContent).toMatch(/current_phase:\s*2/);
   });
 
-  test('remove with renumbering updates subsequent dirs', () => {
+  test('remove with renumbering updates subsequent dirs', async () => {
     const planningDir = setupTestProject({ currentPhase: 1 });
-    phaseRemove('2', planningDir);
+    await phaseRemove('2', planningDir);
 
     const phasesDir = path.join(planningDir, 'phases');
     const dirs = fs.readdirSync(phasesDir).sort();
@@ -332,13 +332,13 @@ describe('phaseRemove (enhanced)', () => {
     expect(dirs).not.toContain('03-testing');
   });
 
-  test('refuse to remove non-empty phase', () => {
+  test('refuse to remove non-empty phase', async () => {
     const planningDir = setupTestProject({ currentPhase: 1 });
     // Add a file to phase 3
     const phase3Dir = path.join(planningDir, 'phases', '03-testing');
     fs.writeFileSync(path.join(phase3Dir, 'PLAN-01.md'), '---\nplan: "01"\n---\n', 'utf8');
 
-    const result = phaseRemove('3', planningDir);
+    const result = await phaseRemove('3', planningDir);
     expect(result.removed).toBe(false);
     expect(result.error).toContain('files');
   });
@@ -347,9 +347,9 @@ describe('phaseRemove (enhanced)', () => {
 // === roadmap helper unit tests ===
 
 describe('roadmapAppendPhase', () => {
-  test('appends phase heading and progress row', () => {
+  test('appends phase heading and progress row', async () => {
     const planningDir = setupTestProject();
-    const result = roadmapAppendPhase(planningDir, 4, 'Deployment', 'Deploy to production', 3);
+    const result = await roadmapAppendPhase(planningDir, 4, 'Deployment', 'Deploy to production', 3);
 
     expect(result.success).not.toBe(false);
 
@@ -360,17 +360,17 @@ describe('roadmapAppendPhase', () => {
     expect(roadmap).toContain('| 4. Deployment |');
   });
 
-  test('returns error when ROADMAP.md missing', () => {
+  test('returns error when ROADMAP.md missing', async () => {
     const planningDir = setupTestProject({ noRoadmap: true });
-    const result = roadmapAppendPhase(planningDir, 1, 'Test', null, null);
+    const result = await roadmapAppendPhase(planningDir, 1, 'Test', null, null);
     expect(result.success).toBe(false);
   });
 });
 
 describe('roadmapRemovePhase', () => {
-  test('removes phase heading block and progress row', () => {
+  test('removes phase heading block and progress row', async () => {
     const planningDir = setupTestProject();
-    roadmapRemovePhase(planningDir, 2);
+    await roadmapRemovePhase(planningDir, 2);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(roadmap).not.toContain('### Phase 2: Core Features');
@@ -382,9 +382,9 @@ describe('roadmapRemovePhase', () => {
 });
 
 describe('roadmapRenumberPhases', () => {
-  test('shifts phase numbers up by +1', () => {
+  test('shifts phase numbers up by +1', async () => {
     const planningDir = setupTestProject();
-    roadmapRenumberPhases(planningDir, 2, +1);
+    await roadmapRenumberPhases(planningDir, 2, +1);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     // Phase 2 -> Phase 3, Phase 3 -> Phase 4
@@ -394,27 +394,27 @@ describe('roadmapRenumberPhases', () => {
     expect(roadmap).toContain('### Phase 1: Setup');
   });
 
-  test('shifts phase numbers down by -1', () => {
+  test('shifts phase numbers down by -1', async () => {
     const planningDir = setupTestProject();
-    roadmapRenumberPhases(planningDir, 3, -1);
+    await roadmapRenumberPhases(planningDir, 3, -1);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     // Phase 3 -> Phase 2 (but Phase 2 already exists — this is called after removing Phase 2)
     expect(roadmap).toContain('### Phase 2: Testing');
   });
 
-  test('updates progress table row numbers', () => {
+  test('updates progress table row numbers', async () => {
     const planningDir = setupTestProject();
-    roadmapRenumberPhases(planningDir, 2, +1);
+    await roadmapRenumberPhases(planningDir, 2, +1);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     expect(roadmap).toContain('| 3. Core Features |');
     expect(roadmap).toContain('| 4. Testing |');
   });
 
-  test('updates dependency text references', () => {
+  test('updates dependency text references', async () => {
     const planningDir = setupTestProject();
-    roadmapRenumberPhases(planningDir, 2, +1);
+    await roadmapRenumberPhases(planningDir, 2, +1);
 
     const roadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
     // "Depends on: Phase 2" in Testing section should become "Phase 3"

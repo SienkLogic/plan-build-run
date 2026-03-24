@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 describe('checkCommit', () => {
-  test('returns null for non-git-commit commands', () => {
+  test('returns null for non-git-commit commands', async () => {
     expect(checkCommit({ tool_input: { command: 'npm test' } })).toBeNull();
     expect(checkCommit({ tool_input: { command: 'git status' } })).toBeNull();
     expect(checkCommit({ tool_input: { command: 'git log --oneline' } })).toBeNull();
@@ -31,11 +31,11 @@ describe('checkCommit', () => {
     expect(checkCommit({ tool_input: { command: 'git push origin main' } })).toBeNull();
   });
 
-  test('returns null for --amend --no-edit', () => {
+  test('returns null for --amend --no-edit', async () => {
     expect(checkCommit({ tool_input: { command: 'git commit --amend --no-edit' } })).toBeNull();
   });
 
-  test('blocks invalid commit message format', () => {
+  test('blocks invalid commit message format', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "bad message"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
@@ -43,44 +43,44 @@ describe('checkCommit', () => {
     expect(result.output.reason).toContain('Invalid commit message');
   });
 
-  test('allows valid conventional commit format', () => {
+  test('allows valid conventional commit format', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(03-01): add user auth"' } });
     expect(result).toBeNull();
   });
 
-  test('allows merge commits', () => {
+  test('allows merge commits', async () => {
     const result = checkCommit({ tool_input: { command: "git commit -m \"Merge branch 'feature'\"" } });
     expect(result).toBeNull();
   });
 
-  test('allows various valid types', () => {
+  test('allows various valid types', async () => {
     for (const type of ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert']) {
       const result = checkCommit({ tool_input: { command: `git commit -m "${type}(scope): description"` } });
       expect(result).toBeNull();
     }
   });
 
-  test('allows commit without scope parens (wip)', () => {
+  test('allows commit without scope parens (wip)', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "wip: save progress"' } });
     expect(result).toBeNull();
   });
 
-  test('allows multi-word-hyphenated scope', () => {
+  test('allows multi-word-hyphenated scope', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "fix(plan-checker): handle empty frontmatter"' } });
     expect(result).toBeNull();
   });
 
-  test('allows quick task scopes', () => {
+  test('allows quick task scopes', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "test(quick-001): add coverage tests"' } });
     expect(result).toBeNull();
   });
 
-  test('allows planning scope', () => {
+  test('allows planning scope', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "docs(planning): update roadmap"' } });
     expect(result).toBeNull();
   });
 
-  test('blocks AI co-author in commit', () => {
+  test('blocks AI co-author in commit', async () => {
     const result = checkCommit({
       tool_input: {
         command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Claude <noreply@anthropic.com>"'
@@ -91,7 +91,7 @@ describe('checkCommit', () => {
     expect(result.output.reason).toContain('co-author');
   });
 
-  test('blocks Copilot co-author', () => {
+  test('blocks Copilot co-author', async () => {
     const result = checkCommit({
       tool_input: {
         command: 'git commit -m "feat(01-01): feature" -m "Co-Authored-By: Copilot <copilot@github.com>"'
@@ -101,7 +101,7 @@ describe('checkCommit', () => {
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks GPT co-author', () => {
+  test('blocks GPT co-author', async () => {
     const result = checkCommit({
       tool_input: {
         command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: ChatGPT <noreply@openai.com>"'
@@ -111,7 +111,7 @@ describe('checkCommit', () => {
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks case-insensitive co-author match', () => {
+  test('blocks case-insensitive co-author match', async () => {
     const result = checkCommit({
       tool_input: {
         command: 'git commit -m "feat(hooks): add feature" -m "co-authored-by: claude opus <noreply@anthropic.com>"'
@@ -121,7 +121,7 @@ describe('checkCommit', () => {
     expect(result.exitCode).toBe(2);
   });
 
-  test('allows Co-Authored-By with human name', () => {
+  test('allows Co-Authored-By with human name', async () => {
     const result = checkCommit({
       tool_input: {
         command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: Jane Doe <jane@example.com>"'
@@ -130,83 +130,83 @@ describe('checkCommit', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null when message cannot be extracted', () => {
+  test('returns null when message cannot be extracted', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit --allow-empty' } });
     expect(result).toBeNull();
   });
 
-  test('returns null when command field is missing', () => {
+  test('returns null when command field is missing', async () => {
     expect(checkCommit({ tool_input: {} })).toBeNull();
     expect(checkCommit({})).toBeNull();
   });
 
-  test('returns null for commit without -m flag', () => {
+  test('returns null for commit without -m flag', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit' } });
     expect(result).toBeNull();
   });
 
-  test('handles heredoc commit messages', () => {
+  test('handles heredoc commit messages', async () => {
     const cmd = "git commit -m \"$(cat <<'EOF'\nfeat(01-01): add user authentication\n\nImplements OAuth2 flow.\nEOF\n)\"";
     const result = checkCommit({ tool_input: { command: cmd } });
     expect(result).toBeNull();
   });
 
-  test('blocks invalid heredoc commit messages', () => {
+  test('blocks invalid heredoc commit messages', async () => {
     const cmd = "git commit -m \"$(cat <<'EOF'\nbad message without type\n\nBody text.\nEOF\n)\"";
     const result = checkCommit({ tool_input: { command: cmd } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('heredoc extraction uses first line as commit subject', () => {
+  test('heredoc extraction uses first line as commit subject', async () => {
     const command = 'git commit -m "$(cat <<EOF\nfeat(02-03): implement login\n\nCo-Authored-By: Human Dev <dev@example.com>\nEOF\n)"';
     const result = checkCommit({ tool_input: { command } });
     expect(result).toBeNull();
   });
 
-  test('detects git commit in chained commands', () => {
+  test('detects git commit in chained commands', async () => {
     const result = checkCommit({ tool_input: { command: 'git add . && git commit -m "bad message"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('allows valid commit after cd (chained with &&)', () => {
+  test('allows valid commit after cd (chained with &&)', async () => {
     const result = checkCommit({ tool_input: { command: 'cd /d/Repos/project && git commit -m "feat(hooks): add feature"' } });
     expect(result).toBeNull();
   });
 
-  test('blocks invalid commit after cd (chained with &&)', () => {
+  test('blocks invalid commit after cd (chained with &&)', async () => {
     const result = checkCommit({ tool_input: { command: 'cd /d/Repos/project && git commit -m "bad message"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks empty description (missing colon-space)', () => {
+  test('blocks empty description (missing colon-space)', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(auth):"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks invalid type', () => {
+  test('blocks invalid type', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feature(auth): add auth"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks missing colon', () => {
+  test('blocks missing colon', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(auth) add auth"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
-  test('blocks missing space after colon', () => {
+  test('blocks missing space after colon', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(auth):add auth"' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
   });
 
   describe('sensitive file blocking', () => {
-    test('sensitive file check function exists and runs without crash', () => {
+    test('sensitive file check function exists and runs without crash', async () => {
       const result = checkCommit({ tool_input: { command: 'git commit -m "feat(hooks): add feature"' } });
       expect(result).toBeNull();
     });
@@ -217,7 +217,7 @@ describe('checkCommit', () => {
 });
 
 describe('commit format edge cases', () => {
-  test('all 11 valid types produce null (allowed)', () => {
+  test('all 11 valid types produce null (allowed)', async () => {
     const types = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert', 'perf', 'ci', 'build'];
     for (const type of types) {
       const result = checkCommit({ tool_input: { command: `git commit -m "${type}(scope): description"` } });
@@ -225,22 +225,22 @@ describe('commit format edge cases', () => {
     }
   });
 
-  test('scope with numbers: feat(phase-15): description', () => {
+  test('scope with numbers: feat(phase-15): description', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(phase-15): add tests"' } });
     expect(result).toBeNull();
   });
 
-  test('scope with dots: fix(v2.0): description', () => {
+  test('scope with dots: fix(v2.0): description', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "fix(v2.0): patch release"' } });
     expect(result).toBeNull();
   });
 
-  test('missing parentheses: feat: description (allowed — scope is optional)', () => {
+  test('missing parentheses: feat: description (allowed — scope is optional)', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat: add feature"' } });
     expect(result).toBeNull();
   });
 
-  test('empty description after colon-space: feat(hooks): (should fail)', () => {
+  test('empty description after colon-space: feat(hooks): (should fail)', async () => {
     // "feat(hooks): " with no description after the space — regex requires .+ after colon-space
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(hooks): "' } });
     // The regex requires at least one char after ": " — but the trailing space is trimmed by -m parsing
@@ -250,19 +250,19 @@ describe('commit format edge cases', () => {
     expect(result.exitCode).toBe(2);
   });
 
-  test('description with unicode characters', () => {
+  test('description with unicode characters', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(hooks): add emoji support \u2705"' } });
     expect(result).toBeNull();
   });
 
-  test('very long commit message (>200 chars)', () => {
+  test('very long commit message (>200 chars)', async () => {
     const longDesc = 'a'.repeat(200);
     const result = checkCommit({ tool_input: { command: `git commit -m "feat(hooks): ${longDesc}"` } });
     // Format is valid even if long — no length enforcement in the hook
     expect(result).toBeNull();
   });
 
-  test('scope with underscores is allowed (underscore in character class)', () => {
+  test('scope with underscores is allowed (underscore in character class)', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "fix(my_scope): fix bug"' } });
     // Underscores are in the regex character class [a-zA-Z0-9._-]
     expect(result).toBeNull();
@@ -278,14 +278,14 @@ describe('commit format edge cases', () => {
     expect(result).toBeNull();
   });
 
-  test('commit message with single quotes', () => {
+  test('commit message with single quotes', async () => {
     const result = checkCommit({ tool_input: { command: "git commit -m 'feat(hooks): add tests'" } });
     expect(result).toBeNull();
   });
 });
 
 describe('sensitive file blocking edge cases', () => {
-  test('.env.local matches sensitive pattern', () => {
+  test('.env.local matches sensitive pattern', async () => {
     // We can't easily mock execSync for git diff --cached, but we can verify
     // the SENSITIVE_PATTERNS logic via checkCommit — it calls checkSensitiveFilesResult
     // which uses real git. We test the pattern matching indirectly.
@@ -295,12 +295,12 @@ describe('sensitive file blocking edge cases', () => {
     expect(result).toBeNull();
   });
 
-  test('checkCommit with git add -A does not crash (git add is not a commit)', () => {
+  test('checkCommit with git add -A does not crash (git add is not a commit)', async () => {
     const result = checkCommit({ tool_input: { command: 'git add -A' } });
     expect(result).toBeNull();
   });
 
-  test('checkCommit returns proper JSON structure on block', () => {
+  test('checkCommit returns proper JSON structure on block', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "invalid message"' } });
     expect(result).not.toBeNull();
     expect(result.output).toHaveProperty('decision', 'block');
@@ -309,12 +309,12 @@ describe('sensitive file blocking edge cases', () => {
     expect(result.exitCode).toBe(2);
   });
 
-  test('checkCommit returns null (not empty object) when allowed', () => {
+  test('checkCommit returns null (not empty object) when allowed', async () => {
     const result = checkCommit({ tool_input: { command: 'git commit -m "feat(hooks): valid"' } });
     expect(result).toBeNull();
   });
 
-  test('AI co-author block output has correct JSON format', () => {
+  test('AI co-author block output has correct JSON format', async () => {
     const result = checkCommit({
       tool_input: {
         command: 'git commit -m "feat(hooks): feature" -m "Co-Authored-By: Claude <noreply@anthropic.com>"'

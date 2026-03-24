@@ -47,34 +47,34 @@ describe('stateLoad', () => {
     stateLoad = require('../plugins/pbr/scripts/lib/state').stateLoad;
   });
 
-  test('returns exists: true for fixture project', () => {
+  test('returns exists: true for fixture project', async () => {
     const result = stateLoad(FIXTURE_PLANNING);
     expect(result.exists).toBe(true);
   });
 
-  test('returns phase_count: 6', () => {
+  test('returns phase_count: 6', async () => {
     const result = stateLoad(FIXTURE_PLANNING);
     expect(result.phase_count).toBe(6);
   });
 
-  test('returns current_phase: 2', () => {
+  test('returns current_phase: 2', async () => {
     const result = stateLoad(FIXTURE_PLANNING);
     expect(result.current_phase).toBe(2);
   });
 
-  test('returns config with projectName', () => {
+  test('returns config with projectName', async () => {
     const result = stateLoad(FIXTURE_PLANNING);
     expect(result.config).toBeDefined();
     expect(result.config.projectName).toBe('fake-project');
   });
 
-  test('returns roadmap with 6 phases', () => {
+  test('returns roadmap with 6 phases', async () => {
     const result = stateLoad(FIXTURE_PLANNING);
     expect(result.roadmap).toBeDefined();
     expect(result.roadmap.phases).toHaveLength(6);
   });
 
-  test('returns progress object', () => {
+  test('returns progress object', async () => {
     const result = stateLoad(FIXTURE_PLANNING);
     expect(result.progress).toBeDefined();
     expect(typeof result.progress.total).toBe('number');
@@ -94,47 +94,47 @@ describe('stateCheckProgress', () => {
     stateCheckProgress = require('../plugins/pbr/scripts/lib/state').stateCheckProgress;
   });
 
-  test('detects 6 phases', () => {
+  test('detects 6 phases', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     expect(result.phases).toHaveLength(6);
   });
 
-  test('phase 01-setup is verified', () => {
+  test('phase 01-setup is verified', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     const phase = result.phases.find(p => p.directory === '01-setup');
     expect(phase).toBeDefined();
     expect(phase.status).toBe('verified');
   });
 
-  test('phase 02-auth is building', () => {
+  test('phase 02-auth is building', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     const phase = result.phases.find(p => p.directory === '02-auth');
     expect(phase).toBeDefined();
     expect(phase.status).toBe('building');
   });
 
-  test('phase 03-api is discussed', () => {
+  test('phase 03-api is discussed', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     const phase = result.phases.find(p => p.directory === '03-api');
     expect(phase).toBeDefined();
     expect(phase.status).toBe('discussed');
   });
 
-  test('phase 04-frontend is planned', () => {
+  test('phase 04-frontend is planned', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     const phase = result.phases.find(p => p.directory === '04-frontend');
     expect(phase).toBeDefined();
     expect(phase.status).toBe('planned');
   });
 
-  test('phase 05-deploy is built', () => {
+  test('phase 05-deploy is built', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     const phase = result.phases.find(p => p.directory === '05-deploy');
     expect(phase).toBeDefined();
     expect(phase.status).toBe('built');
   });
 
-  test('phase 06-monitoring is needs_fixes', () => {
+  test('phase 06-monitoring is needs_fixes', async () => {
     const result = stateCheckProgress(FIXTURE_PLANNING);
     const phase = result.phases.find(p => p.directory === '06-monitoring');
     expect(phase).toBeDefined();
@@ -153,12 +153,12 @@ describe('planIndex', () => {
     phasePlanIndex = require('../plugins/pbr/scripts/lib/phase').phasePlanIndex;
   });
 
-  test('returns 2 plans for phase 2', () => {
+  test('returns 2 plans for phase 2', async () => {
     const result = phasePlanIndex('2', FIXTURE_PLANNING);
     expect(result.total_plans).toBe(2);
   });
 
-  test('organizes plans into wave_1 and wave_2', () => {
+  test('organizes plans into wave_1 and wave_2', async () => {
     const result = phasePlanIndex('2', FIXTURE_PLANNING);
     expect(result.waves.wave_1).toBeDefined();
     expect(result.waves.wave_2).toBeDefined();
@@ -166,21 +166,21 @@ describe('planIndex', () => {
     expect(result.waves.wave_2).toContain('auth-02b');
   });
 
-  test('detects depends_on for auth-02', () => {
+  test('detects depends_on for auth-02', async () => {
     const result = phasePlanIndex('2', FIXTURE_PLANNING);
     const plan = result.plans.find(p => p.plan_id === 'auth-02');
     expect(plan).toBeDefined();
     expect(plan.depends_on).toContain('setup-01');
   });
 
-  test('detects gap_closure for auth-02b', () => {
+  test('detects gap_closure for auth-02b', async () => {
     const result = phasePlanIndex('2', FIXTURE_PLANNING);
     const plan = result.plans.find(p => p.plan_id === 'auth-02b');
     expect(plan).toBeDefined();
     expect(plan.gap_closure).toBe(true);
   });
 
-  test('detects has_summary for auth-02 (true) and auth-02b (false)', () => {
+  test('detects has_summary for auth-02 (true) and auth-02b (false)', async () => {
     const result = phasePlanIndex('2', FIXTURE_PLANNING);
     const plan02 = result.plans.find(p => p.plan_id === 'auth-02');
     const plan02b = result.plans.find(p => p.plan_id === 'auth-02b');
@@ -188,7 +188,7 @@ describe('planIndex', () => {
     expect(plan02b.has_summary).toBe(false);
   });
 
-  test('counts must_haves correctly', () => {
+  test('counts must_haves correctly', async () => {
     const result = phasePlanIndex('2', FIXTURE_PLANNING);
     const plan02 = result.plans.find(p => p.plan_id === 'auth-02');
     // auth-02 has 1 truth + 1 artifact + 0 key_links = 2
@@ -221,7 +221,7 @@ describe('roadmap sync', () => {
     expect(stateInfo.status).not.toBe(roadmapStatus.toLowerCase());
   });
 
-  test('detects match for phase 1', () => {
+  test('detects match for phase 1', async () => {
     const roadmapContent = fs.readFileSync(
       path.join(FIXTURE_DIR, '.planning', 'ROADMAP.md'), 'utf8'
     );
@@ -241,7 +241,7 @@ describe('plan format validation', () => {
     ({ validatePlan, validateSummary } = require('../plugins/pbr/scripts/check-plan-format'));
   });
 
-  test('valid plan passes with no issues', () => {
+  test('valid plan passes with no issues', async () => {
     const planPath = path.join(
       FIXTURE_DIR, '.planning', 'phases', '01-setup', 'setup-01-PLAN.md'
     );
@@ -251,7 +251,7 @@ describe('plan format validation', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('valid summary passes (except key_files not found on disk)', () => {
+  test('valid summary passes (except key_files not found on disk)', async () => {
     const summaryPath = path.join(
       FIXTURE_DIR, '.planning', 'phases', '01-setup', 'SUMMARY-setup-01.md'
     );
@@ -265,7 +265,7 @@ describe('plan format validation', () => {
 // Group 6: CLI commands
 // ---------------------------------------------------------------------------
 describe('CLI commands', () => {
-  test('pbr-tools.js state load exits 0 with valid JSON', () => {
+  test('pbr-tools.js state load exits 0 with valid JSON', async () => {
     const result = execSync(
       `node "${PBR_TOOLS}" state load`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
@@ -274,7 +274,7 @@ describe('CLI commands', () => {
     expect(parsed.exists).toBe(true);
   });
 
-  test('pbr-tools.js bad-command exits non-zero', () => {
+  test('pbr-tools.js bad-command exits non-zero', async () => {
     expect(() => {
       execSync(
         `node "${PBR_TOOLS}" bad-command`,
@@ -300,7 +300,7 @@ describe('frontmatter', () => {
     frontmatter = require('../plugins/pbr/scripts/lib/phase').frontmatter;
   });
 
-  test('parses plan file frontmatter via function', () => {
+  test('parses plan file frontmatter via function', async () => {
     const planPath = path.join(FIXTURE_DIR, '.planning', 'phases', '02-auth', 'auth-02-PLAN.md');
     const result = frontmatter(planPath);
     expect(result.plan).toBe('auth-02');
@@ -311,18 +311,18 @@ describe('frontmatter', () => {
     expect(result.must_haves.truths).toContain('JWT tokens are validated');
   });
 
-  test('returns error for nonexistent file', () => {
+  test('returns error for nonexistent file', async () => {
     const result = frontmatter('/nonexistent/file.md');
     expect(result.error).toBeDefined();
   });
 
-  test('returns empty object for file without frontmatter', () => {
+  test('returns empty object for file without frontmatter', async () => {
     const contextPath = path.join(FIXTURE_DIR, '.planning', 'phases', '03-api', 'CONTEXT.md');
     const result = frontmatter(contextPath);
     expect(typeof result).toBe('object');
   });
 
-  test('CLI: frontmatter returns valid JSON', () => {
+  test('CLI: frontmatter returns valid JSON', async () => {
     const planPath = path.join(FIXTURE_DIR, '.planning', 'phases', '02-auth', 'auth-02-PLAN.md');
     const result = execSync(
       `node "${PBR_TOOLS}" frontmatter "${planPath}"`,
@@ -345,33 +345,33 @@ describe('mustHavesCollect', () => {
     phaseMustHaves = require('../plugins/pbr/scripts/lib/phase').phaseMustHaves;
   });
 
-  test('collects must-haves from phase 2 (2 plans)', () => {
+  test('collects must-haves from phase 2 (2 plans)', async () => {
     const result = phaseMustHaves('2', FIXTURE_PLANNING);
     expect(result.phase).toBe('02-auth');
     expect(result.plans['auth-02']).toBeDefined();
     expect(result.plans['auth-02b']).toBeDefined();
   });
 
-  test('deduplicates across plans in all list', () => {
+  test('deduplicates across plans in all list', async () => {
     const result = phaseMustHaves('2', FIXTURE_PLANNING);
     expect(result.all.truths).toContain('JWT tokens are validated');
     expect(result.all.truths).toContain('Token refresh works');
     expect(result.total).toBe(3);
   });
 
-  test('returns error for nonexistent phase', () => {
+  test('returns error for nonexistent phase', async () => {
     const result = phaseMustHaves('99', FIXTURE_PLANNING);
     expect(result.error).toBeDefined();
   });
 
-  test('returns per-plan must_haves', () => {
+  test('returns per-plan must_haves', async () => {
     const result = phaseMustHaves('2', FIXTURE_PLANNING);
     expect(result.plans['auth-02'].truths).toContain('JWT tokens are validated');
     expect(result.plans['auth-02'].artifacts).toContain('Auth middleware exists');
     expect(result.plans['auth-02b'].truths).toContain('Token refresh works');
   });
 
-  test('CLI: must-haves returns valid JSON', () => {
+  test('CLI: must-haves returns valid JSON', async () => {
     const result = execSync(
       `node "${PBR_TOOLS}" must-haves 2`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
@@ -393,7 +393,7 @@ describe('phaseInfo', () => {
     phaseInfo = require('../plugins/pbr/scripts/lib/phase').phaseInfo;
   });
 
-  test('returns comprehensive info for phase 2', () => {
+  test('returns comprehensive info for phase 2', async () => {
     const result = phaseInfo('2', FIXTURE_PLANNING);
     expect(result.phase).toBe('02-auth');
     expect(result.name).toBe('auth');
@@ -403,30 +403,30 @@ describe('phaseInfo', () => {
     expect(result.plan_count).toBe(2);
   });
 
-  test('includes summaries with status', () => {
+  test('includes summaries with status', async () => {
     const result = phaseInfo('2', FIXTURE_PLANNING);
     expect(result.summaries).toHaveLength(1);
     expect(result.summaries[0].status).toBe('complete');
   });
 
-  test('detects verification for phase 1', () => {
+  test('detects verification for phase 1', async () => {
     const result = phaseInfo('1', FIXTURE_PLANNING);
     expect(result.verification).toBeDefined();
     expect(result.verification.status).toBe('passed');
     expect(result.filesystem_status).toBe('verified');
   });
 
-  test('detects CONTEXT.md for phase 3', () => {
+  test('detects CONTEXT.md for phase 3', async () => {
     const result = phaseInfo('3', FIXTURE_PLANNING);
     expect(result.has_context).toBe(true);
   });
 
-  test('returns error for nonexistent phase', () => {
+  test('returns error for nonexistent phase', async () => {
     const result = phaseInfo('99', FIXTURE_PLANNING);
     expect(result.error).toBeDefined();
   });
 
-  test('CLI: phase-info returns valid JSON', () => {
+  test('CLI: phase-info returns valid JSON', async () => {
     const result = execSync(
       `node "${PBR_TOOLS}" phase-info 2`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
@@ -457,18 +457,18 @@ describe('state update', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fs.copyFileSync(
       path.join(FIXTURE_DIR, '.planning', 'STATE.md'),
       path.join(tmpDir, '.planning', 'STATE.md')
     );
   });
 
-  test('updates status field via function', () => {
+  test('updates status field via function', async () => {
     jest.resetModules();
     const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = stateUpdate('status', 'building', planningDir);
+    const result = await stateUpdate('status', 'building', planningDir);
     expect(result.success).toBe(true);
     expect(result.field).toBe('status');
     expect(result.value).toBe('building');
@@ -476,26 +476,26 @@ describe('state update', () => {
     expect(content).toContain('building');
   });
 
-  test('updates current_phase field', () => {
+  test('updates current_phase field', async () => {
     jest.resetModules();
     const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = stateUpdate('current_phase', '3', planningDir);
+    const result = await stateUpdate('current_phase', '3', planningDir);
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
     expect(content).toContain('Phase: 3 of 6');
   });
 
-  test('rejects invalid field', () => {
+  test('rejects invalid field', async () => {
     jest.resetModules();
     const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = stateUpdate('invalid_field', 'value', planningDir);
+    const result = await stateUpdate('invalid_field', 'value', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Invalid field');
   });
 
-  test('CLI: state update status building', () => {
+  test('CLI: state update status building', async () => {
     const result = execSync(
       `node "${PBR_TOOLS}" state update status building`,
       { cwd: tmpDir, encoding: 'utf8' }
@@ -523,18 +523,18 @@ describe('roadmap update-status', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fs.copyFileSync(
       path.join(FIXTURE_DIR, '.planning', 'ROADMAP.md'),
       path.join(tmpDir, '.planning', 'ROADMAP.md')
     );
   });
 
-  test('updates phase 2 status via function', () => {
+  test('updates phase 2 status via function', async () => {
     jest.resetModules();
     const { roadmapUpdateStatus } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = roadmapUpdateStatus('2', 'building', planningDir);
+    const result = await roadmapUpdateStatus('2', 'building', planningDir);
     expect(result.success).toBe(true);
     expect(result.old_status).toBe('planned');
     expect(result.new_status).toBe('building');
@@ -543,16 +543,16 @@ describe('roadmap update-status', () => {
     expect(row).toContain('building');
   });
 
-  test('returns error for nonexistent phase', () => {
+  test('returns error for nonexistent phase', async () => {
     jest.resetModules();
     const { roadmapUpdateStatus } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = roadmapUpdateStatus('99', 'building', planningDir);
+    const result = await roadmapUpdateStatus('99', 'building', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('not found');
   });
 
-  test('CLI: roadmap update-status 2 building', () => {
+  test('CLI: roadmap update-status 2 building', async () => {
     const result = execSync(
       `node "${PBR_TOOLS}" roadmap update-status 2 building`,
       { cwd: tmpDir, encoding: 'utf8' }
@@ -580,18 +580,18 @@ describe('roadmap update-plans', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fs.copyFileSync(
       path.join(FIXTURE_DIR, '.planning', 'ROADMAP.md'),
       path.join(tmpDir, '.planning', 'ROADMAP.md')
     );
   });
 
-  test('updates phase 2 plans via function', () => {
+  test('updates phase 2 plans via function', async () => {
     jest.resetModules();
     const { roadmapUpdatePlans } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = roadmapUpdatePlans('2', '1', '2', planningDir);
+    const result = await roadmapUpdatePlans('2', '1', '2', planningDir);
     expect(result.success).toBe(true);
     expect(result.old_plans).toBe('0/2');
     expect(result.new_plans).toBe('1/2');
@@ -600,16 +600,16 @@ describe('roadmap update-plans', () => {
     expect(row).toContain('1/2');
   });
 
-  test('returns error for nonexistent phase', () => {
+  test('returns error for nonexistent phase', async () => {
     jest.resetModules();
     const { roadmapUpdatePlans } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
-    const result = roadmapUpdatePlans('99', '1', '2', planningDir);
+    const result = await roadmapUpdatePlans('99', '1', '2', planningDir);
     expect(result.success).toBe(false);
     expect(result.error).toContain('not found');
   });
 
-  test('CLI: roadmap update-plans 2 1 2', () => {
+  test('CLI: roadmap update-plans 2 1 2', async () => {
     const result = execSync(
       `node "${PBR_TOOLS}" roadmap update-plans 2 1 2`,
       { cwd: tmpDir, encoding: 'utf8' }
@@ -624,7 +624,7 @@ describe('roadmap update-plans', () => {
 // Group 7: Event logger integration
 // ---------------------------------------------------------------------------
 describe('event logger integration', () => {
-  test('logEvent writes to dated events log file', () => {
+  test('logEvent writes to dated events log file', async () => {
     jest.resetModules();
     const { logEvent, getLogFilename } = require('../plugins/pbr/scripts/event-logger');
     logEvent('workflow', 'test-event', { phase: 1 });
@@ -637,7 +637,7 @@ describe('event logger integration', () => {
     expect(entry.event).toBe('test-event');
   });
 
-  test('pbr-tools event CLI writes event to dated log', () => {
+  test('pbr-tools event CLI writes event to dated log', async () => {
     const detailsJson = JSON.stringify({ phase: 99 });
     execSync(
       `node "${PBR_TOOLS}" event workflow cli-test "${detailsJson}"`,

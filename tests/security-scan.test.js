@@ -7,11 +7,11 @@ const os = require('os');
 const { scanFiles, formatFindings, SECURITY_RULES } = require('../plugins/pbr/scripts/lib/security-scan');
 
 describe('SECURITY_RULES', () => {
-  test('has at least 8 rules', () => {
+  test('has at least 8 rules', async () => {
     expect(SECURITY_RULES.length).toBeGreaterThanOrEqual(8);
   });
 
-  test('each rule has required properties', () => {
+  test('each rule has required properties', async () => {
     for (const rule of SECURITY_RULES) {
       expect(rule).toHaveProperty('id');
       expect(rule).toHaveProperty('name');
@@ -39,14 +39,14 @@ describe('scanFiles', () => {
     return filePath;
   }
 
-  test('returns empty when feature disabled', () => {
+  test('returns empty when feature disabled', async () => {
     const config = { features: { security_scanning: false } };
     const result = scanFiles([], config);
     expect(result.findings).toEqual([]);
     expect(result.scanned).toBe(0);
   });
 
-  test('detects hardcoded secrets pattern', () => {
+  test('detects hardcoded secrets pattern', async () => {
     const filePath = createFile('secrets.js', 'const API_KEY = "sk-abc123secrettoken";');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
@@ -55,28 +55,28 @@ describe('scanFiles', () => {
     expect(highFindings.some(f => f.ruleId === 'SEC-001')).toBe(true);
   });
 
-  test('detects eval usage', () => {
+  test('detects eval usage', async () => {
     const filePath = createFile('eval.js', 'function run(code) { eval(code); }');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
     expect(result.findings.some(f => f.ruleId === 'SEC-002')).toBe(true);
   });
 
-  test('detects unsafe regex', () => {
+  test('detects unsafe regex', async () => {
     const filePath = createFile('regex.js', 'const re = /^(a+)+$/;');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
     expect(result.findings.some(f => f.ruleId === 'SEC-004')).toBe(true);
   });
 
-  test('detects shell injection risk', () => {
+  test('detects shell injection risk', async () => {
     const filePath = createFile('shell.js', 'exec("ls " + userInput);');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
     expect(result.findings.some(f => f.ruleId === 'SEC-003')).toBe(true);
   });
 
-  test('returns severity per rule - high for secrets', () => {
+  test('returns severity per rule - high for secrets', async () => {
     const filePath = createFile('key.js', 'const PASSWORD = "super_secret_password_12345";');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
@@ -86,7 +86,7 @@ describe('scanFiles', () => {
     }
   });
 
-  test('ignores test files - downgrades severity to info', () => {
+  test('ignores test files - downgrades severity to info', async () => {
     const filePath = createFile('validate.test.js', 'eval(testCode);');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
@@ -96,7 +96,7 @@ describe('scanFiles', () => {
     }
   });
 
-  test('returns scanned file count', () => {
+  test('returns scanned file count', async () => {
     const f1 = createFile('a.js', 'const x = 1;');
     const f2 = createFile('b.js', 'const y = 2;');
     const config = { features: { security_scanning: true } };
@@ -104,7 +104,7 @@ describe('scanFiles', () => {
     expect(result.scanned).toBe(2);
   });
 
-  test('each finding has required fields', () => {
+  test('each finding has required fields', async () => {
     const filePath = createFile('ev.js', 'eval(input);');
     const config = { features: { security_scanning: true } };
     const result = scanFiles([filePath], config);
@@ -120,7 +120,7 @@ describe('scanFiles', () => {
 });
 
 describe('formatFindings', () => {
-  test('produces readable report', () => {
+  test('produces readable report', async () => {
     const scanResult = {
       findings: [
         { ruleId: 'SEC-001', ruleName: 'hardcoded-secret', file: 'src/auth.js', line: 'const KEY="abc"', lineNumber: 5, severity: 'high', message: 'Potential hardcoded secret' },
@@ -134,7 +134,7 @@ describe('formatFindings', () => {
     expect(report).toMatch(/SEC-001|hardcoded|secret/i);
   });
 
-  test('handles empty findings', () => {
+  test('handles empty findings', async () => {
     const report = formatFindings({ findings: [], scanned: 5 });
     expect(typeof report).toBe('string');
     expect(report).toMatch(/no findings|0 findings|clean/i);

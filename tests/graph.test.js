@@ -112,7 +112,7 @@ describe('graph.cjs', () => {
   const graph = require('../plugins/pbr/scripts/lib/graph');
 
   describe('buildGraph', () => {
-    test('returns valid graph structure with nodes and edges', () => {
+    test('returns valid graph structure with nodes and edges', async () => {
       const { tmp, planningDir } = makeTempPlanning({ createSourceFiles: true });
       try {
         const result = graph.buildGraph(planningDir, tmp);
@@ -129,7 +129,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('creates nodes from intel files.json entries', () => {
+    test('creates nodes from intel files.json entries', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const result = graph.buildGraph(planningDir, tmp);
@@ -143,7 +143,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('creates edges from intel deps.json import relationships', () => {
+    test('creates edges from intel deps.json import relationships', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const result = graph.buildGraph(planningDir, tmp);
@@ -170,7 +170,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns disabled response when features.architecture_graph is false', () => {
+    test('returns disabled response when features.architecture_graph is false', async () => {
       const { tmp, planningDir } = makeTempPlanning({ graphEnabled: false });
       try {
         const result = graph.buildGraph(planningDir, tmp);
@@ -182,7 +182,7 @@ describe('graph.cjs', () => {
   });
 
   describe('queryGraph', () => {
-    test('returns node with dependents and dependencies', () => {
+    test('returns node with dependents and dependencies', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const g = graph.buildGraph(planningDir, tmp);
@@ -200,7 +200,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('with depth option limits traversal', () => {
+    test('with depth option limits traversal', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const g = graph.buildGraph(planningDir, tmp);
@@ -212,7 +212,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns empty result for unknown node', () => {
+    test('returns empty result for unknown node', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const g = graph.buildGraph(planningDir, tmp);
@@ -227,7 +227,7 @@ describe('graph.cjs', () => {
   });
 
   describe('getImpactedFiles', () => {
-    test('returns transitive dependents for a given file', () => {
+    test('returns transitive dependents for a given file', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const g = graph.buildGraph(planningDir, tmp);
@@ -244,7 +244,7 @@ describe('graph.cjs', () => {
   });
 
   describe('updateGraphIncremental', () => {
-    test('updates single node and its edges without full rebuild', () => {
+    test('updates single node and its edges without full rebuild', async () => {
       const { tmp, planningDir, intelDir } = makeTempPlanning();
       try {
         // First build
@@ -275,7 +275,7 @@ describe('graph.cjs', () => {
   });
 
   describe('loadGraph', () => {
-    test('returns null when graph.json absent', () => {
+    test('returns null when graph.json absent', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const result = graph.loadGraph(planningDir);
@@ -285,7 +285,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns graph when graph.json exists', () => {
+    test('returns graph when graph.json exists', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         graph.buildGraph(planningDir, tmp);
@@ -299,7 +299,7 @@ describe('graph.cjs', () => {
   });
 
   describe('graphHealthCheck', () => {
-    test('returns healthy when graph.json exists and is recent', () => {
+    test('returns healthy when graph.json exists and is recent', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         graph.buildGraph(planningDir, tmp);
@@ -313,7 +313,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns degraded when graph.json is stale (>24h old)', () => {
+    test('returns degraded when graph.json is stale (>24h old)', async () => {
       const { tmp, planningDir, codebaseDir } = makeTempPlanning();
       try {
         graph.buildGraph(planningDir, tmp);
@@ -331,7 +331,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns disabled when features.architecture_graph is false', () => {
+    test('returns disabled when features.architecture_graph is false', async () => {
       const { tmp, planningDir } = makeTempPlanning({ graphEnabled: false });
       try {
         const result = graph.graphHealthCheck(planningDir);
@@ -342,7 +342,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns degraded when graph.json does not exist', () => {
+    test('returns degraded when graph.json does not exist', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         // No buildGraph call - graph.json absent
@@ -356,7 +356,7 @@ describe('graph.cjs', () => {
   });
 
   describe('guardHealthCheck', () => {
-    test('returns healthy when architecture_guard is enabled', () => {
+    test('returns healthy when architecture_guard is enabled', async () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const result = graph.guardHealthCheck(planningDir);
@@ -367,7 +367,7 @@ describe('graph.cjs', () => {
       }
     });
 
-    test('returns disabled when features.architecture_guard is false', () => {
+    test('returns disabled when features.architecture_guard is false', async () => {
       const { tmp, planningDir } = makeTempPlanning({ guardEnabled: false });
       try {
         const result = graph.guardHealthCheck(planningDir);

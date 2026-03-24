@@ -129,7 +129,7 @@ describe('config migration', () => {
     return config;
   }
 
-  test('v1 config with model_profile migrates to v2', () => {
+  test('v1 config with model_profile migrates to v2', async () => {
     const v1 = {
       mode: 'interactive',
       depth: 'standard',
@@ -162,7 +162,7 @@ describe('config migration', () => {
     expect(v2.context_strategy).toBe('aggressive');
   });
 
-  test('v1 budget profile migrates correctly', () => {
+  test('v1 budget profile migrates correctly', async () => {
     const v1 = { model_profile: 'budget' };
     const v2 = migrateConfig(v1);
 
@@ -171,7 +171,7 @@ describe('config migration', () => {
     expect(v2.models.synthesizer).toBe('haiku');
   });
 
-  test('v1 quality profile migrates correctly', () => {
+  test('v1 quality profile migrates correctly', async () => {
     const v1 = { model_profile: 'quality' };
     const v2 = migrateConfig(v1);
 
@@ -180,7 +180,7 @@ describe('config migration', () => {
     expect(v2.models.planner).toBe('inherit');
   });
 
-  test('v2 config passes through unchanged', () => {
+  test('v2 config passes through unchanged', async () => {
     const v2 = {
       version: 2,
       context_strategy: 'balanced',
@@ -194,7 +194,7 @@ describe('config migration', () => {
     expect(result).toEqual(v2);
   });
 
-  test('missing fields get defaults', () => {
+  test('missing fields get defaults', async () => {
     const v1 = {};
     const v2 = migrateConfig(v1);
 
@@ -209,7 +209,7 @@ describe('config migration', () => {
     expect(v2.gates.confirm_execute).toBe(false);
   });
 
-  test('v1 workflow.research=false migrates to features', () => {
+  test('v1 workflow.research=false migrates to features', async () => {
     const v1 = {
       workflow: { research: false, plan_check: false, verifier: true },
     };
@@ -220,7 +220,7 @@ describe('config migration', () => {
     expect(v2.features.goal_verification).toBe(true);
   });
 
-  test('existing v1 parallelization fields preserved', () => {
+  test('existing v1 parallelization fields preserved', async () => {
     const v1 = {
       parallelization: {
         enabled: false,
@@ -243,7 +243,7 @@ describe('v2 to v3 migration', () => {
     return clone;
   }
 
-  test('adds all new workflow properties with defaults', () => {
+  test('adds all new workflow properties with defaults', async () => {
     const v2 = { schema_version: 2, workflow: { enforce_pbr_skills: 'advisory' } };
     const v3 = applyV2ToV3(v2);
 
@@ -258,7 +258,7 @@ describe('v2 to v3 migration', () => {
     expect(v3.workflow.enforce_pbr_skills).toBe('advisory');
   });
 
-  test('adds new top-level sections', () => {
+  test('adds new top-level sections', async () => {
     const v2 = { schema_version: 2 };
     const v3 = applyV2ToV3(v2);
 
@@ -269,7 +269,7 @@ describe('v2 to v3 migration', () => {
     expect(v3.context_budget).toEqual({ threshold_curve: 'linear' });
   });
 
-  test('adds planning.multi_phase and gates.checkpoint_auto_resolve', () => {
+  test('adds planning.multi_phase and gates.checkpoint_auto_resolve', async () => {
     const v2 = {
       schema_version: 2,
       planning: { commit_docs: true, max_tasks_per_plan: 5 },
@@ -285,7 +285,7 @@ describe('v2 to v3 migration', () => {
     expect(v3.gates.auto_checkpoints).toBe(false);
   });
 
-  test('is idempotent', () => {
+  test('is idempotent', async () => {
     const v2 = { schema_version: 2, workflow: { enforce_pbr_skills: 'block' } };
     const first = applyV2ToV3(v2);
     const second = applyV2ToV3(first);
@@ -293,7 +293,7 @@ describe('v2 to v3 migration', () => {
     expect(second).toEqual(first);
   });
 
-  test('does not overwrite existing values', () => {
+  test('does not overwrite existing values', async () => {
     const v2 = {
       schema_version: 2,
       workflow: { inline_execution: true },
@@ -308,7 +308,7 @@ describe('v2 to v3 migration', () => {
     expect(v3.workflow.inline_max_tasks).toBe(2);
   });
 
-  test('full path v0 to v3', () => {
+  test('full path v0 to v3', async () => {
     const v0 = { mode: 'yolo', depth: 'lean' };
     const path = getMigrationPath(0, 3);
     expect(path.length).toBe(3);

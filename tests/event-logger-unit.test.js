@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe('logEvent branch coverage', () => {
-  test('writes to new file when no event log exists', () => {
+  test('writes to new file when no event log exists', async () => {
     logEvent('test', 'first-event', { key: 'val' });
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'logs', todayLogFile()), 'utf8');
     const entry = JSON.parse(content.trim());
@@ -36,7 +36,7 @@ describe('logEvent branch coverage', () => {
     expect(entry.key).toBe('val');
   });
 
-  test('appends to existing file', () => {
+  test('appends to existing file', async () => {
     const logPath = path.join(tmpDir, '.planning', 'logs', todayLogFile());
     fs.writeFileSync(logPath, JSON.stringify({ ts: '2024-01-01', cat: 'old', event: 'old' }) + '\n');
     logEvent('test', 'new-event');
@@ -44,7 +44,7 @@ describe('logEvent branch coverage', () => {
     expect(lines.length).toBe(2);
   });
 
-  test('handles empty existing file', () => {
+  test('handles empty existing file', async () => {
     const logPath = path.join(tmpDir, '.planning', 'logs', todayLogFile());
     fs.writeFileSync(logPath, '');
     logEvent('test', 'after-empty');
@@ -52,7 +52,7 @@ describe('logEvent branch coverage', () => {
     expect(lines.length).toBe(1);
   });
 
-  test('appends without rotation (canonical uses daily files)', () => {
+  test('appends without rotation (canonical uses daily files)', async () => {
     // The canonical event-logger uses date-based files, no MAX_ENTRIES rotation
     for (let i = 0; i < 10; i++) {
       logEvent('test', `e${i}`);
@@ -64,19 +64,19 @@ describe('logEvent branch coverage', () => {
     expect(last.event).toBe('e9');
   });
 
-  test('returns silently when no .planning dir', () => {
+  test('returns silently when no .planning dir', async () => {
     process.chdir(os.tmpdir());
     // Should not throw
     logEvent('test', 'no-planning');
   });
 
-  test('creates logs dir if missing', () => {
+  test('creates logs dir if missing', async () => {
     fs.rmSync(path.join(tmpDir, '.planning', 'logs'), { recursive: true });
     logEvent('test', 'create-logs-dir');
     expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs', todayLogFile()))).toBe(true);
   });
 
-  test('CLI main: logs event via process.argv', () => {
+  test('CLI main: logs event via process.argv', async () => {
     const { execSync } = require('child_process');
     const script = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     const result = execSync(`node "${script}" testcat testevent '{"foo":"bar"}'`, {
@@ -93,7 +93,7 @@ describe('logEvent branch coverage', () => {
     expect(logContent).toContain('testevent');
   });
 
-  test('CLI main: exits 1 when missing args', () => {
+  test('CLI main: exits 1 when missing args', async () => {
     const { execSync } = require('child_process');
     const script = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     try {
@@ -105,7 +105,7 @@ describe('logEvent branch coverage', () => {
     }
   });
 
-  test('CLI main: handles non-JSON details as raw string', () => {
+  test('CLI main: handles non-JSON details as raw string', async () => {
     const { execSync } = require('child_process');
     const script = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     const result = execSync(`node "${script}" cat evt "not-json"`, {
@@ -119,7 +119,7 @@ describe('logEvent branch coverage', () => {
     expect(logContent).toContain('"raw":"not-json"');
   });
 
-  test('default details is empty object', () => {
+  test('default details is empty object', async () => {
     logEvent('cat', 'evt');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'logs', todayLogFile()), 'utf8');
     const entry = JSON.parse(content.trim());

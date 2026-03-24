@@ -18,11 +18,11 @@ const {
 
 let tmpDir, planningDir;
 
-beforeEach(() => {
+beforeEach(async () => {
   configClearCache();
 });
 
-afterEach(() => {
+afterEach(async () => {
   if (tmpDir) cleanupTmp(tmpDir);
   tmpDir = null;
   configClearCache();
@@ -88,12 +88,12 @@ function setupBasicProject() {
 }
 
 describe('initExecutePhase', () => {
-  it('returns error when .planning does not exist', () => {
+  it('returns error when .planning does not exist', async () => {
     const result = initExecutePhase('1', '/nonexistent/.planning');
     expect(result.error).toBeTruthy();
   });
 
-  it('returns phase and plan info for valid setup', () => {
+  it('returns phase and plan info for valid setup', async () => {
     setupBasicProject();
     const result = initExecutePhase('1', planningDir);
     expect(result.error).toBeUndefined();
@@ -104,7 +104,7 @@ describe('initExecutePhase', () => {
     expect(result.executor_model).toBe('sonnet');
   });
 
-  it('accepts model override', () => {
+  it('accepts model override', async () => {
     setupBasicProject();
     const result = initExecutePhase('1', planningDir, 'opus');
     expect(result.executor_model).toBe('opus');
@@ -113,12 +113,12 @@ describe('initExecutePhase', () => {
 });
 
 describe('initPlanPhase', () => {
-  it('returns error when .planning does not exist', () => {
+  it('returns error when .planning does not exist', async () => {
     const result = initPlanPhase('1', '/nonexistent/.planning');
     expect(result.error).toBeTruthy();
   });
 
-  it('returns config and phase info for valid setup', () => {
+  it('returns config and phase info for valid setup', async () => {
     setupBasicProject();
     const result = initPlanPhase('1', planningDir);
     expect(result.error).toBeUndefined();
@@ -130,7 +130,7 @@ describe('initPlanPhase', () => {
 });
 
 describe('initQuick', () => {
-  it('returns next task number and slug', () => {
+  it('returns next task number and slug', async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'config.json', '{}');
 
@@ -140,7 +140,7 @@ describe('initQuick', () => {
     expect(result.dir).toContain('001-');
   });
 
-  it('increments number when existing quick tasks exist', () => {
+  it('increments number when existing quick tasks exist', async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'config.json', '{}');
 
@@ -153,7 +153,7 @@ describe('initQuick', () => {
 });
 
 describe('initVerifyWork', () => {
-  it('returns error for nonexistent phase', () => {
+  it('returns error for nonexistent phase', async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'config.json', '{}');
     writePlanningFile(planningDir, 'STATE.md', '---\nstatus: building\n---\n');
@@ -162,7 +162,7 @@ describe('initVerifyWork', () => {
     expect(result.error).toBeTruthy();
   });
 
-  it('returns phase and summaries for valid phase', () => {
+  it('returns phase and summaries for valid phase', async () => {
     setupBasicProject();
     const result = initVerifyWork('1', planningDir);
     expect(result.error).toBeUndefined();
@@ -172,14 +172,14 @@ describe('initVerifyWork', () => {
 });
 
 describe('initResume', () => {
-  it('returns error when .planning does not exist', () => {
-    const result = initResume('/nonexistent/.planning');
+  it('returns error when .planning does not exist', async () => {
+    const result = await initResume('/nonexistent/.planning');
     expect(result.error).toBeTruthy();
   });
 
-  it('returns state and signal files for valid project', () => {
+  it('returns state and signal files for valid project', async () => {
     setupBasicProject();
-    const result = initResume(planningDir);
+    const result = await initResume(planningDir);
     expect(result.error).toBeUndefined();
     expect(result.state).toBeDefined();
     expect(result).toHaveProperty('auto_next');
@@ -189,12 +189,12 @@ describe('initResume', () => {
 });
 
 describe('initProgress', () => {
-  it('returns error when .planning does not exist', () => {
+  it('returns error when .planning does not exist', async () => {
     const result = initProgress('/nonexistent/.planning');
     expect(result.error).toBeTruthy();
   });
 
-  it('returns progress info for valid project', () => {
+  it('returns progress info for valid project', async () => {
     setupBasicProject();
     const result = initProgress(planningDir);
     expect(result.error).toBeUndefined();
@@ -205,12 +205,12 @@ describe('initProgress', () => {
 });
 
 describe('initStateBundle', () => {
-  it('returns error when .planning does not exist', () => {
+  it('returns error when .planning does not exist', async () => {
     const result = initStateBundle('1', '/nonexistent/.planning');
     expect(result.error).toBeTruthy();
   });
 
-  it('returns full state bundle for valid phase', () => {
+  it('returns full state bundle for valid phase', async () => {
     setupBasicProject();
     const result = initStateBundle('1', planningDir);
     expect(result.error).toBeUndefined();
@@ -225,7 +225,7 @@ describe('initStateBundle', () => {
     expect(result).toHaveProperty('has_phase_context');
   });
 
-  it('returns error for nonexistent phase', () => {
+  it('returns error for nonexistent phase', async () => {
     ({ tmpDir, planningDir } = createTmpPlanning());
     writePlanningFile(planningDir, 'config.json', '{}');
     writePlanningFile(planningDir, 'STATE.md', '---\nstatus: building\n---\n');
