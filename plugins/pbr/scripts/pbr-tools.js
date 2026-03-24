@@ -43,7 +43,6 @@
  *   auto-cleanup --phase N | --milestone vN — Auto-close todos and archive notes matching phase/milestone deliverables
  *   state reconcile          — Detect and repair STATE.md/ROADMAP.md desync
  *   state backup             — Create timestamped backup of STATE.md and ROADMAP.md
- *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] [--goal "..."] [--depends-on N] — Add phase with ROADMAP.md integration
  *   phase remove <N>             — Remove an empty phase directory (with renumbering)
  *   phase list [--status S] [--before N] — List phase directories with optional status/before filters
@@ -61,14 +60,9 @@
  *   learnings query-global [--tags X] [--project P] — Query global knowledge files
  *   data status                      — Freshness report for research/, intel/, codebase/ directories
  *   data prune --before <ISO-date> [--dry-run] — Archive stale research/codebase files
- *   incidents list [--limit N]       — List recent incidents as JSON array
- *   incidents summary               — Aggregate incident stats by type/severity/source
- *   incidents query [--type T] [--severity S] [--source S] [--last Nd|Nh] — Filter incidents
  *   nk record --title "..." --category "..." --files "f1,f2" --tried "..." --failed "..." — Record negative knowledge entry
  *   nk list [--category X] [--phase X] [--status X] — List negative knowledge entries
  *   nk resolve <slug>               — Mark a negative knowledge entry as resolved
- *   insights import <html-path> [--project <name>] — Parse insights HTML report into learnings
- *   audit plan-checks [--last N]     — List all plan-check results from hooks.jsonl (default: last 30 days)
  *   hooks perf [--last N] [--json]  — Show P50/P95/P99 hook performance report from hooks-*.jsonl
  *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
  *   staleness-check <phase-slug>  — Check if phase plans are stale vs dependencies
@@ -142,7 +136,6 @@ const {
 
 const {
   parseStateMd,
-  updateLegacyStateField,
   updateFrontmatterField,
   stateLoad: _stateLoad,
   stateCheckProgress: _stateCheckProgress,
@@ -252,9 +245,7 @@ const {
   queryGlobal: _queryGlobal
 } = require('./lib/learnings');
 
-const {
-  insightsImport: _insightsImport
-} = require('./lib/insights-parser');
+// insights-parser.js CLI subcommand removed as dead (plan 140-01)
 
 const {
   referenceGet: _referenceGet
@@ -322,11 +313,8 @@ const {
   dataPrune: _dataPrune
 } = require('./lib/data-hygiene');
 
-const {
-  list: _incidentsList,
-  query: _incidentsQuery,
-  summary: _incidentsSummary
-} = require('./lib/incidents');
+// incidents.js lib retained (used by error-analysis.js, record-incident.js, dashboard)
+// but CLI subcommands removed as dead (plan 140-01)
 
 // --- Module-level state (for backwards compatibility) ---
 
@@ -355,10 +343,6 @@ function configClearCache() {
 
 function configValidate(preloadedConfig) {
   return _configValidate(preloadedConfig, planningDir);
-}
-
-function insightsImport(htmlPath, projectName) {
-  return _insightsImport(htmlPath, projectName, planningDir);
 }
 
 function stateLoad() {
@@ -551,16 +535,6 @@ function autoCloseTodos(context) {
 
 function autoArchiveNotes(context) {
   return _autoArchiveNotes(planningDir, context);
-}
-
-function incidentsList(opts) {
-  return _incidentsList({ ...opts, planningDir });
-}
-function incidentsQuery(filter, opts) {
-  return _incidentsQuery(filter, { ...opts, planningDir });
-}
-function incidentsSummary(opts) {
-  return _incidentsSummary({ ...opts, planningDir });
 }
 
 function intelQuery(term) {
@@ -1527,21 +1501,6 @@ async function main() {
         error('Usage: learnings <ingest|query|check-thresholds|copy-global|query-global>');
         process.exit(1);
       }
-    } else if (command === 'insights') {
-      const subCmd = args[1];
-      if (subCmd === 'import') {
-        const htmlPath = args[2];
-        if (!htmlPath) { error('Usage: insights import <html-file-path> [--project <name>]'); process.exit(1); }
-        let projectName;
-        for (let i = 3; i < args.length; i++) {
-          if (args[i] === '--project' && args[i + 1]) { projectName = args[++i]; }
-        }
-        const result = insightsImport(htmlPath, projectName);
-        output(result);
-      } else {
-        error('Usage: insights <import>');
-        process.exit(1);
-      }
     } else if (command === 'verify' && subcommand === 'spot-check') {
       const scType = args[2];
       const scPath = args[3];
@@ -1709,8 +1668,6 @@ async function main() {
       const version = args[1];
       if (!version) error('Usage: pbr-tools.js milestone-stats <version>');
       output(milestoneStats(version));
-    } else if (command === 'validate-project') {
-      output(validateProject());
     } else if (command === 'skill-section') {
       // skill-section --list <skill>  — list all headings
       if (args[1] === '--list') {
@@ -1888,28 +1845,6 @@ async function main() {
       const maxIterations = maxIterIdx !== -1 ? parseInt(args[maxIterIdx + 1], 10) : 3;
       output(ciFix({ dryRun, maxIterations }));
 
-    // ─── Incidents ───────────────────────────────────────────────────────────
-    } else if (command === 'incidents') {
-      const sub = args[1];
-      if (sub === 'list') {
-        const limitIdx = args.indexOf('--limit');
-        const limit = limitIdx !== -1 ? parseInt(args[limitIdx + 1], 10) : 50;
-        output(incidentsList({ limit }));
-      } else if (sub === 'summary') {
-        output(incidentsSummary());
-      } else if (sub === 'query') {
-        const filter = {};
-        for (let i = 2; i < args.length; i++) {
-          if (args[i] === '--type' && args[i + 1]) { filter.type = args[++i]; }
-          else if (args[i] === '--severity' && args[i + 1]) { filter.severity = args[++i]; }
-          else if (args[i] === '--source' && args[i + 1]) { filter.source = args[++i]; }
-          else if (args[i] === '--last' && args[i + 1]) { filter.last = args[++i]; }
-        }
-        output(incidentsQuery(filter));
-      } else {
-        error('Usage: incidents <list|summary|query> [--type T] [--severity S] [--source S] [--last Nd|Nh] [--limit N]');
-      }
-
     } else if (command === 'nk') {
       // Lazy require to avoid loading for unrelated commands
       const nkLib = require(path.join(__dirname, 'lib', 'negative-knowledge'));
@@ -1986,13 +1921,6 @@ async function main() {
       const graphCli = require('./lib/graph-cli');
       graphCli.handleGraphCommand(subcommand, args, planningDir, cwd, output, error);
 
-    // --- Audit Operations ---
-    } else if (command === 'audit' && subcommand === 'plan-checks') {
-      const { auditPlanChecks } = require('./lib/audit');
-      const lastIdx = args.indexOf('--last');
-      const last = lastIdx !== -1 ? parseInt(args[lastIdx + 1], 10) : 30;
-      output(auditPlanChecks({ last }));
-
     // --- Hooks Perf Report ---
     } else if (command === 'hooks' && subcommand === 'perf') {
       const { summarizeHookPerf, formatPerfTable, loadPerfEntries } = require('./lib/perf');
@@ -2025,7 +1953,7 @@ async function main() {
       if (result.error) process.exit(1);
 
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, verify summary|plan-structure|phase-completeness|artifacts|key-links|commits|references|spot-check, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress|map-codebase, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, data status|prune, graph build|query|impact|stats, hooks perf [--last N] [--json], spec parse|diff|reverse|impact, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status, help, skill-metadata <name>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, verify summary|plan-structure|phase-completeness|artifacts|key-links|commits|references|spot-check, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress|map-codebase, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, nk record|list|resolve, data status|prune, graph build|query|impact|stats, hooks perf [--last N] [--json], spec parse|diff|reverse|impact, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status, help, skill-metadata <name>`);
     }
   } catch (e) {
     error(e.message);
@@ -2033,6 +1961,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, stateRecordActivity, stateUpdateProgress, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, roadmapAnalyze, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, ciFix, parseJestOutput: _parseJestOutput, parseLintOutput: _parseLintOutput, autoFixLint: _autoFixLint, runCiFixLoop: _runCiFixLoop, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, claimAcquire, claimRelease, claimList, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify, phaseAlternatives: _phaseAlternatives, prerequisiteAlternatives: _prereqAlternatives, configAlternatives: _configAlternatives, phaseComplete, phaseInsert, quickStatus, autoCloseTodos, autoArchiveNotes, buildCleanupContext, incidentsList, incidentsQuery, incidentsSummary, helpListCmd, skillMetadataCmd, initMapCodebase };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, stateRecordActivity, stateUpdateProgress, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, roadmapAnalyze, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, verifySpotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, ciFix, parseJestOutput: _parseJestOutput, parseLintOutput: _parseLintOutput, autoFixLint: _autoFixLint, runCiFixLoop: _runCiFixLoop, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, claimAcquire, claimRelease, claimList, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify, phaseAlternatives: _phaseAlternatives, prerequisiteAlternatives: _prereqAlternatives, configAlternatives: _configAlternatives, phaseComplete, phaseInsert, quickStatus, autoCloseTodos, autoArchiveNotes, buildCleanupContext, helpListCmd, skillMetadataCmd, initMapCodebase };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.

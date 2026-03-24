@@ -118,7 +118,6 @@ Boolean toggles that enable or disable specific workflow capabilities. All defau
 | `auto_advance` | `false` | Chain build, review, and plan automatically (requires `mode: autonomous`) |
 | `team_discussions` | `false` | Enable team-based discussion workflows (never used for execution) |
 | `inline_verify` | `false` | Per-task verification after each executor commit; adds ~10-20s latency per plan |
-| `multi_layer_validation` | `false` | **(DEPRECATED)** Parallel BugBot-style review passes. Never integrated; removed in plan 100-01. Key retained for backward compatibility. |
 | `extended_context` | `false` | Enable aggressive 1M context optimizations: higher concurrency (5 agents vs 3), default team review, always-parallel scan, pre-load build steps. Auto-set by quality profile. Safe optimizations (parallel research, full SUMMARY reads) use `context_window_tokens >= 500000` instead. |
 
 **Notable interactions:**
@@ -465,14 +464,6 @@ Controls post-build verification behavior.
 | `confidence_threshold` | number | `1.0` | Minimum completion confidence (0.5-1.0) required to skip verification |
 
 When `confidence_gate` is `true` and the executor SUMMARY reports all must-haves as DONE with commit SHAs, the build skill can auto-mark the phase as verified without spawning a verifier agent.
-
----
-
-## validation_passes (DEPRECATED)
-
-> **DEPRECATED**: The `multi_layer_validation` feature was never integrated and was removed in plan 100-01. This config key is retained for backward compatibility. The array has no effect.
-
-Defined which review passes would run with the multi-layer validation feature. Options included: `correctness`, `security`, `performance`, `style`, `tests`, `accessibility`, `docs`, `deps`.
 
 ---
 

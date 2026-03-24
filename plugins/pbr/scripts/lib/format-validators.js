@@ -909,7 +909,7 @@ function validateConfig(content, _filePath) {
     }
   }
 
-  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'validation_passes', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
+  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
   for (const key of Object.keys(parsed)) {
     if (!knownKeys.includes(key)) {
       warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);

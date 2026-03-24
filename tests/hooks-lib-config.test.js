@@ -112,11 +112,6 @@ describe('configEnsureComplete', () => {
     expect(result.features.structured_planning).toBe(true);
   });
 
-  it('arrays from config replace defaults (no array merging)', () => {
-    const result = configEnsureComplete({ validation_passes: ['style'] });
-    expect(result.validation_passes).toEqual(['style']);
-  });
-
   it('deep-clones default objects (mutating result does not affect CONFIG_DEFAULTS)', () => {
     const result = configEnsureComplete({});
     result.features.structured_planning = false;

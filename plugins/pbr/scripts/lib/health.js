@@ -10,12 +10,11 @@ const path = require('path');
 /**
  * Feature-to-module mapping for multi-agent capabilities.
  * @private
+ * Note: team-coordinator.js, hypothesis-runner.js, team-composer.js were removed
+ * as dead code (plan 140-01). These features remain as disabled config flags but
+ * have no backing modules — they will always report 'degraded' if enabled.
  */
-const FEATURE_MODULE_MAP = {
-  agent_teams: './team-coordinator.js',
-  competing_hypotheses: './hypothesis-runner.js',
-  dynamic_teams: './team-composer.js'
-};
+const FEATURE_MODULE_MAP = {};
 
 /**
  * Check health status of all multi-agent features.
