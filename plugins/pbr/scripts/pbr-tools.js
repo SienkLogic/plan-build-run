@@ -1547,9 +1547,9 @@ async function main() {
       // Returns JSON: { ok, summary_exists, key_files_checked, commits_present, detail }
       const phaseSlug = args[1];
       const planId = args[2];
-      if (!phaseSlug || !planId) {
-      }
-      output(spotCheck(phaseSlug, planId));
+      if (!phaseSlug || !planId) { error('Usage: spot-check <phase-slug> <plan-id>'); process.exit(1); }
+      const { verifySpotCheck } = require('./lib/spot-check');
+      output(verifySpotCheck(phaseSlug, planId));
     } else if (command === 'staleness-check') {
       const slug = args[1];
       if (!slug) { error('Usage: staleness-check <phase-slug>'); process.exit(1); }
