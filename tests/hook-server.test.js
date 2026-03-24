@@ -204,7 +204,7 @@ describe('hook-server.js integration', () => {
 // ---------------------------------------------------------------------------
 
 describe('hook-server.js exports', () => {
-  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, register, lazyHandler, createServer, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
+  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, register, lazyHandler, createServer, translatePreToolUseResponse, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
 
   test('DEFAULT_PORT is 19836', () => {
     expect(DEFAULT_PORT).toBe(19836);
@@ -603,6 +603,48 @@ describe('hook-server.js exports', () => {
     const merged = mergeContext(h1);
     const result = await merged({});
     expect(result).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // PreToolUse response translation
+  // -------------------------------------------------------------------------
+
+  describe('PreToolUse response translation', () => {
+    test('block decision is translated to hookSpecificOutput format', () => {
+      const result = translatePreToolUseResponse('PreToolUse', { decision: 'block', reason: 'bad commit' });
+      expect(result).toEqual({
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: 'bad commit'
+        }
+      });
+    });
+
+    test('allow decision passes through unchanged', () => {
+      const result = translatePreToolUseResponse('PreToolUse', {});
+      expect(result).toEqual({});
+    });
+
+    test('PostToolUse result is not affected by translation', () => {
+      const input = { additionalContext: 'info' };
+      const result = translatePreToolUseResponse('PostToolUse', input);
+      expect(result).toEqual({ additionalContext: 'info' });
+    });
+
+    test('null result returns null', () => {
+      expect(translatePreToolUseResponse('PreToolUse', null)).toBeNull();
+    });
+
+    test('undefined result returns undefined', () => {
+      expect(translatePreToolUseResponse('PreToolUse', undefined)).toBeUndefined();
+    });
+
+    test('non-PreToolUse event passes block result through unchanged', () => {
+      const input = { decision: 'block', reason: 'test' };
+      const result = translatePreToolUseResponse('SubagentStart', input);
+      expect(result).toEqual({ decision: 'block', reason: 'test' });
+    });
   });
 
   // -------------------------------------------------------------------------
