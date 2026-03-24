@@ -805,4 +805,3 @@ Run validation with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config val
 | `tdd_mode: true` + `depth: quick` | quick depth skips verification, which conflicts with TDD's verify-first approach |
 | `git.mode: disabled` + `atomic_commits: true` | atomic_commits has no effect when git is disabled |
 | `git.branching: phase` + `git.mode: disabled` | Branching settings are ignored when git is disabled |
-
