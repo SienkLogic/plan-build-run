@@ -350,7 +350,7 @@ async function main() {
   process.exit(0);
 }
 
-if (require.main === module) {
+if (require.main === module || process.argv[1] === __filename) {
   main().catch((err) => {
     // Fail-open on any unhandled error — still produce output for hooks that require it
     process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] hook-server-client failed: ' + (err && err.message || 'unknown error') }));

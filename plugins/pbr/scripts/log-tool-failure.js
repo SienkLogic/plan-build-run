@@ -90,7 +90,7 @@ function summarizeInput(toolName, toolInput) {
   }
 }
 
-if (require.main === module) {
+if (require.main === module || process.argv[1] === __filename) {
   main().catch(() => {});
 }
 
