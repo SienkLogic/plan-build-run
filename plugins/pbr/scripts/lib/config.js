@@ -415,22 +415,24 @@ function configResolveDepth(dirOrConfig) {
  * @returns {object} The same defaults object with env var overrides applied
  */
 function applyUserConfigEnvOverrides(defaults) {
-  const modeEnv = process.env.CLAUDE_PLUGIN_OPTION_DEFAULT_MODE;
+  const modeEnv = (process.env.CLAUDE_PLUGIN_OPTION_DEFAULT_MODE || '').trim();
   if (modeEnv) {
+    const normalized = modeEnv.toLowerCase();
     const valid = ['autonomous', 'interactive'];
-    defaults.mode = valid.includes(modeEnv) ? modeEnv : 'interactive';
+    defaults.mode = valid.includes(normalized) ? normalized : 'interactive';
   }
 
-  const cwEnv = process.env.CLAUDE_PLUGIN_OPTION_CONTEXT_WINDOW;
+  const cwEnv = (process.env.CLAUDE_PLUGIN_OPTION_CONTEXT_WINDOW || '').trim();
   if (cwEnv) {
     const parsed = parseInt(cwEnv, 10);
-    defaults.context_window_tokens = (Number.isFinite(parsed) && parsed > 0) ? parsed : 200000;
+    defaults.context_window_tokens = (Number.isFinite(parsed) && parsed >= 50000) ? parsed : 200000;
   }
 
-  const depthEnv = process.env.CLAUDE_PLUGIN_OPTION_DEFAULT_DEPTH;
+  const depthEnv = (process.env.CLAUDE_PLUGIN_OPTION_DEFAULT_DEPTH || '').trim();
   if (depthEnv) {
+    const normalized = depthEnv.toLowerCase();
     const valid = ['quick', 'standard', 'comprehensive'];
-    defaults.depth = valid.includes(depthEnv) ? depthEnv : 'standard';
+    defaults.depth = valid.includes(normalized) ? normalized : 'standard';
   }
 
   return defaults;
