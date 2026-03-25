@@ -389,6 +389,20 @@ Cross-phase regressions are displayed AFTER the single-phase verification result
 
 If regressions exist, include them in the gap count for the "Gaps Found" flow in Step 6. When presenting gap options to the user, regressions appear in the gap list labeled `[cross-phase]` to distinguish them from current-phase gaps.
 
+#### Optional: Thinking Partner Chain
+
+If the review identifies 3+ gaps with mixed severity levels, structured reasoning can help prioritize before deciding on auto-fix vs manual handling:
+
+"Multiple gaps found with different severities. Running structured analysis to prioritize..."
+
+Invoke: `Skill({ skill: "thinking-partner", args: "Phase {N} verification gaps: {list gaps with severity}. Help prioritize: which gaps are blocking vs cosmetic? Which might be false positives? What's the minimum fix set?" })`
+
+Skip this step if:
+
+- Fewer than 3 gaps
+- All gaps are same severity
+- Clear priority ordering already exists
+
 ---
 
 ### Step 5: Conversational UAT (inline)
@@ -598,20 +612,6 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 - If "Approve": suggest `/pbr:execute-phase {N} --gaps-only`
 - If "Review first" or "Other": present the full plan files for inspection
 - If "Fix manually": suggest relevant files to inspect based on gap details
-
-### Optional: Thinking Partner Chain
-
-If the review identifies 3+ gaps with mixed severity levels, structured reasoning can help prioritize:
-
-"Multiple gaps found with different severities. Running structured analysis to prioritize..."
-
-Invoke: `Skill({ skill: "thinking-partner", args: "Phase {N} verification gaps: {list gaps with severity}. Help prioritize: which gaps are blocking vs cosmetic? Which might be false positives? What's the minimum fix set?" })`
-
-Skip this step if:
-
-- Fewer than 3 gaps
-- All gaps are same severity
-- Clear priority ordering already exists
 
 #### Gaps Found WITHOUT `--auto-fix`
 
