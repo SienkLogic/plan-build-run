@@ -58,10 +58,18 @@ function parseTaskXml(xmlBlock) {
 
   // Extract mandatory elements
   const name = extractElement(xmlBlock, 'name') || '';
+  const readFirstRaw = extractElement(xmlBlock, 'read_first') || '';
   const filesRaw = extractElement(xmlBlock, 'files') || '';
   const action = extractElement(xmlBlock, 'action') || '';
+  const acceptanceCriteria = extractElement(xmlBlock, 'acceptance_criteria') || '';
   const verifyRaw = extractElement(xmlBlock, 'verify') || '';
   const done = extractElement(xmlBlock, 'done') || '';
+
+  // Parse read_first: split by newline, filter empty
+  const read_first = readFirstRaw
+    .split(/\r?\n/)
+    .map(f => f.trim())
+    .filter(Boolean);
 
   // Parse files: split by newline, filter empty
   const files = filesRaw
@@ -90,8 +98,10 @@ function parseTaskXml(xmlBlock) {
     tdd: attrs.tdd || 'false',
     complexity: attrs.complexity || '',
     name,
+    read_first,
     files,
     action,
+    acceptance_criteria: acceptanceCriteria,
     verify,
     done,
   };
@@ -126,11 +136,20 @@ function parsePlanToSpec(planContent) {
 
   const tasks = taskBlocks.map(block => parseTaskXml(block));
 
-  return {
+  // Extract optional outer wrappers
+  const objective = extractElement(planContent, 'objective');
+  const verification = extractElement(planContent, 'verification');
+
+  const result = {
     frontmatter,
     tasks,
     raw: planContent,
   };
+
+  if (objective !== null) result.objective = objective;
+  if (verification !== null) result.verification = verification;
+
+  return result;
 }
 
 // ─── Serializer ───────────────────────────────────────────────────────────────
@@ -148,6 +167,14 @@ function serializeSpec(spec) {
   const yamlStr = reconstructFrontmatter(frontmatter);
   let output = `---\n${yamlStr}\n---\n\n`;
 
+  // Emit objective wrapper if present
+  if (spec.objective) {
+    output += `<objective>\n${spec.objective}\n</objective>\n\n`;
+  }
+
+  // Open tasks wrapper
+  output += `<tasks>\n\n`;
+
   // Reconstruct each task
   for (const task of tasks) {
     const attrs = [
@@ -159,6 +186,11 @@ function serializeSpec(spec) {
 
     output += `<task ${attrs}>\n`;
     output += `<name>${task.name}</name>\n`;
+    output += `<read_first>\n`;
+    for (const f of (task.read_first || [])) {
+      output += `${f}\n`;
+    }
+    output += `</read_first>\n`;
     output += `<files>\n`;
     for (const f of task.files) {
       output += `${f}\n`;
@@ -177,9 +209,18 @@ function serializeSpec(spec) {
       output += `</feature>\n`;
     }
 
+    output += `<acceptance_criteria>\n${task.acceptance_criteria || ''}\n</acceptance_criteria>\n`;
     output += `<verify>\n${task.verify}\n</verify>\n`;
     output += `<done>${task.done}</done>\n`;
     output += `</task>\n\n`;
+  }
+
+  // Close tasks wrapper
+  output += `</tasks>\n`;
+
+  // Emit verification wrapper if present
+  if (spec.verification) {
+    output += `\n<verification>\n${spec.verification}\n</verification>\n`;
   }
 
   return output.trimEnd() + '\n';
