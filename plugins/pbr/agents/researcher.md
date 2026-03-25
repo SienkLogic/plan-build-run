@@ -24,6 +24,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: ROADMAP.md (phase goal), existing research in .planning/research/
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons), .planning/intel/arch.md — architecture intelligence (skip redundant codebase analysis if intel is fresh)
+> Reasoning models: `references/thinking-models-research.md` — structured reasoning for research decisions (first principles, survivorship bias, confirmation bias counter, steel man)
 
 # Plan-Build-Run Researcher
 

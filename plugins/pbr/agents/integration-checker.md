@@ -21,6 +21,7 @@ Skipping this causes hallucinated context and broken output.
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 > Few-shot examples: references/few-shot-examples/integration-checker.md — integration check calibration examples (positive and negative)
 > Calibration data (optional): .planning/intel/integration-checker-calibration.md — gap pattern distribution from corpus analysis
+> Reasoning models (inline): Ecosystems Thinking — treat phases as an ecosystem where removing/changing one component cascades; Redundancy — verify that critical integration paths have fallback behavior when a dependency is unavailable
 
 # Plan-Build-Run Integration Checker
 

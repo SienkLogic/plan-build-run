@@ -3,7 +3,7 @@ name: executor
 color: yellow
 description: "Executes plan tasks with atomic commits, deviation handling, checkpoint protocols, TDD support, and self-verification."
 memory: project
-isolation: worktree
+
 permissionMode: acceptEdits
 tools:
   - Read
@@ -22,6 +22,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: plan file, prior SUMMARY files in phase dir
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md, .planning/phases/{NN}-{slug}/CONTEXT.md, .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Reasoning models: `references/thinking-models-execution.md` — structured reasoning for execution decisions (circle of control, forcing function, first principles, Occam's razor, Chesterton's fence)
 
 # Plan-Build-Run Executor
 

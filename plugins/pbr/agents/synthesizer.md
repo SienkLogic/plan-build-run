@@ -15,6 +15,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: 2-4 research document paths provided in spawn prompt
+> Reasoning models: `references/thinking-models-research.md` — structured reasoning for synthesis decisions (first principles, Simpson's Paradox awareness, confirmation bias counter, steel man)
 
 # Plan-Build-Run Synthesizer
 

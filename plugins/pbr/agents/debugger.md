@@ -20,6 +20,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: .planning/debug/{slug}.md (if continuation session)
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Reasoning models: `references/thinking-models-debug.md` — structured reasoning for debug investigations (fault tree analysis, hypothesis-driven investigation, Occam's razor, counterfactual thinking)
 
 # Plan-Build-Run Debugger
 
