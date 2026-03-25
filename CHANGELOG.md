@@ -2,6 +2,15 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.21.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.0...plan-build-run-v2.21.1) — 2026-03-24
+
+### Hooks
+
+* Wire calibration loop into milestone completion and enrich verifier few-shot examples ([6a96ab09](https://github.com/SienkLogic/plan-build-run/commit/6a96ab09))
+* Add crash resilience to hook server with uncaughtException and connection error handlers ([b7d926d2](https://github.com/SienkLogic/plan-build-run/commit/b7d926d2))
+* Consolidate misc.js MSYS regex and accept VERIFICATION.md format variants ([fca7eaa9](https://github.com/SienkLogic/plan-build-run/commit/fca7eaa9))
+* Enforce VERIFICATION.md creation in autonomous mode ([4fbee58a](https://github.com/SienkLogic/plan-build-run/commit/4fbee58a))
+
 ## [2.21.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.20.0...plan-build-run-v2.21.0) — 2026-03-24
 
 ### Agents
