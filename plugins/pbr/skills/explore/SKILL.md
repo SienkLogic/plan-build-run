@@ -1,7 +1,7 @@
 ---
 name: explore
 description: "Explore ideas, think through approaches, and route insights to the right artifacts."
-allowed-tools: Read, Write, Glob, Grep, Task, AskUserQuestion
+allowed-tools: Read, Write, Glob, Grep, Task, AskUserQuestion, Skill
 argument-hint: "[topic]"
 ---
 
@@ -209,6 +209,24 @@ Then:
 
 **If save for later:**
 - Note it as a research question to include in output routing
+
+---
+
+### Optional: Thinking Partner Chain
+
+If the user is weighing 2+ approaches with genuine trade-offs (not just preference), and the exploration has surfaced enough context to make the analysis meaningful, offer to invoke the thinking partner:
+
+"This looks like a multi-dimensional trade-off. Want me to run it through structured reasoning to sharpen the comparison?"
+
+If yes: `Skill({ skill: "thinking-partner", args: "{concise problem statement with the 2-3 options and their trade-offs}" })`
+
+If no: Continue to output routing.
+
+**Do NOT chain thinking-partner for:**
+
+- Binary yes/no decisions
+- Procedural choices with a clear best option
+- Preferences with no downstream consequences
 
 ---
 

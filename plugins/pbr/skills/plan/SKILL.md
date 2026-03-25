@@ -284,6 +284,22 @@ Before spawning any agents, present 4 assumptions to the user — one each for: 
 
 ---
 
+### Optional: Thinking Partner Chain
+
+If the phase has 3+ interacting locked decisions in CONTEXT.md or 3+ dependencies that create architectural tension, the assumption list may benefit from structured reasoning before research:
+
+"These assumptions interact in non-obvious ways. Running through structured analysis to identify hidden conflicts..."
+
+Invoke: `Skill({ skill: "thinking-partner", args: "Assumptions for phase {N}: {list assumptions}. Locked decisions: {list from CONTEXT.md}. Identify conflicts, second-order effects, and assumptions that contradict each other." })`
+
+Skip this step if:
+
+- Fewer than 3 interacting decisions
+- Phase is simple/independent (no dependency tension)
+- User has explicitly said to skip discussion
+
+---
+
 ### Step 4: Phase Research (delegated, conditional)
 
 **Skip this step if ANY of these are true:**

@@ -599,6 +599,20 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 - If "Review first" or "Other": present the full plan files for inspection
 - If "Fix manually": suggest relevant files to inspect based on gap details
 
+### Optional: Thinking Partner Chain
+
+If the review identifies 3+ gaps with mixed severity levels, structured reasoning can help prioritize:
+
+"Multiple gaps found with different severities. Running structured analysis to prioritize..."
+
+Invoke: `Skill({ skill: "thinking-partner", args: "Phase {N} verification gaps: {list gaps with severity}. Help prioritize: which gaps are blocking vs cosmetic? Which might be false positives? What's the minimum fix set?" })`
+
+Skip this step if:
+
+- Fewer than 3 gaps
+- All gaps are same severity
+- Clear priority ordering already exists
+
 #### Gaps Found WITHOUT `--auto-fix`
 
 If gaps were found and `--auto-fix` was NOT specified:
