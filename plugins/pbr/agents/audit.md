@@ -19,6 +19,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: session JSONL path provided in spawn prompt
 > Few-shot examples: references/few-shot-examples/audit.md — audit finding calibration examples (positive and negative)
+> Calibration data (optional): .planning/intel/audit-calibration.md — gap pattern distribution from corpus analysis
 
 # Plan-Build-Run Session Auditor
 

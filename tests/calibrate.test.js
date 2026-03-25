@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { handleCalibrate, calibrateVerifier, categorizeGap } = require('../plugins/pbr/scripts/commands/calibrate');
+const { handleCalibrate, calibrateVerifier, calibrateAgent, categorizeGap, VALID_TARGETS } = require('../plugins/pbr/scripts/commands/calibrate');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'calibrate-test-'));
@@ -223,6 +223,84 @@ describe('calibrate command', () => {
 
     test('returns other for unrecognized gaps', () => {
       expect(categorizeGap('Something unusual happened')).toBe('other');
+    });
+
+    test('categorizes vague criteria gaps', () => {
+      expect(categorizeGap('Vague criterion in must-haves')).toBe('vague criteria');
+    });
+
+    test('categorizes config mismatch gaps', () => {
+      expect(categorizeGap('Config schema missing field')).toBe('config mismatch');
+    });
+  });
+
+  describe('calibrateAgent', () => {
+    test('supports all valid targets', () => {
+      expect(VALID_TARGETS).toContain('verifier');
+      expect(VALID_TARGETS).toContain('audit');
+      expect(VALID_TARGETS).toContain('integration-checker');
+      expect(VALID_TARGETS).toContain('plan-checker');
+    });
+
+    test('returns error for unknown target', () => {
+      const result = calibrateAgent('unknown', tmpDir);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Unknown target');
+    });
+
+    test('audit calibration with empty corpus', () => {
+      mkdirp(path.join(tmpDir, 'audits'));
+      const result = calibrateAgent('audit', tmpDir);
+      expect(result.success).toBe(true);
+      expect(result.corpus_size).toBe(0);
+    });
+
+    test('integration-checker calibration with empty corpus', () => {
+      const result = calibrateAgent('integration-checker', tmpDir);
+      expect(result.success).toBe(true);
+      expect(result.corpus_size).toBe(0);
+    });
+
+    test('plan-checker finds PLAN.md files in milestones', () => {
+      const phaseDir = path.join(tmpDir, 'milestones', 'v1.0', 'phases', '01-test');
+      mkdirp(phaseDir);
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), [
+        '---',
+        'phase: "01-test"',
+        'must_haves:',
+        '  truths:',
+        '    - API returns 200',
+        '  artifacts:',
+        '    - src/api.js',
+        '  key_links:',
+        '    - api.js exports handler',
+        '---',
+        ''
+      ].join('\n'), 'utf8');
+
+      const result = calibrateAgent('plan-checker', tmpDir);
+      expect(result.success).toBe(true);
+      expect(result.corpus_size).toBe(1);
+      expect(result.pass_rate).toBe(1);
+    });
+
+    test('calibrate all returns results for every target', () => {
+      mkdirp(path.join(tmpDir, 'milestones'));
+      mkdirp(path.join(tmpDir, 'audits'));
+      let outputData = null;
+      const ctx = {
+        planningDir: tmpDir,
+        cwd: tmpDir,
+        output: (data) => { outputData = data; },
+        error: () => {}
+      };
+
+      handleCalibrate(['calibrate', 'all'], ctx);
+      expect(outputData).toBeTruthy();
+      for (const target of VALID_TARGETS) {
+        expect(outputData[target]).toBeTruthy();
+        expect(outputData[target].success).toBe(true);
+      }
     });
   });
 });
