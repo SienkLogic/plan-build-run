@@ -131,8 +131,14 @@ async function compoundCompletePhase(phaseNum, planningDir) {
     return { success: false, error: `phaseComplete failed: ${err.message}` };
   }
 
-  // Augment with summaries_found count
-  return { ...result, summaries_found: summaries.length };
+  // Check for missing VERIFICATION.md (advisory warning)
+  const warnings = [];
+  if (result.verification_missing) {
+    warnings.push(`Phase ${phaseNum} completed without VERIFICATION.md. Run /pbr:review ${phaseNum} to verify.`);
+  }
+
+  // Augment with summaries_found count and warnings
+  return { ...result, summaries_found: summaries.length, ...(warnings.length > 0 ? { warnings } : {}) };
 }
 
 /**

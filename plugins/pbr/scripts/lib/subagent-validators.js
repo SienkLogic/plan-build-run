@@ -929,6 +929,31 @@ const SKILL_CHECKS = {
         }
       } catch (_e) { logHook('subagent-validators', 'debug', 'Failed in milestone archive validation'); }
     }
+  },
+  'autonomous:pbr:executor': {
+    description: 'autonomous executor reminder to verify phase before completion',
+    check: (planningDir, _found, warnings) => {
+      // When executor completes during autonomous mode, remind the orchestrator
+      // to run Step 3d (verification) before proceeding to Step 3e (phase complete).
+      // This catches the known failure mode where the LLM skips verification.
+      try {
+        const statePath = path.join(planningDir, 'STATE.md');
+        if (!fs.existsSync(statePath)) return;
+        const stateContent = fs.readFileSync(statePath, 'utf8');
+        const phase = getCurrentPhase(stateContent);
+        if (!phase) return;
+        const padded = String(phase).padStart(2, '0');
+        const phasesDir = path.join(planningDir, 'phases');
+        if (!fs.existsSync(phasesDir)) return;
+        const phaseDirEntry = fs.readdirSync(phasesDir).find(d => d.startsWith(padded + '-'));
+        if (!phaseDirEntry) return;
+        const fullPhaseDir = path.join(phasesDir, phaseDirEntry);
+        const hasVerification = fs.readdirSync(fullPhaseDir).some(f => /^VERIFICATION(-R\d+)?\.md$/i.test(f));
+        if (!hasVerification) {
+          warnings.push(`CRITICAL REMINDER: Phase ${phase} build complete but VERIFICATION.md is missing. You MUST execute Step 3d (Verify Phase) NOW before proceeding to Step 3e. Do NOT skip verification.`);
+        }
+      } catch (_e) { logHook('subagent-validators', 'debug', 'Failed in autonomous executor verification check'); }
+    }
   }
 };
 

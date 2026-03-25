@@ -748,6 +748,23 @@ async function phaseComplete(phaseNum, planningDir) {
     await statePatch(JSON.stringify({ status: 'verified' }), dir);
   }
 
+  // --- Check VERIFICATION.md exists (advisory warning) ---
+  let verificationMissing = false;
+  try {
+    const phasesDir = path.join(dir, 'phases');
+    const padded = String(num).padStart(2, '0');
+    const phaseDirEntry = fs.readdirSync(phasesDir).find(d => d.startsWith(padded + '-'));
+    if (phaseDirEntry) {
+      const fullPhaseDir = path.join(phasesDir, phaseDirEntry);
+      const hasVerification = fs.readdirSync(fullPhaseDir).some(f => /^VERIFICATION(-R\d+)?\.md$/i.test(f));
+      if (!hasVerification) {
+        verificationMissing = true;
+      }
+    }
+  } catch (_e) {
+    // intentionally silent: check is advisory
+  }
+
   // Recalculate progress
   await stateUpdateProgress(dir);
 
@@ -776,7 +793,8 @@ async function phaseComplete(phaseNum, planningDir) {
     roadmap_updated: true,
     state_updated: true,
     final_phase: nextPhaseNum === null,
-    manifest_written: manifestWritten
+    manifest_written: manifestWritten,
+    verification_missing: verificationMissing
   };
 }
 

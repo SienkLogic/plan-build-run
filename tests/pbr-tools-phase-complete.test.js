@@ -196,4 +196,29 @@ describe('phaseComplete', () => {
     // Plan line is recalculated by stateUpdateProgress from filesystem
     expect(state).toMatch(/^Plan:\s*\d+\s+of\s+\d+/m);
   });
+
+  test('returns verification_missing: true when VERIFICATION.md absent', async () => {
+    writeFixture(tmpDir, 'ROADMAP.md', ROADMAP_3PHASES);
+    writeFixture(tmpDir, 'STATE.md', STATE_PHASE88);
+    writeFixture(tmpDir, 'phases/88-compound-state-cli/PLAN-01.md', '---\nplan: "88-01"\n---\n');
+    writeFixture(tmpDir, 'phases/88-compound-state-cli/SUMMARY-88-01.md', '---\nstatus: complete\n---\n');
+
+    const result = await phaseComplete('88', tmpDir);
+
+    expect(result.success).toBe(true);
+    expect(result.verification_missing).toBe(true);
+  });
+
+  test('returns verification_missing: false when VERIFICATION.md exists', async () => {
+    writeFixture(tmpDir, 'ROADMAP.md', ROADMAP_3PHASES);
+    writeFixture(tmpDir, 'STATE.md', STATE_PHASE88);
+    writeFixture(tmpDir, 'phases/88-compound-state-cli/PLAN-01.md', '---\nplan: "88-01"\n---\n');
+    writeFixture(tmpDir, 'phases/88-compound-state-cli/SUMMARY-88-01.md', '---\nstatus: complete\n---\n');
+    writeFixture(tmpDir, 'phases/88-compound-state-cli/VERIFICATION.md', '---\nstatus: passed\n---\n');
+
+    const result = await phaseComplete('88', tmpDir);
+
+    expect(result.success).toBe(true);
+    expect(result.verification_missing).toBe(false);
+  });
 });

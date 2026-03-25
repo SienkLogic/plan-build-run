@@ -217,7 +217,8 @@ describe('SKILL_CHECKS', () => {
       'begin:pbr:planner', 'plan:pbr:researcher', 'scan:pbr:codebase-mapper',
       'review:pbr:verifier', 'build:pbr:executor', 'quick:pbr:executor',
       'begin:pbr:researcher', 'begin:pbr:roadmapper', 'debug:pbr:debugger',
-      'begin:pbr:synthesizer', 'milestone:pbr:general', 'plan:pbr:planner'
+      'begin:pbr:synthesizer', 'milestone:pbr:general', 'plan:pbr:planner',
+      'autonomous:pbr:executor'
     ];
     for (const key of expectedKeys) {
       expect(SKILL_CHECKS[key]).toBeDefined();
@@ -241,6 +242,28 @@ describe('SKILL_CHECKS', () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
     const warnings = [];
     SKILL_CHECKS['begin:pbr:planner'].check(planningDir, [], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('autonomous:pbr:executor warns when VERIFICATION.md missing', async () => {
+    const phaseDir = path.join(planningDir, 'phases', '05-auth');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---\n');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 5\n---\nPhase: 5 of 10');
+    const warnings = [];
+    SKILL_CHECKS['autonomous:pbr:executor'].check(planningDir, [], warnings);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/VERIFICATION\.md is missing/);
+    expect(warnings[0]).toMatch(/CRITICAL/);
+  });
+
+  test('autonomous:pbr:executor no warning when VERIFICATION.md exists', async () => {
+    const phaseDir = path.join(planningDir, 'phases', '05-auth');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), '---\nstatus: passed\n---\n');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 5\n---\nPhase: 5 of 10');
+    const warnings = [];
+    SKILL_CHECKS['autonomous:pbr:executor'].check(planningDir, [], warnings);
     expect(warnings).toHaveLength(0);
   });
 });

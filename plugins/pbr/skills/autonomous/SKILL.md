@@ -298,6 +298,8 @@ that the build skill does not try to skip plans that no longer exist.
 
 Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
 
+**STOP — Build and staleness checks are done. NOW EXECUTE Step 3d-pre (validate) and Step 3d (verify). Do NOT skip to Step 3e. Every phase MUST be verified before completion.**
+
 ### 3d-pre. Validate Phase (conditional)
 
 **Gate:** Run only if ALL of these are true:
@@ -313,7 +315,11 @@ If gate passes:
   - If gaps persist: stop loop, display gaps, suggest manual intervention (same hard stop as verification gaps).
 - If validate-phase passes or toggle is false: continue to step 3d.
 
+**STOP — Validation done. NOW EXECUTE Step 3d below. Do NOT skip to Step 3e.**
+
 ### 3d. Verify Phase (Lightweight-First)
+
+**CRITICAL — DO NOT SKIP THIS STEP. The LLM historically skips verification under cognitive load after processing the long build section. Every phase MUST be verified before proceeding to 3e. Without VERIFICATION.md, milestone completion, progress tracking, and dependency checks all break. Execute ALL sub-steps below.**
 
 - Check if `VERIFICATION.md` exists with `status: passed` — if yes, skip to 3e.
 - **Lightweight verification first** (avoid spawning heavyweight verifier agent):
