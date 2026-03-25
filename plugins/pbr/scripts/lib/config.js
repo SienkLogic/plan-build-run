@@ -406,6 +406,37 @@ function configResolveDepth(dirOrConfig) {
 // ─── Config load with defaults ────────────────────────────────────────────────
 
 /**
+ * Apply userConfig env var overrides (CLAUDE_PLUGIN_OPTION_*) to a defaults object.
+ * These env vars are set by Claude Code from the plugin.json userConfig section.
+ *
+ * Merge priority: config.json > env vars (userConfig) > hardcoded defaults.
+ *
+ * @param {object} defaults - Defaults object to override
+ * @returns {object} The same defaults object with env var overrides applied
+ */
+function applyUserConfigEnvOverrides(defaults) {
+  const modeEnv = process.env.CLAUDE_PLUGIN_OPTION_DEFAULT_MODE;
+  if (modeEnv) {
+    const valid = ['autonomous', 'interactive'];
+    defaults.mode = valid.includes(modeEnv) ? modeEnv : 'interactive';
+  }
+
+  const cwEnv = process.env.CLAUDE_PLUGIN_OPTION_CONTEXT_WINDOW;
+  if (cwEnv) {
+    const parsed = parseInt(cwEnv, 10);
+    defaults.context_window_tokens = (Number.isFinite(parsed) && parsed > 0) ? parsed : 200000;
+  }
+
+  const depthEnv = process.env.CLAUDE_PLUGIN_OPTION_DEFAULT_DEPTH;
+  if (depthEnv) {
+    const valid = ['quick', 'standard', 'comprehensive'];
+    defaults.depth = valid.includes(depthEnv) ? depthEnv : 'standard';
+  }
+
+  return defaults;
+}
+
+/**
  * Load config.json with defaults applied. Creates default config if none exists.
  *
  * @param {string} planningDir - Path to .planning directory
@@ -422,13 +453,14 @@ function configLoadDefaults(planningDir) {
     return config;
   }
 
-  // No config found — return hardcoded defaults
-  return {
+  // No config found — return hardcoded defaults with env var overrides
+  const defaults = {
     version: 2,
     schema_version: 4,
     mode: 'interactive',
     depth: 'standard',
     harness_profile: 'standard',
+    context_window_tokens: 200000,
     features: {
       structured_planning: true,
       goal_verification: true,
@@ -448,6 +480,8 @@ function configLoadDefaults(planningDir) {
       enabled: false,
     },
   };
+
+  return applyUserConfigEnvOverrides(defaults);
 }
 
 /**
@@ -1462,6 +1496,8 @@ module.exports = {
   saveUserDefaults,
   mergeUserDefaults,
   USER_DEFAULTS_PATH,
+  // Plugin userConfig env var overrides
+  applyUserConfigEnvOverrides,
   // CLI command handlers
   cmdConfigEnsureSection,
   cmdConfigSet,

@@ -14,5 +14,19 @@
     "context-engineering",
     "development-workflow",
     "subagent-delegation"
-  ]
+  ],
+  "userConfig": {
+    "default_mode": {
+      "description": "Default workflow mode: autonomous (hands-free) or interactive (pause at gates)",
+      "sensitive": false
+    },
+    "context_window": {
+      "description": "Your model's context window size in tokens (e.g., 200000 or 1000000)",
+      "sensitive": false
+    },
+    "default_depth": {
+      "description": "Default research/planning depth: quick, standard, or comprehensive",
+      "sensitive": false
+    }
+  }
 }
