@@ -230,7 +230,7 @@ describe('validateVerificationCompleteness', () => {
     ].join('\r\n'));
     const result = validateVerificationCompleteness(fp);
     expect(result.adequate).toBe(false);
-    expect(result.warnings).toEqual(expect.arrayContaining([expect.stringMatching(/must_haves_total.*0/)]));
+    expect(result.warnings).toEqual(expect.arrayContaining([expect.stringMatching(/must_haves.*0/)]));
   });
 
   test('VERIFICATION without verdict lines warns', () => {

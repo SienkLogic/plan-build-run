@@ -12,20 +12,17 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { normalizeMsysPath } = require('../lib/msys-path');
 
 // --- Plugin root resolution ---
 
 /**
  * Resolve the PBR plugin root directory.
  * __dirname is commands/, so plugin root is two levels up.
- * Handles MSYS path correction on Windows Git Bash.
  */
 function _resolvePluginRoot() {
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..', '..');
-  let root = pluginRoot;
-  const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
-  if (msysMatch) root = msysMatch[1] + ':' + path.sep + msysMatch[2];
-  return root;
+  return normalizeMsysPath(pluginRoot);
 }
 
 // --- Spec subcommand handler ---
@@ -484,11 +481,8 @@ async function handleMisc(args, ctx) {
     const sectionIdx = args.indexOf('--section');
     const section = sectionIdx !== -1 ? args.slice(sectionIdx + 1).join(' ') : null;
     const root = _resolvePluginRoot();
-    const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
-    let fixedRoot = root;
-    if (msysMatch) fixedRoot = msysMatch[1] + ':' + path.sep + msysMatch[2];
     const { referenceGet: _referenceGet } = require('../lib/reference');
-    output(_referenceGet(name, { section, list: listFlag }, fixedRoot));
+    output(_referenceGet(name, { section, list: listFlag }, root));
     return;
   }
 

@@ -162,23 +162,23 @@ function validateVerificationCompleteness(filePath) {
 
   const { frontmatter, body } = sections;
 
-  // Check status field
-  if (!/^status:\s*\S+/m.test(frontmatter)) {
-    warnings.push('VERIFICATION.md frontmatter missing status: field');
+  // Check status field (accept both "status:" and "result:" variants)
+  if (!/^(status|result):\s*\S+/m.test(frontmatter)) {
+    warnings.push('VERIFICATION.md frontmatter missing status:/result: field');
   }
 
-  // Check must_haves_total > 0
-  const totalMatch = frontmatter.match(/^must_haves_total:\s*(\d+)/m);
+  // Check must-have count > 0 (accept both "must_haves_total:" and "must_haves_checked:")
+  const totalMatch = frontmatter.match(/^must_haves_(total|checked|passed):\s*(\d+)/m);
   if (!totalMatch) {
-    warnings.push('VERIFICATION.md frontmatter missing must_haves_total: field');
-  } else if (parseInt(totalMatch[1], 10) === 0) {
-    warnings.push('VERIFICATION.md has must_haves_total: 0 — no criteria were checked');
+    warnings.push('VERIFICATION.md frontmatter missing must_haves_total:/must_haves_checked: field');
+  } else if (parseInt(totalMatch[2], 10) === 0) {
+    warnings.push('VERIFICATION.md has must_haves count: 0 — no criteria were checked');
   }
 
-  // Check for per-criterion verdict lines in body
-  const hasVerdicts = /^\|.*\b(PASS|FAIL|SKIP)\b/mi.test(body);
+  // Check for per-criterion verdict lines in body (table rows, markers, or inline verdicts)
+  const hasVerdicts = /\b(PASS|FAIL|SKIP)\b/mi.test(body);
   if (!hasVerdicts) {
-    warnings.push('VERIFICATION.md has no per-criterion verdict lines (expected table rows with PASS/FAIL/SKIP)');
+    warnings.push('VERIFICATION.md has no per-criterion verdict lines (expected table rows or markers with PASS/FAIL/SKIP)');
   }
 
   return { adequate: warnings.length === 0, warnings };
