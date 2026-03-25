@@ -181,6 +181,41 @@ function validatePlan(content, _filePath) {
     }
   });
 
+  // Outer XML wrapper validation (advisory only — backward compatible)
+  const hasTasksWrapper = /<tasks>[\s\S]*?<\/tasks>/.test(content);
+  const hasObjectiveWrapper = /<objective>[\s\S]*?<\/objective>/.test(content);
+  const hasVerificationWrapper = /<verification>[\s\S]*?<\/verification>/.test(content);
+
+  // If any wrapper is present, this is a "new format" plan — warn if not all three are present
+  const wrapperCount = [hasTasksWrapper, hasObjectiveWrapper, hasVerificationWrapper].filter(Boolean).length;
+  if (wrapperCount > 0 && wrapperCount < 3) {
+    const missing = [];
+    if (!hasObjectiveWrapper) missing.push('<objective>');
+    if (!hasTasksWrapper) missing.push('<tasks>');
+    if (!hasVerificationWrapper) missing.push('<verification>');
+    warnings.push(`Partial XML wrappers: missing ${missing.join(', ')} (new plans should use all three wrappers)`);
+  }
+
+  // Validate wrapper content when present
+  if (hasTasksWrapper) {
+    const tasksInner = content.match(/<tasks>([\s\S]*?)<\/tasks>/)[1];
+    if (!/<task\b/.test(tasksInner)) {
+      warnings.push('<tasks> wrapper is empty — must contain at least one <task> block');
+    }
+  }
+  if (hasObjectiveWrapper) {
+    const objInner = content.match(/<objective>([\s\S]*?)<\/objective>/)[1];
+    if (!objInner.trim()) {
+      warnings.push('<objective> wrapper is empty');
+    }
+  }
+  if (hasVerificationWrapper) {
+    const verInner = content.match(/<verification>([\s\S]*?)<\/verification>/)[1];
+    if (!verInner.trim()) {
+      warnings.push('<verification> wrapper is empty');
+    }
+  }
+
   // Path traversal check: ensure <files> elements don't escape project root
   const filesTags = content.match(/<files>([\s\S]*?)<\/files>/g) || [];
   for (const filesTag of filesTags) {

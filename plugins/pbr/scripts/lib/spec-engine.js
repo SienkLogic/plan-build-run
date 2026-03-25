@@ -114,9 +114,15 @@ function parsePlanToSpec(planContent) {
   // Extract YAML frontmatter
   const frontmatter = extractFrontmatter(planContent);
 
+  // Try to extract tasks from within <tasks>...</tasks> wrapper first.
+  // Fall back to scanning the entire file body for backward compatibility.
+  const tasksWrapperRe = /<tasks>([\s\S]*?)<\/tasks>/;
+  const tasksWrapperMatch = planContent.match(tasksWrapperRe);
+  const searchContent = tasksWrapperMatch ? tasksWrapperMatch[1] : planContent;
+
   // Find all <task ...>...</task> blocks (non-greedy, multiline)
   const taskRe = /<task\b[^>]*>[\s\S]*?<\/task>/g;
-  const taskBlocks = planContent.match(taskRe) || [];
+  const taskBlocks = searchContent.match(taskRe) || [];
 
   const tasks = taskBlocks.map(block => parseTaskXml(block));
 

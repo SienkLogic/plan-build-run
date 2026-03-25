@@ -686,7 +686,12 @@ Create authentication middleware
   <done>Login returns JWT token</done>
 </task>
 
-</tasks>`;
+</tasks>
+
+<verification>
+1. \`npm test -- auth.test.ts\` -- auth tests pass
+2. \`curl -X POST localhost:3000/login\` -- login endpoint responds
+</verification>`;
     const result = validatePlan(content, 'test-PLAN.md');
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);

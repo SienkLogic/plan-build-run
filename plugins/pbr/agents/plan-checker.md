@@ -90,6 +90,21 @@ When writing `.plan-check.json`, include a `requirements_coverage` object:
 - `uncovered`: array of requirement strings with no plan coverage
 - `coverage_percent`: Math.round(covered / total * 100)
 
+### Outer XML Wrapper Validation
+
+Plans may use `<objective>`, `<tasks>`, and `<verification>` XML wrappers. When checking plans:
+
+- If ANY wrapper is present, all three SHOULD be present (WARNING if partial)
+- `<tasks>` wrapper, when present, must contain at least one `<task>` block
+- `<objective>` and `<verification>`, when present, must be non-empty
+- Missing wrappers are NOT a blocker — old format plans remain valid
+
+| Condition | Severity |
+|-----------|----------|
+| Partial wrappers (some present, some missing) | WARNING |
+| Empty wrapper element | WARNING |
+| No wrappers at all | INFO (skip — legacy format) |
+
 ### D2: Task Completeness
 Every task needs all 7 elements (`<name>`, `<read_first>`, `<files>`, `<action>`, `<acceptance_criteria>`, `<verify>`, `<done>`), substantive. `<name>` = imperative verb. `<read_first>` = specific file paths the executor must read before editing (no globs). `<files>` contain path separators. `<action>` >=2 steps for non-trivial. `<acceptance_criteria>` = grep-verifiable conditions (shell commands returning 0/non-0). `<verify>` = runnable commands. `<done>` = observable outcome.
 

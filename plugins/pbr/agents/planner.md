@@ -228,6 +228,24 @@ consumes: ["{item}"]
 ...
 ```
 
+**Outer XML Wrappers (preferred):** Wrap plan body sections in XML elements for structured extraction. Place `<objective>` before `<tasks>`, and `<verification>` after `</tasks>`:
+
+```xml
+<objective>
+Brief description of what this plan achieves.
+</objective>
+
+<tasks>
+<task id="{plan}-T1" type="auto" complexity="medium">
+  ...
+</task>
+</tasks>
+
+<verification>
+1. `verify command` -- what it checks
+</verification>
+```
+
 The task opening tag format is:
 ```xml
 <task id="{plan_id}-T{n}" type="{type}" tdd="{true|false}" complexity="{simple|medium|complex}">
