@@ -1,7 +1,8 @@
 ---
 component: verifier
-version: 1
-last_calibrated: 2026-03-24
+version: 2
+last_calibrated: 2026-03-25
+calibration_source: "153 verification entries, 89% pass rate, 3 gap categories"
 ---
 
 # Verifier Few-Shot Examples
@@ -33,6 +34,55 @@ last_calibrated: 2026-03-24
 > **Status: FAILED** -- Commit messages with empty scope `feat(: desc)` are accepted. The truth "rejects commits missing scope parentheses" does not hold for empty-scope edge case.
 
 **Why this is good:** The verifier did not trust the code's intent -- it ran an actual test with an edge case input and reported the specific failure. Evidence includes the regex, the test command, the exit code, and why the truth does not hold.
+
+### Example 3: Catching missing wiring (calibration-derived gap pattern)
+
+**Input:** Must-have key_link: `check-subagent-output.js imports and calls feedback-loop.js extractFeedback()`
+
+**Output:**
+
+> **Method:** Ran `grep -n "feedback-loop\|extractFeedback" plugins/pbr/scripts/check-subagent-output.js`.
+> **Evidence:** Zero matches. The file `feedback-loop.js` exists (172 lines, substantive), and `tests/feedback-loop.test.js` passes (229 lines). But `check-subagent-output.js` never imports or calls it.
+> **Cross-check:** `grep -rn "require.*feedback-loop" plugins/pbr/scripts/` returns zero results across all scripts.
+> **Status: FAILED** -- The artifact exists and is tested, but is completely orphaned. The key_link "imports and calls" does not hold. This is a **missing wiring** gap.
+
+**Why this is good:** The verifier caught a common calibration pattern: code that exists, is tested, but is never actually wired into the system. L1 and L2 pass, but L3 (wiring) fails. This pattern accounts for 37% of all gaps found in calibration corpus.
+
+### Example 4: Catching missing config schema entries (calibration-derived gap pattern)
+
+**Input:** Must-have truth: `Config toggles features.architecture_graph and features.architecture_guard exist with defaults`
+
+**Output:**
+
+> **Method:** Ran `grep "architecture_graph\|architecture_guard" plugins/pbr/scripts/config-schema.json`.
+> **Evidence:** Zero matches in schema. However, `grep "architecture" plugins/pbr/scripts/lib/config.js` shows both flags in CONFIG_DEFAULTS (lines 426, 428).
+> **Gap:** Defaults exist in code but schema validation doesn't know about them. `configValidate()` would strip these fields on load, making the defaults unreachable.
+> **Status: FAILED** -- Config flags work in code but are invisible to schema validation. This is a **missing wiring** gap between config layers.
+
+**Why this is good:** The verifier checked multiple config layers (schema vs defaults vs code) rather than just one. Config wiring requires schema + defaults + code to agree — checking only one layer misses layer-mismatch bugs.
+
+### Example 5: Distinguishing planning gaps from execution failures
+
+**Input:** Must-have truth: `All MSYS regex patterns consolidated into shared module`
+
+**Output:**
+
+> **Method:** Ran `grep -rn "\/\[a-zA-Z\]\/" plugins/pbr/scripts/` to find inline MSYS regex.
+> **Evidence:** 2 matches in `commands/misc.js` (lines 26, 487). These were NOT in the original plan scope — Phase 148 extracted code into misc.js AFTER Phase 149's plan was written.
+> **Assessment:** The executor correctly completed all planned tasks. The gap is a **planning ordering issue**, not an execution failure.
+> **Status: PASS_WITH_NOTES** -- Executor did what was planned. Unconsolidated regex noted as follow-up, not as a failure of this phase.
+
+**Why this is good:** The verifier distinguished between what was planned vs what exists now. Code that changed AFTER plan creation is a planning gap, not an executor failure. This prevents false FAIL verdicts on correctly-executed work.
+
+## Calibration-Derived Gap Patterns
+
+Based on analysis of 153 verification entries (80% pass rate, 8 gaps):
+
+| Pattern | Count | % of Gaps | What to Check |
+|---------|-------|-----------|---------------|
+| Missing wiring | 3 | 37% | File exists + tested but never imported/called by consumer |
+| Missing tests | 2 | 25% | Feature works but test file excluded from CI or never runs |
+| Other | 3 | 38% | Config layer mismatches, planning ordering issues, schema gaps |
 
 ## Negative Examples
 

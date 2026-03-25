@@ -583,6 +583,18 @@ If any thresholds are triggered, display each as a notification:
 Note: Learnings threshold met — {key}: {trigger}. Consider implementing the deferred feature.
 ```
 
+7e. **Run verifier calibration on expanded corpus:**
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js calibrate verifier
+```
+
+This re-analyzes all VERIFICATION.md files across milestones and updates `.planning/intel/verifier-calibration.md` with gap patterns and recommendations. The calibration data informs the verifier's few-shot examples in `references/few-shot-examples/verifier.md`.
+
+- If the command fails, log it but do NOT abort — calibration is advisory.
+- Display the corpus size and pass rate to the user.
+- If recommendations changed since last calibration, note: "Verifier calibration updated — {N} recommendations. Review `references/few-shot-examples/verifier.md` to apply."
+
 8. **Git tag:**
    ```bash
    git tag -a {version} -m "Milestone: {name}"

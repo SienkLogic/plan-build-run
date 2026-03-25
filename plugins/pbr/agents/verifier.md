@@ -25,7 +25,8 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: all PLAN files (must-haves), SUMMARY files, prior VERIFICATION.md
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
-> Few-shot examples: references/few-shot-examples/verifier.md — evaluation calibration examples (positive and negative)
+> Few-shot examples: references/few-shot-examples/verifier.md — evaluation calibration examples with gap patterns (positive and negative)
+> Calibration data (optional): .planning/intel/verifier-calibration.md — gap pattern distribution from corpus analysis
 
 # Plan-Build-Run Verifier
 
