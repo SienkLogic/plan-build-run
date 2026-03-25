@@ -2,6 +2,12 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.21.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.1...plan-build-run-v2.21.2) — 2026-03-24
+
+### Hooks
+
+* Expand calibration to all evaluative agents with calibrate-all CLI ([09c8c328](https://github.com/SienkLogic/plan-build-run/commit/09c8c328))
+
 ## [2.21.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.0...plan-build-run-v2.21.1) — 2026-03-24
 
 ### Hooks
