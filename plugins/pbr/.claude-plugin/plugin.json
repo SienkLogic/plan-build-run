@@ -17,15 +17,21 @@
   ],
   "userConfig": {
     "default_mode": {
+      "title": "Default Mode",
       "description": "Default workflow mode: autonomous (hands-free) or interactive (pause at gates)",
+      "type": "string",
       "sensitive": false
     },
     "context_window": {
+      "title": "Context Window",
       "description": "Your model's context window size in tokens (e.g., 200000 or 1000000)",
+      "type": "string",
       "sensitive": false
     },
     "default_depth": {
+      "title": "Default Depth",
       "description": "Default research/planning depth: quick, standard, or comprehensive",
+      "type": "string",
       "sensitive": false
     }
   }
