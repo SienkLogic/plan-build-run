@@ -4,7 +4,7 @@ Structured reasoning models for the **verifier** and **plan-checker** agents. Ap
 
 Source: Curated from [thinking-partner](https://github.com/mattnowdev/thinking-partner) model catalog (150+ models). Selected for direct applicability to PBR verification workflow.
 
-## Sequencing Rule
+## Conflict Resolution
 
 **Inversion** and **Confirmation Bias Counter** both look for failures but serve different purposes. Run them in sequence:
 

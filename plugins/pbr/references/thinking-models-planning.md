@@ -4,6 +4,10 @@ Structured reasoning models for the **planner** and **roadmapper** agents. Apply
 
 Source: Curated from [thinking-partner](https://github.com/mattnowdev/thinking-partner) model catalog (150+ models). Selected for direct applicability to PBR planning workflow.
 
+## Conflict Resolution
+
+Pre-Mortem and Constraint Analysis both analyze risk at different granularities. Run Constraint Analysis FIRST (identify the hardest constraint), then Pre-Mortem (enumerate failure modes around that constraint and the rest of the plan).
+
 ## 1. Pre-Mortem Analysis
 
 **Counters:** Optimistic plan decomposition that ignores failure modes.
