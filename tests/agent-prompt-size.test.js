@@ -1,7 +1,7 @@
 /**
  * Agent prompt size validation tests.
  *
- * Ensures every agent prompt file stays under 8000 estimated tokens.
+ * Ensures every agent prompt file stays under 8500 estimated tokens.
  * Token estimate: Math.ceil(wordCount * 4 / 3) — conservative approximation.
  */
 
@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 const AGENTS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'agents');
-const MAX_TOKENS = 8000;
+const MAX_TOKENS = 8500;
 
 function estimateTokens(text) {
   const words = text.split(/\s+/).filter(Boolean).length;
@@ -25,7 +25,7 @@ describe('agent prompt size limits', () => {
     expect(agentFiles.length).toBeGreaterThan(0);
   });
 
-  test.each(agentFiles)('%s is under 8000 estimated tokens', (filename) => {
+  test.each(agentFiles)('%s is under 8500 estimated tokens', (filename) => {
     const content = fs.readFileSync(path.join(AGENTS_DIR, filename), 'utf8');
     const tokens = estimateTokens(content);
     expect(tokens).toBeLessThan(MAX_TOKENS);

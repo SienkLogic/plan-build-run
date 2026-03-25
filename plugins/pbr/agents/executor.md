@@ -3,7 +3,7 @@ name: executor
 color: yellow
 description: "Executes plan tasks with atomic commits, deviation handling, checkpoint protocols, TDD support, and self-verification."
 memory: project
-
+isolation: worktree
 permissionMode: acceptEdits
 tools:
   - Read
