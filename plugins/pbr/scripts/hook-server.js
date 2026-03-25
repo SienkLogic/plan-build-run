@@ -339,6 +339,9 @@ function triggerShutdown(planningDir) {
 
 function createServer(planningDir) {
   const server = http.createServer(async (req, res) => {
+    // Guard against connection-level errors (broken pipes, aborted requests)
+    req.on('error', () => { /* swallow request errors */ });
+    res.on('error', () => { /* swallow response errors */ });
     // Health check
     if (req.method === 'GET' && req.url === '/health') {
       return sendJSON(res, 200, {
@@ -637,6 +640,23 @@ function main() {
 
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
+
+  // Crash resilience — prevent silent death under load
+  process.on('uncaughtException', (err) => {
+    try {
+      appendEvent(planningDir, { type: 'server-crash', error: err.message, stack: err.stack?.split('\n')[1]?.trim() });
+    } catch (_) { /* logging failure should not prevent recovery */ }
+    // eslint-disable-next-line no-console
+    console.error('[hook-server] uncaughtException:', err.message);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    try {
+      appendEvent(planningDir, { type: 'server-rejection', error: String(reason) });
+    } catch (_) { /* logging failure should not prevent recovery */ }
+    // eslint-disable-next-line no-console
+    console.error('[hook-server] unhandledRejection:', String(reason));
+  });
 }
 
 module.exports = { createServer, appendEvent, readEventLogTail, rotateEventLog, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, translatePreToolUseResponse, stopConfigWatch, DEFAULT_PORT };
