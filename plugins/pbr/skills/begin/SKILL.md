@@ -546,7 +546,7 @@ Include the resolved absolute path in the researcher prompt (resolve `${CLAUDE_P
 - Before spawning, display to the user: `◆ Spawning {N} researchers in parallel...`
 - While waiting, display progress to the user:
   - After spawning: list of topics being researched
-  - Periodically (every ~30s): check `TaskOutput` with `block: false` for each agent and report status
+  - Periodically (every ~30s): use Read on each background agent's output file path to check progress
   - When each completes: "✓ {topic} researcher complete ({duration})"
   - When all complete: "All {N} researchers finished. Proceeding to synthesis."
 - Wait for all to complete before proceeding

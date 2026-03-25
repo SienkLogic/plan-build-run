@@ -647,7 +647,7 @@ Use the filled template as the Task() prompt.
   - Use `run_in_background: true` for each executor
   - While waiting, display progress to the user:
     - After spawning: "Wave {W}: launched {N} executors in parallel: {list of plan names}"
-    - Periodically (~30s): check `TaskOutput` with `block: false` and report status
+    - Periodically (~30s): use Read on each background agent's output file path to check progress
     - When each completes: "Plan {id} complete ({duration})"
     - When all complete: "Wave {W} finished. {passed}/{total} plans succeeded."
 
