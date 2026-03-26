@@ -5,9 +5,9 @@ const path = require('path');
 const os = require('os');
 
 const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/yaml');
+const { execGit } = require('../plugins/pbr/scripts/lib/git');
 const {
   tailLines,
-  execGit,
   safeReadFile,
   atomicWrite,
   ensureDir,
