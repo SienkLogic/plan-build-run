@@ -14,19 +14,28 @@ const os = require('os');
 const {
   loadConfig,
   resolveModelInternal,
-  MODEL_PROFILES: _MODEL_PROFILES,
-  escapeRegex,
+  pathExistsInternal,
   generateSlugInternal,
+} = require('../plugins/pbr/scripts/lib/misc');
+
+const {
+  MODEL_PROFILES: _MODEL_PROFILES,
+} = require('../plugins/pbr/scripts/lib/constants');
+
+const {
+  escapeRegex,
+  safeReadFile,
+} = require('../plugins/pbr/scripts/lib/fs-utils');
+
+const {
   normalizePhaseName,
   comparePhaseNum,
-  safeReadFile,
-  pathExistsInternal,
   getMilestoneInfo,
   getMilestonePhaseFilter,
   getRoadmapPhaseInternal,
   searchPhaseInDir,
   findPhaseInternal,
-} = require('../plugins/pbr/scripts/lib/core');
+} = require('../plugins/pbr/scripts/lib/phase-utils');
 
 // ─── loadConfig ────────────────────────────────────────────────────────────────
 

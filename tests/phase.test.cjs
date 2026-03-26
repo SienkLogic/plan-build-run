@@ -1329,7 +1329,7 @@ describe('phase complete command', () => {
 // comparePhaseNum and normalizePhaseName (imported directly)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { comparePhaseNum, normalizePhaseName } = require('../plugins/pbr/scripts/lib/core');
+const { comparePhaseNum, normalizePhaseName } = require('../plugins/pbr/scripts/lib/phase-utils');
 
 describe('comparePhaseNum', () => {
   test('sorts integer phases numerically', async () => {
