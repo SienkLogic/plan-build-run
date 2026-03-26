@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/core');
+const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/atomic');
 
 describe('lockedFileUpdate (async)', () => {
   let tmpDir;
@@ -64,7 +64,7 @@ describe('lockedFileUpdate (async)', () => {
 
   it('does NOT use Atomics.wait -- source code check', () => {
     const src = fs.readFileSync(
-      path.join(__dirname, '../plugins/pbr/scripts/lib/core.js'), 'utf8'
+      path.join(__dirname, '../plugins/pbr/scripts/lib/atomic.js'), 'utf8'
     );
     // Verify async signature exists
     const fnStart = src.indexOf('async function lockedFileUpdate');

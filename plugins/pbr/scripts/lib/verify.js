@@ -5,7 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execGit } = require('./git');
-const { safeReadFile, output, error } = require('./core');
+const { safeReadFile } = require('./fs-utils');
+const { output, error } = require('./output');
 const { normalizePhaseName, findPhaseInternal, getMilestoneInfo } = require('./phase-utils');
 const { extractFrontmatter, parseMustHavesBlock } = require('./frontmatter');
 const { logHook } = require('../hook-logger');

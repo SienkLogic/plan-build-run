@@ -22,7 +22,8 @@ const path = require('path');
 const { logHook, getLogPath: getHooksLogPath } = require('./hook-logger');
 const { logEvent, getLogPath: getEventsLogPath } = require('./event-logger');
 const { configLoad } = require('./lib/config');
-const { tailLines, lockedFileUpdate } = require('./lib/core');
+const { tailLines } = require('./lib/fs-utils');
+const { lockedFileUpdate } = require('./lib/atomic');
 const { sessionLoad } = require('./lib/session');
 // Session-scoped paths: sessionLoad accepts sessionId, delegates to resolveSessionPath internally
 

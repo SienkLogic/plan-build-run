@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/core');
+const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/atomic');
 
 let tmpDir;
 

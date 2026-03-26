@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseYamlFrontmatter } = require('./yaml');
-const { findFiles } = require('./core');
+const { findFiles } = require('./fs-utils');
 
 // Type-based spot-check
 // ─── Type-based spot-check (verify spot-check) ─────────────────────────────

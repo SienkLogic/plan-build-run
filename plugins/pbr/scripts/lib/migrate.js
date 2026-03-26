@@ -11,7 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { atomicWrite } = require('./core');
+const { atomicWrite } = require('./atomic');
 
 /** The current schema version supported by this version of PBR. */
 const CURRENT_SCHEMA_VERSION = 4;

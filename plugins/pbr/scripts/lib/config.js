@@ -8,7 +8,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const { safeReadFile, atomicWrite, ensureDir, validateObject, lockedFileUpdate } = require('./core');
+const { safeReadFile, ensureDir } = require('./fs-utils');
+const { atomicWrite, lockedFileUpdate } = require('./atomic');
+const { validateObject } = require('./schema');
 
 // ─── Cached config loader ─────────────────────────────────────────────────────
 
@@ -739,7 +741,7 @@ function mergeUserDefaults(base, userDefaults) {
  * @param {boolean} raw - Whether to output raw value
  */
 function cmdConfigEnsureSection(cwdArg, raw) {
-  const { output, error: errorFn } = require('./core');
+  const { output, error: errorFn } = require('./output');
   const configPath = path.join(cwdArg, '.planning', 'config.json');
   const pDir = path.join(cwdArg, '.planning');
 
@@ -817,7 +819,7 @@ function cmdConfigEnsureSection(cwdArg, raw) {
  * @param {boolean} raw - Whether to output raw value
  */
 function cmdConfigSet(cwdArg, keyPath, value, raw) {
-  const { output, error: errorFn } = require('./core');
+  const { output, error: errorFn } = require('./output');
   const configPath = path.join(cwdArg, '.planning', 'config.json');
 
   if (!keyPath) {
@@ -866,7 +868,7 @@ function cmdConfigSet(cwdArg, keyPath, value, raw) {
  * @param {boolean} raw - Whether to output raw value
  */
 function cmdConfigGet(cwdArg, keyPath, raw) {
-  const { output, error: errorFn } = require('./core');
+  const { output, error: errorFn } = require('./output');
   const configPath = path.join(cwdArg, '.planning', 'config.json');
 
   if (!keyPath) {

@@ -116,7 +116,7 @@ async function stateDrain(planningDir) {
   }
 
   // Lazy-require to avoid circular dependency
-  const { lockedFileUpdate } = require('./core');
+  const { lockedFileUpdate } = require('./atomic');
   const { updateFrontmatterField, syncBodyLine } = require('./state');
 
   const statePath = path.join(planningDir, 'STATE.md');

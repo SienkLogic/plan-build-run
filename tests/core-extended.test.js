@@ -7,13 +7,9 @@ const os = require('os');
 const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/yaml');
 const { execGit } = require('../plugins/pbr/scripts/lib/git');
 const { KNOWN_AGENTS } = require('../plugins/pbr/scripts/lib/constants');
-const {
-  tailLines,
-  safeReadFile,
-  atomicWrite,
-  ensureDir,
-  validateObject,
-} = require('../plugins/pbr/scripts/lib/core');
+const { tailLines, safeReadFile, ensureDir } = require('../plugins/pbr/scripts/lib/fs-utils');
+const { atomicWrite } = require('../plugins/pbr/scripts/lib/atomic');
+const { validateObject } = require('../plugins/pbr/scripts/lib/schema');
 const { findPhaseInternal, getMilestoneInfo } = require('../plugins/pbr/scripts/lib/phase-utils');
 const {
   sessionLoad,

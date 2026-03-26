@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { lockedFileUpdate } = require('../lib/core');
+const { lockedFileUpdate } = require('../lib/atomic');
 
 const VALID_COMPONENTS = [
   'validate-commit',

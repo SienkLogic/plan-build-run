@@ -6,7 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { validateObject } = require('../plugins/pbr/scripts/lib/core');
+const { validateObject } = require('../plugins/pbr/scripts/lib/schema');
 
 const SCHEMA_PATH = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json');
 

@@ -24,7 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseYamlFrontmatter } = require('./yaml');
-const { findFiles } = require('./core');
+const { findFiles } = require('./fs-utils');
 const { configLoad } = require('./config');
 
 // ---- Helpers ----

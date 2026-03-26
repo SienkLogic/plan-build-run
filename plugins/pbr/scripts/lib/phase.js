@@ -8,10 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 const { parseYamlFrontmatter, countMustHaves } = require('./yaml');
-const {
-  findFiles,
-  lockedFileUpdate
-} = require('./core');
+const { findFiles } = require('./fs-utils');
+const { lockedFileUpdate } = require('./atomic');
 const { determinePhaseStatus } = require('./phase-utils');
 const { statePatch, stateUpdateProgress, updateFrontmatterField } = require('./state');
 const {

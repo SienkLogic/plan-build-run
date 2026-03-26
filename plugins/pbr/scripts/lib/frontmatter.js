@@ -4,7 +4,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { safeReadFile, output, error } = require('./core');
+const { safeReadFile } = require('./fs-utils');
+const { output, error } = require('./output');
 
 // ─── Parsing engine ───────────────────────────────────────────────────────────
 

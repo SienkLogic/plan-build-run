@@ -1,12 +1,10 @@
 // lib/phase-utils.js — Phase directory, roadmap, and milestone utilities.
-// Note: toPosixPath, escapeRegex, findFiles imported from core temporarily;
-// they move to lib/fs-utils.js in Phase 161.
+// Phase/directory/roadmap/milestone utilities.
 
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('../hook-logger');
-// Temporary bridge: these move to lib/fs-utils.js in Phase 161
-const { toPosixPath, escapeRegex, findFiles } = require('./core');
+const { toPosixPath, escapeRegex, findFiles } = require('./fs-utils');
 
 // ─── Phase status determination ───────────────────────────────────────────────
 

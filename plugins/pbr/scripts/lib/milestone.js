@@ -4,7 +4,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { escapeRegex, output, error } = require('./core');
+const { escapeRegex } = require('./fs-utils');
+const { output, error } = require('./output');
 const { getMilestonePhaseFilter } = require('./phase-utils');
 const { extractFrontmatter } = require('./frontmatter');
 

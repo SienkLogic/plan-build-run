@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execGit } = require('./git');
-const { currentTimestamp } = require('./core');
+const { currentTimestamp } = require('./misc');
 
 /**
  * Parse git log --oneline output into structured commit data.

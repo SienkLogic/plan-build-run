@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/core');
+const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/atomic');
 const { statePatch, stateAdvancePlan } = require('../plugins/pbr/scripts/lib/state');
 
 describe('state contention handling', () => {

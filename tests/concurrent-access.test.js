@@ -193,7 +193,7 @@ Phase 3 of 5
     let atomicWrite;
     beforeAll(() => {
       try {
-        ({ atomicWrite } = require('../plugins/pbr/scripts/lib/core'));
+        ({ atomicWrite } = require('../plugins/pbr/scripts/lib/atomic'));
       } catch (_e) {
         // pbr-tools may not be loadable in all environments
       }

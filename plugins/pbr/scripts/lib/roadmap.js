@@ -10,11 +10,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const {
-  lockedFileUpdate,
-  validateStatusTransition,
-  findFiles
-} = require('./core');
+const { lockedFileUpdate } = require('./atomic');
+const { validateStatusTransition } = require('./status');
+const { findFiles } = require('./fs-utils');
 const { parseYamlFrontmatter } = require('./yaml');
 
 // --- Parsers ---
@@ -347,7 +345,7 @@ async function roadmapUpdatePlanProgress(phaseNum, planningDir) {
   const status = isComplete ? 'Complete' : summaryCount > 0 ? 'In Progress' : 'Planned';
   const today = new Date().toISOString().slice(0, 10);
 
-  const { escapeRegex } = require('./core');
+  const { escapeRegex } = require('./fs-utils');
   const phaseEscaped = escapeRegex(String(phaseNum));
 
   const result = await lockedFileUpdate(roadmapPath, (content) => {

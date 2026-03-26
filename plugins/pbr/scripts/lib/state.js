@@ -10,10 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 const { parseYamlFrontmatter } = require('./yaml');
-const {
-  findFiles,
-  lockedFileUpdate,
-} = require('./core');
+const { findFiles } = require('./fs-utils');
+const { lockedFileUpdate } = require('./atomic');
 const { calculateProgress, determinePhaseStatus } = require('./phase-utils');
 
 // --- Status enum ---

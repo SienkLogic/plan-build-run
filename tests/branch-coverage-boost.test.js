@@ -255,7 +255,8 @@ describe('config.cjs additional branches', () => {
 
 describe('core.cjs additional branches', () => {
   const { isGitIgnored } = require('../plugins/pbr/scripts/lib/git');
-  const { generateSlugInternal, toPosixPath, escapeRegex } = require('../plugins/pbr/scripts/lib/core');
+  const { toPosixPath, escapeRegex } = require('../plugins/pbr/scripts/lib/fs-utils');
+const { generateSlugInternal } = require('../plugins/pbr/scripts/lib/misc');
   const { normalizePhaseName, comparePhaseNum } = require('../plugins/pbr/scripts/lib/phase-utils');
 
   test('normalizePhaseName pads single digit', async () => {

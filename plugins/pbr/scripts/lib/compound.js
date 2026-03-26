@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const { phaseAdd, phaseComplete } = require('./phase');
 const { statePatch, stateUpdateProgress, updateFrontmatterField } = require('./state');
-const { lockedFileUpdate } = require('./core');
+const { lockedFileUpdate } = require('./atomic');
 
 /**
  * Atomically create a phase directory, update ROADMAP.md, and update STATE.md.

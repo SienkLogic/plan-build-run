@@ -28,9 +28,10 @@ const path = require('path');
 // --- Import lib modules (used by wrapper functions for backward-compat exports) ---
 const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('./lib/yaml');
 const { KNOWN_AGENTS, VALID_STATUS_TRANSITIONS, SESSION_ALLOWED_KEYS } = require('./lib/constants');
-const { validateStatusTransition, output, error,
-  findFiles, tailLines,
-  atomicWrite, lockedFileUpdate } = require('./lib/core');
+const { validateStatusTransition } = require('./lib/status');
+const { output, error } = require('./lib/output');
+const { findFiles, tailLines } = require('./lib/fs-utils');
+const { atomicWrite, lockedFileUpdate } = require('./lib/atomic');
 const { determinePhaseStatus } = require('./lib/phase-utils');
 const { writeActiveSkill, sessionLoad, sessionSave, acquireClaim, releaseClaim,
   listClaims: _listClaims } = require('./lib/session');

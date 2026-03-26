@@ -11,7 +11,10 @@ const os = require('os');
 const phaseLib = require('../plugins/pbr/scripts/lib/phase');
 const configLib = require('../plugins/pbr/scripts/lib/config');
 const historyLib = require('../plugins/pbr/scripts/lib/history');
-const coreLib = require('../plugins/pbr/scripts/lib/core');
+const { validateObject } = require('../plugins/pbr/scripts/lib/schema');
+const { validateStatusTransition } = require('../plugins/pbr/scripts/lib/status');
+const { tailLines, findFiles } = require('../plugins/pbr/scripts/lib/fs-utils');
+const { atomicWrite } = require('../plugins/pbr/scripts/lib/atomic');
 const phaseUtilsLib = require('../plugins/pbr/scripts/lib/phase-utils');
 const yamlLib = require('../plugins/pbr/scripts/lib/yaml');
 
@@ -350,11 +353,11 @@ describe('validateObject array type', () => {
       }
     };
     const errors1 = [];
-    coreLib.validateObject({ version: 2 }, schema, '', errors1, []);
+    validateObject({ version: 2 }, schema, '', errors1, []);
     expect(errors1).toHaveLength(0);
 
     const errors2 = [];
-    coreLib.validateObject({ version: '2' }, schema, '', errors2, []);
+    validateObject({ version: '2' }, schema, '', errors2, []);
     expect(errors2).toHaveLength(0);
   });
 
@@ -366,7 +369,7 @@ describe('validateObject array type', () => {
       }
     };
     const errors = [];
-    coreLib.validateObject({ version: true }, schema, '', errors, []);
+    validateObject({ version: true }, schema, '', errors, []);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]).toContain('integer|string');
   });
@@ -531,26 +534,26 @@ describe('mustHavesCollect', () => {
 // --- core.js functions ---
 describe('validateStatusTransition', () => {
   test('allows same status transition', async () => {
-    expect(coreLib.validateStatusTransition('planned', 'planned').valid).toBe(true);
+    expect(validateStatusTransition('planned', 'planned').valid).toBe(true);
   });
 
   test('allows valid transition', async () => {
-    expect(coreLib.validateStatusTransition('planned', 'building').valid).toBe(true);
+    expect(validateStatusTransition('planned', 'building').valid).toBe(true);
   });
 
   test('warns on invalid transition', async () => {
-    const result = coreLib.validateStatusTransition('planned', 'verified');
+    const result = validateStatusTransition('planned', 'verified');
     expect(result.valid).toBe(false);
     expect(result.warning).toContain('Suspicious');
   });
 
   test('allows unknown old status', async () => {
-    expect(coreLib.validateStatusTransition('mystery', 'building').valid).toBe(true);
+    expect(validateStatusTransition('mystery', 'building').valid).toBe(true);
   });
 
   test('handles null/empty values', async () => {
-    expect(coreLib.validateStatusTransition(null, 'planned').valid).toBe(true);
-    expect(coreLib.validateStatusTransition('', '').valid).toBe(true);
+    expect(validateStatusTransition(null, 'planned').valid).toBe(true);
+    expect(validateStatusTransition('', '').valid).toBe(true);
   });
 });
 
@@ -602,25 +605,25 @@ describe('tailLines', () => {
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   test('returns empty array for missing file', async () => {
-    expect(coreLib.tailLines(path.join(tmpDir, 'nope.txt'), 5)).toEqual([]);
+    expect(tailLines(path.join(tmpDir, 'nope.txt'), 5)).toEqual([]);
   });
 
   test('returns all lines when n > line count', async () => {
     const file = path.join(tmpDir, 'short.txt');
     fs.writeFileSync(file, 'line1\nline2');
-    expect(coreLib.tailLines(file, 10)).toEqual(['line1', 'line2']);
+    expect(tailLines(file, 10)).toEqual(['line1', 'line2']);
   });
 
   test('returns last n lines', async () => {
     const file = path.join(tmpDir, 'long.txt');
     fs.writeFileSync(file, 'a\nb\nc\nd\ne');
-    expect(coreLib.tailLines(file, 2)).toEqual(['d', 'e']);
+    expect(tailLines(file, 2)).toEqual(['d', 'e']);
   });
 
   test('returns empty for empty file', async () => {
     const file = path.join(tmpDir, 'empty.txt');
     fs.writeFileSync(file, '');
-    expect(coreLib.tailLines(file, 5)).toEqual([]);
+    expect(tailLines(file, 5)).toEqual([]);
   });
 });
 
@@ -713,7 +716,7 @@ describe('parseYamlFrontmatter', () => {
 
 describe('findFiles', () => {
   test('returns empty array for non-existent dir', async () => {
-    expect(coreLib.findFiles('/nonexistent/path/surely', /\.md$/)).toEqual([]);
+    expect(findFiles('/nonexistent/path/surely', /\.md$/)).toEqual([]);
   });
 });
 
@@ -724,7 +727,7 @@ describe('atomicWrite', () => {
 
   test('writes file atomically', async () => {
     const filePath = path.join(tmpDir, 'test.txt');
-    const result = coreLib.atomicWrite(filePath, 'hello world');
+    const result = atomicWrite(filePath, 'hello world');
     expect(result.success).toBe(true);
     expect(fs.readFileSync(filePath, 'utf8')).toBe('hello world');
   });
@@ -733,7 +736,7 @@ describe('atomicWrite', () => {
     const filePath = path.join(tmpDir, 'test.txt');
     // Create original file so .bak gets created during atomic write
     fs.writeFileSync(filePath, 'original content');
-    const result = coreLib.atomicWrite(filePath, 'new content');
+    const result = atomicWrite(filePath, 'new content');
     expect(result.success).toBe(true);
     expect(fs.readFileSync(filePath, 'utf8')).toBe('new content');
     // .bak should be cleaned up on success
@@ -742,13 +745,13 @@ describe('atomicWrite', () => {
 
   test('does not leave .tmp file after successful write', async () => {
     const filePath = path.join(tmpDir, 'test.txt');
-    coreLib.atomicWrite(filePath, 'content');
+    atomicWrite(filePath, 'content');
     expect(fs.existsSync(filePath + '.tmp')).toBe(false);
   });
 
   test('creates new file when target does not exist', async () => {
     const filePath = path.join(tmpDir, 'new-file.txt');
-    const result = coreLib.atomicWrite(filePath, 'fresh content');
+    const result = atomicWrite(filePath, 'fresh content');
     expect(result.success).toBe(true);
     expect(fs.readFileSync(filePath, 'utf8')).toBe('fresh content');
     // No .bak created when original didn't exist

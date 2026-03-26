@@ -7,7 +7,9 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { execGit, isGitIgnored } = require('./git');
 const { MODEL_PROFILES } = require('./constants');
-const { safeReadFile, loadConfig, generateSlugInternal, resolveModelInternal, toPosixPath, output, error } = require('./core');
+const { safeReadFile, toPosixPath } = require('./fs-utils');
+const { loadConfig, generateSlugInternal, resolveModelInternal } = require('./misc');
+const { output, error } = require('./output');
 const { normalizePhaseName, comparePhaseNum, getArchivedPhaseDirs, getMilestoneInfo, findPhaseInternal } = require('./phase-utils');
 const { extractFrontmatter } = require('./frontmatter');
 

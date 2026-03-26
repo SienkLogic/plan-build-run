@@ -48,9 +48,9 @@ function getStateLib() {
   return require(path.join(pbrToolsPath, 'state'));
 }
 
-/** @returns {typeof import('./lib/core')} */
+/** @returns {{ lockedFileUpdate: Function }} */
 function getCoreLib() {
-  return require(path.join(pbrToolsPath, 'core'));
+  return require(path.join(pbrToolsPath, 'atomic'));
 }
 
 /** @returns {typeof import('./lib/state-queue')} */

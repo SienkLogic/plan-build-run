@@ -16,7 +16,7 @@ describe('output() @file: escape hatch (core.js)', () => {
     writeSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
     // Require after mocking so calls are captured
-    output = require('../plugins/pbr/scripts/lib/core').output;
+    output = require('../plugins/pbr/scripts/lib/output').output;
   });
 
   beforeEach(() => {

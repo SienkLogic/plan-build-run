@@ -12,16 +12,11 @@ const os = require('os');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
 const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('../plugins/pbr/scripts/lib/yaml');
 const { KNOWN_AGENTS, VALID_STATUS_TRANSITIONS, STATUS_LABELS, MODEL_PROFILES, SESSION_ALLOWED_KEYS, STALE_SESSION_MS } = require('../plugins/pbr/scripts/lib/constants');
-const {
-  validateStatusTransition,
-  output,
-  error,
-  findFiles,
-  tailLines,
-  atomicWrite,
-  lockedFileUpdate,
-  validateObject,
-} = require('../plugins/pbr/scripts/lib/core');
+const { validateStatusTransition } = require('../plugins/pbr/scripts/lib/status');
+const { output, error } = require('../plugins/pbr/scripts/lib/output');
+const { findFiles, tailLines } = require('../plugins/pbr/scripts/lib/fs-utils');
+const { atomicWrite, lockedFileUpdate } = require('../plugins/pbr/scripts/lib/atomic');
+const { validateObject } = require('../plugins/pbr/scripts/lib/schema');
 const { determinePhaseStatus, calculateProgress } = require('../plugins/pbr/scripts/lib/phase-utils');
 const {
   writeActiveSkill,
