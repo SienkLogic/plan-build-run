@@ -13,9 +13,9 @@ const path = require('path');
 const {
   lockedFileUpdate,
   validateStatusTransition,
-  parseYamlFrontmatter,
   findFiles
 } = require('./core');
+const { parseYamlFrontmatter } = require('./yaml');
 
 // --- Parsers ---
 

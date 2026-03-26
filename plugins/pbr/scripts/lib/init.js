@@ -241,7 +241,7 @@ function initProgress(planningDir) {
  */
 function initStateBundle(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
-  const { parseYamlFrontmatter } = require('./core');
+  const { parseYamlFrontmatter } = require('./yaml');
 
   // 1. State
   const stateResult = stateLoad(dir);

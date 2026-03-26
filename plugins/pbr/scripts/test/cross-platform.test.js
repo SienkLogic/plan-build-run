@@ -5,7 +5,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const { parseYamlFrontmatter } = require('../lib/core');
+const { parseYamlFrontmatter } = require('../lib/yaml');
 const { parseStateMd } = require('../lib/state');
 const { parseRoadmapMd } = require('../lib/roadmap');
 const { normalizeMsysPath } = require('../lib/msys-path');

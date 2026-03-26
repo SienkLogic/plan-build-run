@@ -29,7 +29,7 @@ const {
 
 const {
   parseYamlFrontmatter
-} = require('../lib/core');
+} = require('../lib/yaml');
 
 // --- Private function extracted from pbr-tools.js lines 644-684 ---
 

@@ -16,7 +16,7 @@ const path = require('path');
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 
 // PBR lib modules used in production
-const { parseYamlFrontmatter } = require('../lib/core');
+const { parseYamlFrontmatter } = require('../lib/yaml');
 const { parseStateMd } = require('../lib/state');
 const { parseRoadmapMd } = require('../lib/roadmap');
 

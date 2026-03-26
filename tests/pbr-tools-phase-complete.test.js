@@ -7,7 +7,7 @@ const os = require('os');
 const path = require('path');
 
 const { phaseComplete } = require('../plugins/pbr/scripts/lib/phase');
-const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/core');
+const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/yaml');
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-phase-complete-'));

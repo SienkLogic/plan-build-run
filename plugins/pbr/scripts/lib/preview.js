@@ -12,7 +12,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseYamlFrontmatter, findFiles } = require('./core');
+const { parseYamlFrontmatter } = require('./yaml');
+const { findFiles } = require('./core');
 
 /**
  * Group an array of plan objects by their wave number.

@@ -11,7 +11,8 @@
 const fs = require('fs');
 const path = require('path');
 const { todoList, todoDone } = require('./todo');
-const { parseYamlFrontmatter, atomicWrite } = require('./core');
+const { parseYamlFrontmatter } = require('./yaml');
+const { atomicWrite } = require('./core');
 
 // Common stop words excluded from keyword matching
 const STOP_WORDS = new Set([

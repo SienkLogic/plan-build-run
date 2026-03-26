@@ -7,10 +7,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const { parseYamlFrontmatter, countMustHaves } = require('./yaml');
 const {
-  parseYamlFrontmatter,
   findFiles,
-  countMustHaves,
   determinePhaseStatus,
   lockedFileUpdate
 } = require('./core');

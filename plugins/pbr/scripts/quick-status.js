@@ -17,7 +17,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseYamlFrontmatter } = require('./lib/core');
+const { parseYamlFrontmatter } = require('./lib/yaml');
 const { normalizeMsysPath } = require('./lib/msys-path');
 
 /**

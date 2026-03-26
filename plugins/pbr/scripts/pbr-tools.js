@@ -26,8 +26,9 @@ const fs = require('fs');
 const path = require('path');
 
 // --- Import lib modules (used by wrapper functions for backward-compat exports) ---
+const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('./lib/yaml');
 const { KNOWN_AGENTS, VALID_STATUS_TRANSITIONS, validateStatusTransition, output, error,
-  parseYamlFrontmatter, parseMustHaves, findFiles, tailLines, countMustHaves,
+  findFiles, tailLines,
   determinePhaseStatus, atomicWrite, lockedFileUpdate, writeActiveSkill,
   sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, acquireClaim, releaseClaim,
   listClaims: _listClaims } = require('./lib/core');

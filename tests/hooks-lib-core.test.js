@@ -10,17 +10,15 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
+const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('../plugins/pbr/scripts/lib/yaml');
 const {
   KNOWN_AGENTS,
   VALID_STATUS_TRANSITIONS,
   validateStatusTransition,
   output,
   error,
-  parseYamlFrontmatter,
-  parseMustHaves,
   findFiles,
   tailLines,
-  countMustHaves,
   determinePhaseStatus,
   calculateProgress,
   atomicWrite,

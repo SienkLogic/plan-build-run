@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "thinking-partner": {
+      "source": "mattnowdev/thinking-partner",
+      "sourceType": "github",
+      "computedHash": "4f344d062fea7d5b8212f656832bebfbd99fccea2af498afb9044170f9fe5b94"
+    }
+  }
+}

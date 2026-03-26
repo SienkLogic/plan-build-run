@@ -13,7 +13,7 @@ const {
   compoundCompletePhase,
   compoundInitMilestone
 } = require('../plugins/pbr/scripts/lib/compound');
-const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/core');
+const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/yaml');
 
 function createTestPlanning() {
   const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-compound-')));

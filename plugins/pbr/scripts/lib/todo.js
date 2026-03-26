@@ -10,7 +10,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseYamlFrontmatter, atomicWrite } = require('./core');
+const { parseYamlFrontmatter } = require('./yaml');
+const { atomicWrite } = require('./core');
 
 // --- Helpers ---
 

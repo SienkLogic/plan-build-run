@@ -12,6 +12,7 @@ const phaseLib = require('../plugins/pbr/scripts/lib/phase');
 const configLib = require('../plugins/pbr/scripts/lib/config');
 const historyLib = require('../plugins/pbr/scripts/lib/history');
 const coreLib = require('../plugins/pbr/scripts/lib/core');
+const yamlLib = require('../plugins/pbr/scripts/lib/yaml');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-lib-test-'));
@@ -624,11 +625,11 @@ describe('tailLines', () => {
 
 describe('countMustHaves', () => {
   test('returns 0 for null', async () => {
-    expect(coreLib.countMustHaves(null)).toBe(0);
+    expect(yamlLib.countMustHaves(null)).toBe(0);
   });
 
   test('counts truths + artifacts + key_links', async () => {
-    expect(coreLib.countMustHaves({
+    expect(yamlLib.countMustHaves({
       truths: ['a', 'b'],
       artifacts: ['c'],
       key_links: ['d']
@@ -636,7 +637,7 @@ describe('countMustHaves', () => {
   });
 
   test('handles missing sub-arrays', async () => {
-    expect(coreLib.countMustHaves({ truths: ['a'] })).toBe(1);
+    expect(yamlLib.countMustHaves({ truths: ['a'] })).toBe(1);
   });
 });
 
@@ -671,7 +672,7 @@ describe('calculateProgress', () => {
 describe('parseYamlFrontmatter', () => {
   test('parses simple key-value pairs', async () => {
     const content = '---\ntitle: Test\nstatus: complete\ncount: 5\n---\n# Body';
-    const result = coreLib.parseYamlFrontmatter(content);
+    const result = yamlLib.parseYamlFrontmatter(content);
     expect(result.title).toBe('Test');
     expect(result.status).toBe('complete');
     expect(result.count).toBe(5);
@@ -679,24 +680,24 @@ describe('parseYamlFrontmatter', () => {
 
   test('parses inline arrays', async () => {
     const content = '---\ncommits: ["abc", "def"]\n---';
-    const result = coreLib.parseYamlFrontmatter(content);
+    const result = yamlLib.parseYamlFrontmatter(content);
     expect(result.commits).toEqual(['abc', 'def']);
   });
 
   test('parses boolean values', async () => {
     const content = '---\nenabled: true\ndisabled: false\n---';
-    const result = coreLib.parseYamlFrontmatter(content);
+    const result = yamlLib.parseYamlFrontmatter(content);
     expect(result.enabled).toBe(true);
     expect(result.disabled).toBe(false);
   });
 
   test('returns empty for no frontmatter', async () => {
-    expect(coreLib.parseYamlFrontmatter('# Just content')).toEqual({});
+    expect(yamlLib.parseYamlFrontmatter('# Just content')).toEqual({});
   });
 
   test('parses must_haves nested structure', async () => {
     const content = '---\nplan: 1\nmust_haves:\n  truths:\n    - "API works"\n    - "Tests pass"\n  artifacts:\n    - "src/api.js"\n  key_links:\n    - "docs/api.md"\n---';
-    const result = coreLib.parseYamlFrontmatter(content);
+    const result = yamlLib.parseYamlFrontmatter(content);
     expect(result.must_haves.truths).toEqual(['API works', 'Tests pass']);
     expect(result.must_haves.artifacts).toEqual(['src/api.js']);
     expect(result.must_haves.key_links).toEqual(['docs/api.md']);
@@ -704,7 +705,7 @@ describe('parseYamlFrontmatter', () => {
 
   test('parses YAML list items (- prefix)', async () => {
     const content = '---\ncommits:\n  - abc123\n  - def456\n---';
-    const result = coreLib.parseYamlFrontmatter(content);
+    const result = yamlLib.parseYamlFrontmatter(content);
     expect(result.commits).toEqual(['abc123', 'def456']);
   });
 });

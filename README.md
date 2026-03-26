@@ -91,7 +91,18 @@ npx @sienklogic/plan-build-run --all --global        # All runtimes
 
 **Cursor IDE:** See [Cursor Plugin](https://github.com/SienkLogic/plan-build-run/wiki/Cursor-IDE) wiki page.
 
-**GitHub Copilot CLI:** See [Copilot CLI](https://github.com/SienkLogic/plan-build-run/wiki/Copilot-CLI) wiki page.
+**GitHub Copilot:**
+
+```bash
+npx @sienklogic/plan-build-run --copilot --local   # Install to .github/ in current project
+npx @sienklogic/plan-build-run --copilot --global   # Install to ~/.copilot/ for all projects
+```
+
+This installs PBR agents, skills, references, and a minimal preToolUse hook guard into Copilot's directory structure. A `copilot-instructions.md` file is generated to bootstrap the workflow.
+
+> **Note:** Copilot runs PBR in **degraded mode** — lightweight skills (`pbr-status`, `pbr-todo`, `pbr-note`, `pbr-health`, `pbr-quick`, `pbr-explore`, etc.) work fully. Advanced workflow skills (`pbr-plan`, `pbr-build`, `pbr-review`) require subagent spawning (`Task()`), which Copilot doesn't support yet. For the full PBR workflow, use Claude Code.
+>
+> See [Copilot Integration](docs/COPILOT.md) for details on what's supported.
 
 **Codex CLI:** See [Codex](plugins/codex-pbr/README.md) plugin README.
 

@@ -9,8 +9,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const { parseYamlFrontmatter } = require('./yaml');
 const {
-  parseYamlFrontmatter,
   findFiles,
   lockedFileUpdate,
   calculateProgress,

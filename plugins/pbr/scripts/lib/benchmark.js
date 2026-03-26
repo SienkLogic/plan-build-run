@@ -11,7 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseYamlFrontmatter } = require('./core');
+const { parseYamlFrontmatter } = require('./yaml');
 
 /**
  * Parse one JSONL line from an agent cost tracker file.
