@@ -15,11 +15,7 @@ jest.mock('../plugins/pbr/scripts/pbr-tools', () => ({
   configLoad: jest.fn(() => ({}))
 }));
 
-// Mock lib/core
-jest.mock('../plugins/pbr/scripts/lib/core', () => ({
-  removeSessionDir: jest.fn(),
-  releaseSessionClaims: jest.fn(() => ({ released: [] }))
-}));
+// Note: session functions are in lib/session.js, not lib/core.js
 
 // local-llm/metrics was removed in Phase 53 (dead feature cleanup)
 

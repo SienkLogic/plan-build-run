@@ -51,9 +51,7 @@ jest.mock('../plugins/pbr/scripts/lib/gates/user-confirmation', () => ({
 jest.mock('../plugins/pbr/scripts/enforce-pbr-workflow', () => ({
   checkNonPbrAgent: jest.fn(() => null)
 }));
-jest.mock('../plugins/pbr/scripts/lib/core', () => ({
-  KNOWN_AGENTS: ['planner', 'executor', 'verifier', 'general']
-}));
+
 
 const { processEvent, handleHttp } = require('../plugins/pbr/scripts/pre-task-dispatch');
 const { checkBudget } = require('../plugins/pbr/scripts/enforce-context-budget');

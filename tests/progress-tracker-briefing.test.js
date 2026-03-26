@@ -29,12 +29,7 @@ jest.mock('../plugins/pbr/scripts/lib/config', () => ({
   })),
   recommendedHarnessProfile: jest.fn(() => 'standard'),
 }));
-jest.mock('../plugins/pbr/scripts/lib/core', () => ({
-  sessionSave: jest.fn(),
-  sessionLoad: jest.fn(() => ({})),
-  ensureSessionDir: jest.fn(),
-  cleanStaleSessions: jest.fn(() => []),
-}));
+// Note: session functions are in lib/session.js, not lib/core.js
 jest.mock('../plugins/pbr/scripts/lib/intel', () => ({
   intelStatus: jest.fn(() => ({ disabled: true })),
 }));
