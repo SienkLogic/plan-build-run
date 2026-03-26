@@ -271,6 +271,7 @@ function initRoutes() {
   register('PostToolUse', 'Task', lazyHandler('check-subagent-output'));
   register('PostToolUse', 'AskUserQuestion', lazyHandler('track-user-gates'));
   register('PostToolUseFailure', '*', lazyHandler('log-tool-failure'));
+  register('TaskCreated', '*', lazyHandler('log-subagent'));
   register('SubagentStart', '*', lazyHandler('log-subagent'));
   register('SubagentStop', '*', lazyHandler('log-subagent'));
   register('SubagentStop', '*', lazyHandler('event-handler'));

@@ -235,6 +235,73 @@ describe('handleHttp', () => {
 });
 
 // ---------------------------------------------------------------------------
+// TaskCreated event tests
+// ---------------------------------------------------------------------------
+
+describe('TaskCreated handling via handleHttp', () => {
+  test('writes .active-agent on TaskCreated event', async () => {
+    handleHttp({
+      event: 'TaskCreated',
+      data: { agent_type: 'pbr:executor', agent_id: 'task-123', description: 'Execute phase 1' },
+      planningDir
+    });
+    const agentFile = path.join(planningDir, '.active-agent');
+    expect(fs.existsSync(agentFile)).toBe(true);
+    expect(fs.readFileSync(agentFile, 'utf8')).toBe('pbr:executor');
+  });
+
+  test('returns null on TaskCreated (no additionalContext needed)', async () => {
+    const result = handleHttp({
+      event: 'TaskCreated',
+      data: { agent_type: 'pbr:planner', agent_id: 'task-456' },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('writes unknown when agent_type is missing', async () => {
+    handleHttp({
+      event: 'TaskCreated',
+      data: { agent_id: 'task-789' },
+      planningDir
+    });
+    const agentFile = path.join(planningDir, '.active-agent');
+    expect(fs.existsSync(agentFile)).toBe(true);
+    expect(fs.readFileSync(agentFile, 'utf8')).toBe('unknown');
+  });
+
+  test('resolves agent type from tool_input.subagent_type', async () => {
+    handleHttp({
+      event: 'TaskCreated',
+      data: { tool_input: { subagent_type: 'pbr:researcher' }, agent_id: 'task-abc' },
+      planningDir
+    });
+    const content = fs.readFileSync(path.join(planningDir, '.active-agent'), 'utf8');
+    expect(content).toBe('pbr:researcher');
+  });
+
+  test('handles missing planningDir gracefully (uses cwd fallback)', async () => {
+    const result = handleHttp({
+      event: 'TaskCreated',
+      data: { agent_type: 'pbr:planner' }
+    });
+    expect(result).toBeNull();
+    // .active-agent written via writeActiveAgent fallback (cwd-based)
+    const agentFile = path.join(planningDir, '.active-agent');
+    expect(fs.existsSync(agentFile)).toBe(true);
+  });
+
+  test('handles nonexistent planningDir without throwing', async () => {
+    const result = handleHttp({
+      event: 'TaskCreated',
+      data: { agent_type: 'pbr:executor' },
+      planningDir: path.join(tmpDir, 'nonexistent')
+    });
+    expect(result).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // New error path and edge case tests
 // ---------------------------------------------------------------------------
 

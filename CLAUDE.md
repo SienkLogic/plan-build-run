@@ -90,6 +90,7 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 | Stop | auto-continue.js | — (chains next command) |
 | SubagentStart | log-subagent.js | — (tracks lifecycle) |
 | SubagentStop | log-subagent.js, event-handler.js | — (auto-verification trigger) |
+| TaskCreated | log-subagent.js | — (early agent signal, audit logging) |
 | TaskCompleted | task-completed.js | — (processes task completion) |
 | InstructionsLoaded | instructions-loaded.js | — (instruction reload detection) |
 | ConfigChange | check-config-change.js | — (config change detection) |

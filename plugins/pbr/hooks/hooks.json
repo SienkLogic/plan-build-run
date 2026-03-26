@@ -33,8 +33,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js worktree-create",
+            "type": "http",
+            "url": "http://localhost:19836/hook/WorktreeCreate/WorktreeCreate",
             "statusMessage": "◆ PBR: Initializing worktree planning..."
           }
         ]
@@ -44,8 +44,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js worktree-remove",
+            "type": "http",
+            "url": "http://localhost:19836/hook/WorktreeRemove/WorktreeRemove",
             "statusMessage": "◆ PBR: Cleaning up worktree state..."
           }
         ]
@@ -227,6 +227,17 @@
             "type": "http",
             "url": "http://localhost:19836/hook/SubagentStop/SubagentStop",
             "statusMessage": "✓ PBR: Agent completed"
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://localhost:19836/hook/TaskCreated/TaskCreated",
+            "statusMessage": "◆ PBR: Task created..."
           }
         ]
       }

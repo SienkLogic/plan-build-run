@@ -15,14 +15,18 @@
         "PostToolUse": { "$ref": "#/definitions/hookEntryList" },
         "PostToolUseFailure": { "$ref": "#/definitions/hookEntryList" },
         "PreCompact": { "$ref": "#/definitions/hookEntryList" },
+        "PostCompact": { "$ref": "#/definitions/hookEntryList" },
         "Stop": { "$ref": "#/definitions/hookEntryList" },
         "SubagentStart": { "$ref": "#/definitions/hookEntryList" },
         "SubagentStop": { "$ref": "#/definitions/hookEntryList" },
+        "TaskCreated": { "$ref": "#/definitions/hookEntryList" },
         "TaskCompleted": { "$ref": "#/definitions/hookEntryList" },
         "ConfigChange": { "$ref": "#/definitions/hookEntryList" },
         "SessionEnd": { "$ref": "#/definitions/hookEntryList" },
         "WorktreeCreate": { "$ref": "#/definitions/hookEntryList" },
-        "WorktreeRemove": { "$ref": "#/definitions/hookEntryList" }
+        "WorktreeRemove": { "$ref": "#/definitions/hookEntryList" },
+        "Notification": { "$ref": "#/definitions/hookEntryList" },
+        "UserPromptSubmit": { "$ref": "#/definitions/hookEntryList" }
       },
       "additionalProperties": false
     }

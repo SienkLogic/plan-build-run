@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * SubagentStart / SubagentStop logging hook.
+ * TaskCreated / SubagentStart / SubagentStop logging hook.
  *
  * Usage:
+ *   node log-subagent.js created — called on TaskCreated
  *   node log-subagent.js start   — called on SubagentStart
  *   node log-subagent.js stop    — called on SubagentStop
  *
+ * On created: logs task creation event and writes .active-agent signal early.
  * On start: logs spawn event and injects project context via additionalContext.
  * On stop: logs completion event.
  *
@@ -64,7 +66,26 @@ function main() {
 
   const sessionId = data.session_id || null;
 
-  if (action === 'start') {
+  if (action === 'created') {
+    logHook('log-subagent', 'TaskCreated', 'created', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      description: data.description || null,
+      sessionId
+    });
+    logEvent('agent', 'created', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      description: data.description || null,
+      sessionId
+    });
+
+    // Write .active-agent signal early — before SubagentStart fires
+    writeActiveAgent(agentType || 'unknown');
+
+    // Emit valid JSON stdout
+    process.stdout.write(JSON.stringify({ decision: 'allow' }));
+  } else if (action === 'start') {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
@@ -289,7 +310,35 @@ function handleHttp(reqBody) {
 
   const sessionId = data.session_id || null;
 
-  if (event === 'SubagentStart') {
+  if (event === 'TaskCreated') {
+    logHook('log-subagent', 'TaskCreated', 'created', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      description: data.description || null,
+      sessionId
+    });
+    logEvent('agent', 'created', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      description: data.description || null,
+      sessionId
+    });
+
+    // Write .active-agent signal early — before SubagentStart fires
+    const planningDir = reqBody.planningDir;
+    if (planningDir) {
+      try {
+        const filePath = path.join(planningDir, '.active-agent');
+        if (fs.existsSync(planningDir)) {
+          fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
+        }
+      } catch (_e) { /* best-effort */ }
+    } else {
+      writeActiveAgent(agentType || 'unknown');
+    }
+
+    return null;
+  } else if (event === 'SubagentStart') {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
