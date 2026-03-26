@@ -1095,15 +1095,15 @@ describe('Self-Check section validation', () => {
 });
 
 describe('KNOWN_AGENTS sync (B3 fix)', () => {
-  test('validate-task.js KNOWN_AGENTS matches core.cjs', async () => {
+  test('validate-task.js KNOWN_AGENTS matches constants.js', async () => {
     const vtKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'validate-task')).KNOWN_AGENTS;
-    const coreKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'core.js')).KNOWN_AGENTS;
-    expect(vtKnown).toEqual(coreKnown);
+    const constKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'constants.js')).KNOWN_AGENTS;
+    expect(vtKnown).toEqual(constKnown);
   });
 
   test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', async () => {
-    const coreKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'core.js')).KNOWN_AGENTS;
-    const prefixed = coreKnown.map(a => 'pbr:' + a);
+    const constKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'constants.js')).KNOWN_AGENTS;
+    const prefixed = constKnown.map(a => 'pbr:' + a);
     for (const key of Object.keys(AGENT_OUTPUTS)) {
       expect(prefixed).toContain(key);
     }

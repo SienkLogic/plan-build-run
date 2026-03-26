@@ -370,9 +370,9 @@ async function handleMisc(args, ctx) {
     const {
       sessionLoad,
       sessionSave,
-      SESSION_ALLOWED_KEYS,
       resolveSessionPath
     } = require('../lib/core');
+    const { SESSION_ALLOWED_KEYS } = require('../lib/constants');
     const sub = args[1];
     // Extract --session-id flag from remaining args
     const sessionIdIdx = args.indexOf('--session-id');

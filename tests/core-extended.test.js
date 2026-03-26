@@ -6,6 +6,7 @@ const os = require('os');
 
 const { parseYamlFrontmatter } = require('../plugins/pbr/scripts/lib/yaml');
 const { execGit } = require('../plugins/pbr/scripts/lib/git');
+const { KNOWN_AGENTS } = require('../plugins/pbr/scripts/lib/constants');
 const {
   tailLines,
   safeReadFile,
@@ -18,7 +19,6 @@ const {
   sessionSave,
   ensureSessionDir,
   cleanStaleSessions,
-  KNOWN_AGENTS,
 } = require('../plugins/pbr/scripts/lib/core');
 
 let tmpDir;

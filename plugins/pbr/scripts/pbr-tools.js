@@ -27,10 +27,11 @@ const path = require('path');
 
 // --- Import lib modules (used by wrapper functions for backward-compat exports) ---
 const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('./lib/yaml');
-const { KNOWN_AGENTS, VALID_STATUS_TRANSITIONS, validateStatusTransition, output, error,
+const { KNOWN_AGENTS, VALID_STATUS_TRANSITIONS, SESSION_ALLOWED_KEYS } = require('./lib/constants');
+const { validateStatusTransition, output, error,
   findFiles, tailLines,
   determinePhaseStatus, atomicWrite, lockedFileUpdate, writeActiveSkill,
-  sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, acquireClaim, releaseClaim,
+  sessionLoad, sessionSave, acquireClaim, releaseClaim,
   listClaims: _listClaims } = require('./lib/core');
 const { configLoad: _configLoad, configClearCache: _configClearCache,
   configValidate: _configValidate, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS,

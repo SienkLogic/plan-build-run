@@ -4,7 +4,8 @@ const os = require('os');
 const { parseStateMd, updateFrontmatterField } = require('../plugins/pbr/scripts/lib/state');
 const { parseRoadmapMd, findRoadmapRow, updateTableRow } = require('../plugins/pbr/scripts/lib/roadmap');
 const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('../plugins/pbr/scripts/lib/yaml');
-const { atomicWrite, VALID_STATUS_TRANSITIONS, STATUS_LABELS, validateStatusTransition, sessionLoad, sessionSave } = require('../plugins/pbr/scripts/lib/core');
+const { VALID_STATUS_TRANSITIONS, STATUS_LABELS } = require('../plugins/pbr/scripts/lib/constants');
+const { atomicWrite, validateStatusTransition, sessionLoad, sessionSave } = require('../plugins/pbr/scripts/lib/core');
 const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plugins/pbr/scripts/lib/config');
 const { historyAppend, historyLoad } = require('../plugins/pbr/scripts/lib/history');
 

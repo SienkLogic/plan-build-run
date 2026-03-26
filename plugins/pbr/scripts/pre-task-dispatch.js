@@ -32,7 +32,7 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { checkBudget } = require('./enforce-context-budget');
 const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
-const { KNOWN_AGENTS } = require('./lib/core');
+const { KNOWN_AGENTS } = require('./lib/constants');
 
 // Gate modules
 const { checkQuickExecutorGate } = require('./lib/gates/quick-executor');

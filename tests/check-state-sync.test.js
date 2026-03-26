@@ -833,12 +833,12 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     });
 
     test('ready_to_execute maps to Ready to Execute in STATUS_LABELS', async () => {
-      const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/core');
+      const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/constants');
       expect(STATUS_LABELS.ready_to_execute).toBe('Ready to Execute');
     });
 
     test('ready_to_plan maps to Ready to Plan in STATUS_LABELS', async () => {
-      const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/core');
+      const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/constants');
       expect(STATUS_LABELS.ready_to_plan).toBe('Ready to Plan');
     });
 

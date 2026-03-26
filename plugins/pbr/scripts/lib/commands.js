@@ -6,7 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { execGit, isGitIgnored } = require('./git');
-const { safeReadFile, loadConfig, normalizePhaseName, comparePhaseNum, getArchivedPhaseDirs, generateSlugInternal, getMilestoneInfo, resolveModelInternal, MODEL_PROFILES, toPosixPath, output, error, findPhaseInternal } = require('./core');
+const { MODEL_PROFILES } = require('./constants');
+const { safeReadFile, loadConfig, normalizePhaseName, comparePhaseNum, getArchivedPhaseDirs, generateSlugInternal, getMilestoneInfo, resolveModelInternal, toPosixPath, output, error, findPhaseInternal } = require('./core');
 const { extractFrontmatter } = require('./frontmatter');
 
 function cmdGenerateSlug(text, raw) {

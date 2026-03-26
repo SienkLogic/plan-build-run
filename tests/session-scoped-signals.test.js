@@ -10,12 +10,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const { STALE_SESSION_MS } = require('../plugins/pbr/scripts/lib/constants');
 const {
   resolveSessionPath,
   ensureSessionDir,
   removeSessionDir,
   cleanStaleSessions,
-  STALE_SESSION_MS,
   sessionLoad,
   sessionSave,
   writeActiveSkill
