@@ -23,7 +23,7 @@ const { execSync } = require('child_process');
 const { logHook, getLogFilename: getHooksFilename, cleanOldHookLogs } = require('./hook-logger');
 const { getLogFilename: getEventsFilename, cleanOldEventLogs } = require('./event-logger');
 const { tailLines, configLoad } = require('./pbr-tools');
-const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
+const { removeSessionDir, releaseSessionClaims } = require('./lib/session');
 const { writeSnapshot } = require('./lib/snapshot-manager');
 
 function readStdin() {

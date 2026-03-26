@@ -21,7 +21,7 @@ const { spawn } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { configLoad } = require('./lib/config');
 const { loadTracker } = require('./session-tracker');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 
 function main() {
   try {

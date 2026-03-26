@@ -17,7 +17,7 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
-const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
+const { ensureSessionDir, cleanStaleSessions } = require('./lib/session');
 
 // Re-export from extracted modules for backward compatibility
 const {

@@ -15,11 +15,13 @@ const {
   validateObject,
   findPhaseInternal,
   getMilestoneInfo,
+} = require('../plugins/pbr/scripts/lib/core');
+const {
   sessionLoad,
   sessionSave,
   ensureSessionDir,
   cleanStaleSessions,
-} = require('../plugins/pbr/scripts/lib/core');
+} = require('../plugins/pbr/scripts/lib/session');
 
 let tmpDir;
 

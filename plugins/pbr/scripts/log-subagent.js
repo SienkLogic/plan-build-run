@@ -30,11 +30,11 @@ function getConfigLoad() {
   return _configLoad;
 }
 function getSessionLoad() {
-  if (!_sessionLoad) _sessionLoad = require('./lib/core').sessionLoad;
+  if (!_sessionLoad) _sessionLoad = require('./lib/session').sessionLoad;
   return _sessionLoad;
 }
 function getResolveSessionPath() {
-  if (!_resolveSessionPath) _resolveSessionPath = require('./lib/core').resolveSessionPath;
+  if (!_resolveSessionPath) _resolveSessionPath = require('./lib/session').resolveSessionPath;
   return _resolveSessionPath;
 }
 

@@ -13,7 +13,7 @@ const path = require('path');
 const { stateLoad, stateCheckProgress } = require('./state');
 const { configLoad, configResolveDepth } = require('./config');
 const { phaseInfo, phasePlanIndex } = require('./phase');
-const { resolveSessionPath } = require('./core');
+const { resolveSessionPath } = require('./session');
 const { suggestNext } = require('./suggest-next');
 
 /**

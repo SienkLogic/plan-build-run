@@ -15,7 +15,7 @@ const path = require('path');
 const cp = require('child_process');
 const { logHook } = require('./hook-logger');
 const { configLoad } = require('./pbr-tools');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 const { extractFrontmatter } = require('./lib/frontmatter');
 // ANSI color codes
 const c = {

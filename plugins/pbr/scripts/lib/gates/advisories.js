@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill } = require('./helpers');
-const { resolveSessionPath } = require('../core');
+const { resolveSessionPath } = require('../session');
 const { logHook } = require('../../hook-logger');
 
 /**

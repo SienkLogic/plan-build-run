@@ -25,8 +25,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { sessionLoad } = require('./lib/core');
-const { resolveSessionPath } = require('./lib/core');
+const { sessionLoad, resolveSessionPath } = require('./lib/session');
 
 function main() {
   let input = '';

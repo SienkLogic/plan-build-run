@@ -20,7 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 
 // Module-level cache: phaseDir -> parsed plan data
 const planCache = new Map();

@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { resolveSessionPath } = require('../core');
+const { resolveSessionPath } = require('../session');
 const { logHook } = require('../../hook-logger');
 
 /**
@@ -20,7 +20,7 @@ const { logHook } = require('../../hook-logger');
 function readActiveSkill(planningDir, sessionId) {
   // Check .session.json first (consistent with check-subagent-output and log-subagent)
   try {
-    const { sessionLoad } = require('../core');
+    const { sessionLoad } = require('../session');
     const session = sessionLoad(planningDir, sessionId);
     if (session && session.activeSkill) return session.activeSkill;
   } catch (_e) { /* intentionally silent: pbr-tools/session may not be available */ }

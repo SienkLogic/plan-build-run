@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 
 /**
  * Core check logic extracted for both stdin (main) and HTTP (handleHttp) paths.

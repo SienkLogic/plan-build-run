@@ -22,10 +22,12 @@ const {
   calculateProgress,
   atomicWrite,
   lockedFileUpdate,
+  validateObject,
+} = require('../plugins/pbr/scripts/lib/core');
+const {
   writeActiveSkill,
   sessionLoad,
   sessionSave,
-  validateObject,
   resolveSessionPath,
   ensureSessionDir,
   removeSessionDir,
@@ -35,7 +37,7 @@ const {
   releaseClaim,
   listClaims,
   releaseSessionClaims
-} = require('../plugins/pbr/scripts/lib/core');
+} = require('../plugins/pbr/scripts/lib/session');
 
 // --- Mock process.exit and process.stdout.write for output/error tests ---
 

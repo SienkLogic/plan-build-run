@@ -257,7 +257,7 @@ function saveCounter(counterPath, counter) {
   // Derive planningDir from counterPath (counterPath is planningDir/.compact-counter)
   try {
     const planningDir = path.dirname(counterPath);
-    const { sessionSave } = require('./lib/core');
+    const { sessionSave } = require('./lib/session');
     // Note: saveCounter doesn't have sessionId context — mirror to legacy path
     sessionSave(planningDir, { compactCounter: counter });
   } catch (_e) { /* non-fatal mirror */ }
@@ -277,7 +277,7 @@ function getThreshold(cwd) {
 function resetCounter(planningDir, sessionId) {
   // Primary: reset compactCounter in .session.json to 0
   try {
-    const { sessionSave } = require('./lib/core');
+    const { sessionSave } = require('./lib/session');
     sessionSave(planningDir, { compactCounter: { count: 0, lastSuggested: 0 } }, sessionId);
   } catch (_e) { /* best-effort */ }
 

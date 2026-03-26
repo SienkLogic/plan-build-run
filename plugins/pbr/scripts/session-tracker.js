@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 const { logHook } = require('./hook-logger');
 
 const TRACKER_FILE = '.session-tracker';

@@ -371,7 +371,7 @@ async function handleMisc(args, ctx) {
       sessionLoad,
       sessionSave,
       resolveSessionPath
-    } = require('../lib/core');
+    } = require('../lib/session');
     const { SESSION_ALLOWED_KEYS } = require('../lib/constants');
     const sub = args[1];
     // Extract --session-id flag from remaining args
@@ -425,7 +425,7 @@ async function handleMisc(args, ctx) {
 
   // --- Claim ---
   if (command === 'claim') {
-    const { acquireClaim, releaseClaim, listClaims: _listClaims } = require('../lib/core');
+    const { acquireClaim, releaseClaim, listClaims: _listClaims } = require('../lib/session');
     if (subcommand === 'acquire') {
       const phaseSlug = args[2];
       const sidIdx = args.indexOf('--session-id');
@@ -451,7 +451,7 @@ async function handleMisc(args, ctx) {
       if (!fs.existsSync(phaseDir)) { output({ error: `Phase directory not found: ${phaseSlug}` }); return; }
       output(releaseClaim(planningDir, phaseDir, sessionId));
     } else if (subcommand === 'list') {
-      const { listClaims: _listClaimsLocal } = require('../lib/core');
+      const { listClaims: _listClaimsLocal } = require('../lib/session');
       output(_listClaimsLocal(planningDir));
     } else {
       error('Usage: pbr-tools.js claim acquire|release|list');

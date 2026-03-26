@@ -13,7 +13,7 @@ const path = require('path');
 const { logHook } = require('../hook-logger');
 const { KNOWN_AGENTS, sessionLoad } = require('../pbr-tools');
 const { detectConventions, writeConventions } = require('./convention-detector');
-const { resolveSessionPath } = require('./core');
+const { resolveSessionPath } = require('./session');
 const handoff = require('./handoff-validators');
 
 // Agent-type to skill mapping for .active-skill auto-creation

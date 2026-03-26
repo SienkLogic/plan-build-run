@@ -21,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 
 const BRIDGE_STALENESS_MS = 60000; // 60 seconds
 

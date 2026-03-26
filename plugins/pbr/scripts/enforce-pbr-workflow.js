@@ -21,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 
 /**
  * Load the enforcement configuration from .planning/config.json.
@@ -75,7 +75,7 @@ function checkUnmanagedSourceWrite(data) {
   if (!fs.existsSync(planningDir)) return null;
 
   // Skip if a PBR skill is active — session-scoped when session_id available
-  const { sessionLoad } = require('./lib/core');
+  const { sessionLoad } = require('./lib/session');
   const sessionId = data.session_id || null;
   let activeSkill = sessionLoad(planningDir, sessionId).activeSkill || '';
   if (!activeSkill) {
@@ -244,7 +244,7 @@ function checkUnmanagedCommit(data) {
   if (!fs.existsSync(planningDir)) return null;
 
   // Skip if a PBR skill is active — session-scoped when session_id available
-  const { sessionLoad } = require('./lib/core');
+  const { sessionLoad } = require('./lib/session');
   const sessionIdCommit = data.session_id || null;
   let activeSkillCommit = sessionLoad(planningDir, sessionIdCommit).activeSkill || '';
   if (!activeSkillCommit) {

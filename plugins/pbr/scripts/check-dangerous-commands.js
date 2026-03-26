@@ -22,7 +22,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath } = require('./lib/session');
 
 // Commands that are outright blocked
 const BLOCK_PATTERNS = [

@@ -19,7 +19,7 @@ const {
   sessionLoad,
   sessionSave,
   writeActiveSkill
-} = require('../plugins/pbr/scripts/lib/core');
+} = require('../plugins/pbr/scripts/lib/session');
 
 const {
   detectOtherSessions
