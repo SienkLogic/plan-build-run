@@ -5,7 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execGit } = require('./git');
-const { safeReadFile, normalizePhaseName, findPhaseInternal, getMilestoneInfo, output, error } = require('./core');
+const { safeReadFile, output, error } = require('./core');
+const { normalizePhaseName, findPhaseInternal, getMilestoneInfo } = require('./phase-utils');
 const { extractFrontmatter, parseMustHavesBlock } = require('./frontmatter');
 const { logHook } = require('../hook-logger');
 // writeStateMd was never exported from state.cjs — use fs.writeFileSync directly

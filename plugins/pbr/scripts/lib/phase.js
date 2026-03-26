@@ -10,9 +10,9 @@ const path = require('path');
 const { parseYamlFrontmatter, countMustHaves } = require('./yaml');
 const {
   findFiles,
-  determinePhaseStatus,
   lockedFileUpdate
 } = require('./core');
+const { determinePhaseStatus } = require('./phase-utils');
 const { statePatch, stateUpdateProgress, updateFrontmatterField } = require('./state');
 const {
   roadmapAppendPhase,

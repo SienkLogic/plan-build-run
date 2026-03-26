@@ -4,7 +4,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { escapeRegex, getMilestonePhaseFilter, output, error } = require('./core');
+const { escapeRegex, output, error } = require('./core');
+const { getMilestonePhaseFilter } = require('./phase-utils');
 const { extractFrontmatter } = require('./frontmatter');
 
 function cmdRequirementsMarkComplete(cwd, reqIdsRaw, raw) {

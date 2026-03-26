@@ -12,6 +12,7 @@ const phaseLib = require('../plugins/pbr/scripts/lib/phase');
 const configLib = require('../plugins/pbr/scripts/lib/config');
 const historyLib = require('../plugins/pbr/scripts/lib/history');
 const coreLib = require('../plugins/pbr/scripts/lib/core');
+const phaseUtilsLib = require('../plugins/pbr/scripts/lib/phase-utils');
 const yamlLib = require('../plugins/pbr/scripts/lib/yaml');
 
 function makeTmpDir() {
@@ -559,39 +560,39 @@ describe('determinePhaseStatus', () => {
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   test('returns not_started for empty phase', async () => {
-    expect(coreLib.determinePhaseStatus(0, 0, 0, false, tmpDir)).toBe('not_started');
+    expect(phaseUtilsLib.determinePhaseStatus(0, 0, 0, false, tmpDir)).toBe('not_started');
   });
 
   test('returns discussed when CONTEXT.md exists', async () => {
     fs.writeFileSync(path.join(tmpDir, 'CONTEXT.md'), '# Context');
-    expect(coreLib.determinePhaseStatus(0, 0, 0, false, tmpDir)).toBe('discussed');
+    expect(phaseUtilsLib.determinePhaseStatus(0, 0, 0, false, tmpDir)).toBe('discussed');
   });
 
   test('returns planned when no summaries', async () => {
-    expect(coreLib.determinePhaseStatus(2, 0, 0, false, tmpDir)).toBe('planned');
+    expect(phaseUtilsLib.determinePhaseStatus(2, 0, 0, false, tmpDir)).toBe('planned');
   });
 
   test('returns building when partially complete', async () => {
-    expect(coreLib.determinePhaseStatus(3, 1, 1, false, tmpDir)).toBe('building');
+    expect(phaseUtilsLib.determinePhaseStatus(3, 1, 1, false, tmpDir)).toBe('building');
   });
 
   test('returns built when all complete but no verification', async () => {
-    expect(coreLib.determinePhaseStatus(2, 2, 2, false, tmpDir)).toBe('built');
+    expect(phaseUtilsLib.determinePhaseStatus(2, 2, 2, false, tmpDir)).toBe('built');
   });
 
   test('returns verified when VERIFICATION.md says passed', async () => {
     fs.writeFileSync(path.join(tmpDir, 'VERIFICATION.md'), '---\nstatus: passed\n---\n# Verified');
-    expect(coreLib.determinePhaseStatus(1, 1, 1, true, tmpDir)).toBe('verified');
+    expect(phaseUtilsLib.determinePhaseStatus(1, 1, 1, true, tmpDir)).toBe('verified');
   });
 
   test('returns needs_fixes when VERIFICATION.md says gaps_found', async () => {
     fs.writeFileSync(path.join(tmpDir, 'VERIFICATION.md'), '---\nstatus: gaps_found\n---\n# Issues');
-    expect(coreLib.determinePhaseStatus(1, 1, 1, true, tmpDir)).toBe('needs_fixes');
+    expect(phaseUtilsLib.determinePhaseStatus(1, 1, 1, true, tmpDir)).toBe('needs_fixes');
   });
 
   test('returns reviewed for other verification statuses', async () => {
     fs.writeFileSync(path.join(tmpDir, 'VERIFICATION.md'), '---\nstatus: in_progress\n---');
-    expect(coreLib.determinePhaseStatus(1, 1, 1, true, tmpDir)).toBe('reviewed');
+    expect(phaseUtilsLib.determinePhaseStatus(1, 1, 1, true, tmpDir)).toBe('reviewed');
   });
 });
 
@@ -653,7 +654,7 @@ describe('calculateProgress', () => {
   test('returns zeros when no phases dir', async () => {
     const emptyDir = path.join(tmpDir, 'empty');
     fs.mkdirSync(emptyDir);
-    const result = coreLib.calculateProgress(emptyDir);
+    const result = phaseUtilsLib.calculateProgress(emptyDir);
     expect(result.total).toBe(0);
     expect(result.percentage).toBe(0);
   });
@@ -663,7 +664,7 @@ describe('calculateProgress', () => {
     fs.mkdirSync(phase1);
     fs.writeFileSync(path.join(phase1, '01-PLAN.md'), '---\nplan: 1\n---');
     fs.writeFileSync(path.join(phase1, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
-    const result = coreLib.calculateProgress(planningDir);
+    const result = phaseUtilsLib.calculateProgress(planningDir);
     expect(result.total).toBeGreaterThanOrEqual(1);
   });
 });

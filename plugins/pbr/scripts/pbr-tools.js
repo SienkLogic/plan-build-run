@@ -30,7 +30,8 @@ const { parseYamlFrontmatter, parseMustHaves, countMustHaves } = require('./lib/
 const { KNOWN_AGENTS, VALID_STATUS_TRANSITIONS, SESSION_ALLOWED_KEYS } = require('./lib/constants');
 const { validateStatusTransition, output, error,
   findFiles, tailLines,
-  determinePhaseStatus, atomicWrite, lockedFileUpdate } = require('./lib/core');
+  atomicWrite, lockedFileUpdate } = require('./lib/core');
+const { determinePhaseStatus } = require('./lib/phase-utils');
 const { writeActiveSkill, sessionLoad, sessionSave, acquireClaim, releaseClaim,
   listClaims: _listClaims } = require('./lib/session');
 const { configLoad: _configLoad, configClearCache: _configClearCache,

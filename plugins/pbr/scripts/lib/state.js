@@ -13,9 +13,8 @@ const { parseYamlFrontmatter } = require('./yaml');
 const {
   findFiles,
   lockedFileUpdate,
-  calculateProgress,
-  determinePhaseStatus
 } = require('./core');
+const { calculateProgress, determinePhaseStatus } = require('./phase-utils');
 
 // --- Status enum ---
 

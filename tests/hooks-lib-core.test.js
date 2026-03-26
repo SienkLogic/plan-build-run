@@ -18,12 +18,11 @@ const {
   error,
   findFiles,
   tailLines,
-  determinePhaseStatus,
-  calculateProgress,
   atomicWrite,
   lockedFileUpdate,
   validateObject,
 } = require('../plugins/pbr/scripts/lib/core');
+const { determinePhaseStatus, calculateProgress } = require('../plugins/pbr/scripts/lib/phase-utils');
 const {
   writeActiveSkill,
   sessionLoad,

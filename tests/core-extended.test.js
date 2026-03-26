@@ -13,9 +13,8 @@ const {
   atomicWrite,
   ensureDir,
   validateObject,
-  findPhaseInternal,
-  getMilestoneInfo,
 } = require('../plugins/pbr/scripts/lib/core');
+const { findPhaseInternal, getMilestoneInfo } = require('../plugins/pbr/scripts/lib/phase-utils');
 const {
   sessionLoad,
   sessionSave,
