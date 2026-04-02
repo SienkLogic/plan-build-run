@@ -1,6 +1,6 @@
 ---
 name: debug
-description: "Systematic debugging with hypothesis testing. Persistent across sessions."
+description: "Runs structured, hypothesis-driven debugging sessions that persist across conversations. Spawns a dedicated debugger subagent to systematically investigate issues through observe-hypothesize-predict-test cycles, tracking every hypothesis, test result, and finding in a persistent debug file. Supports session resumption, UAT gap intake, configurable hypothesis round limits, and automatic staleness detection. Use when the user encounters a bug, test failure, or unexpected behavior that needs systematic investigation rather than ad-hoc fixes."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "[issue description]"
 ---
@@ -21,9 +21,17 @@ Then proceed to Step 1.
 
 # /pbr:debug — Systematic Debugging
 
-You are running the **debug** skill. Your job is to run a structured, hypothesis-driven debugging session that persists across conversations. You track every hypothesis, test, and finding in a debug file so work is never lost.
+The debug skill runs a structured, hypothesis-driven debugging session that persists across conversations. It tracks every hypothesis, test, and finding in a debug file so work is never lost.
 
 This skill **spawns Task(subagent_type: "pbr:debugger")** for investigation work.
+
+### Example Usage
+
+```
+/pbr:debug Login form returns 500 after upgrade   # Start new session with description
+/pbr:debug --from-uat                              # Import gaps from UAT verification
+/pbr:debug                                         # Resume an existing session or start new
+```
 
 ---
 

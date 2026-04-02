@@ -1,6 +1,6 @@
 ---
 name: review
-description: "Verify the build matched the plan. Automated checks + walkthrough with you."
+description: "Verifies that what was built matches what was planned by running automated three-layer checks (functional, security, performance) against must-haves, then walking the user through conversational UAT for each deliverable. Supports team-based parallel verification with specialist verifiers, auto-fix with gap-closure plan generation, trust-based graduated verification depth, and thinking-partner chaining for complex review discussions. Use when the user has completed a build phase and needs to verify correctness before advancing, wants to re-check after applying fixes, or needs to validate gap-closure plans from prior verification failures."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion, Skill
 argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>] [--auto]"
 ---
@@ -13,7 +13,16 @@ Reference: `@references/verification-overrides.md` for verification override han
 
 **References:** `@references/questioning.md`, `@references/ui-brand.md`
 
-You are the orchestrator for `/pbr:verify-work`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
+The review skill orchestrates `/pbr:verify-work`. It verifies that what was built matches what was planned by running automated three-layer checks against must-haves, then walking the user through a conversational UAT (user acceptance testing) for each deliverable. It presents findings clearly and helps the user decide what's good enough versus what needs fixes.
+
+### Example Usage
+
+```
+/pbr:verify-work 3                # Verify phase 3 against its plans
+/pbr:verify-work 3 --auto-fix     # Verify and auto-generate gap-closure plans
+/pbr:verify-work 3 --teams        # Parallel specialist verification (functional + security + performance)
+/pbr:verify-work 3 --auto         # Skip interactive UAT, auto-accept if verification passes
+```
 
 ## Context Budget
 

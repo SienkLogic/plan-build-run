@@ -1,6 +1,6 @@
 ---
 name: quick
-description: "Execute an ad-hoc task with atomic commits. Skips full plan/review."
+description: "Executes small, self-contained tasks outside the normal plan/build/review cycle by spawning a single executor subagent with atomic commits and state tracking. Supports a zero-friction path (2 tool calls to execution) and a legacy pre-planned path, with optional flags for pre-task discussion, domain research, and full plan-checker plus verifier validation. Use when the user needs a bug fix, small feature, config change, or single-module refactor that does not warrant full phase planning."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<description> [--discuss] [--full]"
 ---
@@ -9,11 +9,20 @@ argument-hint: "<description> [--discuss] [--full]"
 
 # /pbr:quick -- Quick Ad-Hoc Task Execution
 
-You are running the **quick** skill. Your job is to execute a small, self-contained task outside the normal plan/build/review cycle. Quick tasks get their own tracking, atomic commits, and state integration, but skip the overhead of full planning.
+The quick skill executes a small, self-contained task outside the normal plan/build/review cycle. Quick tasks get their own tracking, atomic commits, and state integration, but skip the overhead of full planning.
 
 This skill **spawns a single Task(subagent_type: "pbr:executor")** for execution.
 
 **Dual-mode flow**: This skill has two execution paths controlled by the `features.zero_friction_quick` config toggle (default: `true`). The zero-friction path reaches the executor in 2 tool calls. The legacy path preserves the full pre-planning ceremony.
+
+### Example Usage
+
+```
+/pbr:quick Fix the login button alignment    # Zero-friction execution
+/pbr:quick Add retry logic --discuss         # Discuss approach first, then execute
+/pbr:quick Refactor auth module --full       # Plan-checker + verifier validation
+/pbr:quick Update config --research          # Research domain before execution
+```
 
 ---
 

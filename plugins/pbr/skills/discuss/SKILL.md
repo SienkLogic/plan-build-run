@@ -1,6 +1,6 @@
 ---
 name: discuss
-description: "Talk through a phase before planning. Identifies gray areas and captures your decisions."
+description: "Facilitates structured pre-planning discussions for a development phase by identifying gray areas, presenting concrete options with trade-offs, and capturing the user's decisions in a CONTEXT.md file that downstream planning and execution agents must honor. Supports both phase-level and project-level cross-cutting decisions. Use when the user wants to think through implementation choices before committing to a plan, needs to capture architectural or design preferences for a phase, or wants to make project-wide decisions that constrain all future planning."
 allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
 argument-hint: "<phase-number> [--auto] | --project"
 ---
@@ -26,9 +26,17 @@ Then proceed to Step 1.
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 Reference: `skills/shared/context-loader-task.md` for efficient context loading patterns.
 
-You are running the **discuss** skill. Your job is to help the user think through a phase BEFORE planning begins. You identify gray areas where the user's preference matters, ask structured questions, and capture every decision in a CONTEXT.md file that the planner must honor.
+The discuss skill helps the user think through a phase BEFORE planning begins. It identifies gray areas where the user's preference matters, asks structured questions, and captures every decision in a CONTEXT.md file that the planner must honor.
 
 This skill runs **inline** (no Task delegation).
+
+### Example Usage
+
+```
+/pbr:discuss-phase 3          # Discuss phase 3 decisions before planning
+/pbr:discuss-phase 3 --auto   # Batch all gray areas into a single presentation
+/pbr:discuss-phase --project   # Discuss project-wide cross-cutting decisions
+```
 
 ---
 

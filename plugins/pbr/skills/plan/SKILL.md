@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Create a detailed plan for a phase. Research, plan, and verify before building."
+description: "Orchestrates the creation of detailed, executable plans for a development phase by delegating research, planning, and plan-checking to specialized subagents. Produces structured PLAN.md files with task breakdowns, file targets, verification commands, and dependency waves that executor agents follow mechanically. Supports research phases, PRD-to-plan express paths, multi-phase planning, assumption surfacing, gap-closure planning from verification results, and team-based specialist planning. Use when the user is ready to plan a phase after discussion, needs to create or update execution plans, wants to add/insert/remove phases from the roadmap, or needs gap-closure plans after verification failures."
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
 argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] [--through <N>] [--prd <file>] | add | insert <N> | remove <N>"
 ---
@@ -11,7 +11,20 @@ argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--mod
 
 **References:** `@references/questioning.md`, `@references/ui-brand.md`
 
-You are the orchestrator for `/pbr:plan-phase`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() subagents, and keep the user's main context window clean.
+The plan skill orchestrates `/pbr:plan-phase`. It creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. The orchestrator stays lean, delegates heavy work to Task() subagents, and keeps the user's main context window clean.
+
+### Example Usage
+
+```
+/pbr:plan-phase 3                    # Plan phase 3 with research + plan-checking
+/pbr:plan-phase 3 --skip-research    # Plan without domain research step
+/pbr:plan-phase 3 --gaps             # Create gap-closure plans from VERIFICATION.md
+/pbr:plan-phase 3 --prd spec.md      # Generate plans from a PRD file
+/pbr:plan-phase 1 --through 3        # Plan phases 1-3 in sequence
+/pbr:plan-phase add                  # Append a new phase to the roadmap
+/pbr:plan-phase insert 4             # Insert a new phase at position 4
+/pbr:plan-phase remove 5             # Remove phase 5 from the roadmap
+```
 
 ## Context Budget
 
