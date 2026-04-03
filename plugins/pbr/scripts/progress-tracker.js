@@ -30,6 +30,7 @@ const {
   getIntelStalenessWarning,
   checkLearningsDeferrals,
   detectOtherSessions,
+  checkShellExecutionSetting,
   extractSection,
   findContinueFiles,
   countNotes,
@@ -120,6 +121,15 @@ async function main() {
     } catch (_e) { /* non-fatal */ }
   }
 
+  // Check for shell execution restriction
+  try {
+    const shellWarning = checkShellExecutionSetting();
+    if (shellWarning) {
+      sessionWarning = '\n' + shellWarning + sessionWarning;
+      logHook('progress-tracker', 'SessionStart', 'shell-execution-disabled', {});
+    }
+  } catch (_e) { /* non-fatal */ }
+
   const context = buildContext(planningDir, stateFile);
 
   // Auto-launch dashboard if configured
@@ -168,6 +178,6 @@ async function main() {
 }
 
 // Exported for testing — re-exports from extracted modules
-module.exports = { buildEnhancedBriefing, buildContext, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, getNegativeKnowledgeBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, buildContext, getHookHealthSummary, checkLearningsDeferrals, checkShellExecutionSetting, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, getNegativeKnowledgeBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }

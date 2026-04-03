@@ -9,6 +9,7 @@ const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 const {
   getHookHealthSummary,
   checkLearningsDeferrals,
+  checkShellExecutionSetting,
   getEnrichedContext,
   detectOtherSessions,
   FAILURE_DECISIONS,
@@ -173,5 +174,63 @@ describe('detectOtherSessions', () => {
     // Should still detect it as a session dir
     expect(result.length).toBe(1);
     expect(result[0].sessionId).toBe('session-2');
+  });
+});
+
+describe('checkShellExecutionSetting', () => {
+  test('returns null when no settings files exist (default)', () => {
+    const result = checkShellExecutionSetting();
+    expect(result).toBeNull();
+  });
+
+  test('returns null when disableSkillShellExecution is false', () => {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-shell-test-'));
+    const claudeDir = path.join(tmpHome, '.claude');
+    fs.mkdirSync(claudeDir, { recursive: true });
+    fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({ disableSkillShellExecution: false }));
+    const origHome = os.homedir;
+    os.homedir = () => tmpHome;
+    try {
+      const result = checkShellExecutionSetting();
+      expect(result).toBeNull();
+    } finally {
+      os.homedir = origHome;
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
+  test('returns warning when disableSkillShellExecution is true in settings.json', () => {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-shell-test-'));
+    const claudeDir = path.join(tmpHome, '.claude');
+    fs.mkdirSync(claudeDir, { recursive: true });
+    fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({ disableSkillShellExecution: true }));
+    const origHome = os.homedir;
+    os.homedir = () => tmpHome;
+    try {
+      const result = checkShellExecutionSetting();
+      expect(result).not.toBeNull();
+      expect(result).toContain('disableSkillShellExecution');
+      expect(result).toContain('CRITICAL');
+    } finally {
+      os.homedir = origHome;
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
+  test('returns warning when disableSkillShellExecution is true in managed-settings.json', () => {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-shell-test-'));
+    const claudeDir = path.join(tmpHome, '.claude');
+    fs.mkdirSync(claudeDir, { recursive: true });
+    fs.writeFileSync(path.join(claudeDir, 'managed-settings.json'), JSON.stringify({ disableSkillShellExecution: true }));
+    const origHome = os.homedir;
+    os.homedir = () => tmpHome;
+    try {
+      const result = checkShellExecutionSetting();
+      expect(result).not.toBeNull();
+      expect(result).toContain('CRITICAL');
+    } finally {
+      os.homedir = origHome;
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
   });
 });

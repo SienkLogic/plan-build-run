@@ -898,6 +898,27 @@ function buildContext(planningDir, stateFile) {
   return parts.join('\n');
 }
 
+function checkShellExecutionSetting() {
+  try {
+    const settingsPaths = [
+      path.join(os.homedir(), '.claude', 'settings.json'),
+      path.join(os.homedir(), '.claude', 'managed-settings.json')
+    ];
+    for (const settingsPath of settingsPaths) {
+      try {
+        const content = fs.readFileSync(settingsPath, 'utf8');
+        const settings = JSON.parse(content);
+        if (settings.disableSkillShellExecution === true) {
+          return 'CRITICAL: disableSkillShellExecution is enabled in your Claude Code settings. PBR requires shell execution — all 46+ skills use the Bash tool and will fail. Disable this setting to use PBR: Settings > disableSkillShellExecution > false';
+        }
+      } catch (_e) { /* file doesn't exist or isn't JSON */ }
+    }
+    return null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 module.exports = {
   buildEnhancedBriefing,
   buildContext,
@@ -908,6 +929,7 @@ module.exports = {
   getIntelContext,
   getIntelStalenessWarning,
   checkLearningsDeferrals,
+  checkShellExecutionSetting,
   detectOtherSessions,
   extractSection,
   escapeRegex,
