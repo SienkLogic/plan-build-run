@@ -297,6 +297,17 @@
           }
         ]
       }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://localhost:19836/hook/PermissionDenied/PermissionDenied",
+            "statusMessage": "◆ PBR: Logging permission denial..."
+          }
+        ]
+      }
     ]
   }
 }

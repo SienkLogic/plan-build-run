@@ -14,7 +14,7 @@ const HOOKS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'hooks');
 const VALID_HOOK_EVENTS = [
   'SessionStart', 'InstructionsLoaded', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
   'PreCompact', 'PostCompact', 'Stop', 'SubagentStart', 'SubagentStop', 'TaskCreated', 'TaskCompleted', 'ConfigChange', 'SessionEnd',
-  'WorktreeCreate', 'WorktreeRemove', 'Notification', 'UserPromptSubmit'
+  'WorktreeCreate', 'WorktreeRemove', 'Notification', 'UserPromptSubmit', 'PermissionDenied'
 ];
 
 describe('hooks.json schema compliance', () => {

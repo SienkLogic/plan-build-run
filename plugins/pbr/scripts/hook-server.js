@@ -291,6 +291,7 @@ function initRoutes() {
   register('PostCompact', '*', lazyHandler('post-compact'));
   register('Notification', '*', lazyHandler('log-notification'));
   register('UserPromptSubmit', '*', lazyHandler('prompt-routing'));
+  register('PermissionDenied', '*', lazyHandler('log-permission-denied'));
 }
 
 /**

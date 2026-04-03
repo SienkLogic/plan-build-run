@@ -26,7 +26,8 @@
         "WorktreeCreate": { "$ref": "#/definitions/hookEntryList" },
         "WorktreeRemove": { "$ref": "#/definitions/hookEntryList" },
         "Notification": { "$ref": "#/definitions/hookEntryList" },
-        "UserPromptSubmit": { "$ref": "#/definitions/hookEntryList" }
+        "UserPromptSubmit": { "$ref": "#/definitions/hookEntryList" },
+        "PermissionDenied": { "$ref": "#/definitions/hookEntryList" }
       },
       "additionalProperties": false
     }
