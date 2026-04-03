@@ -34,13 +34,13 @@ Find existing decimal phases after the target number to determine next available
 ## 3. Generate Slug
 
 ```bash
-SLUG=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js generate-slug "{description}")
+SLUG=$(pbr-tools generate-slug "{description}")
 ```
 
 ## 4. Create Phase
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap insert-phase {after} --goal "{description}"
+pbr-tools roadmap insert-phase {after} --goal "{description}"
 ```
 
 Create `.planning/phases/{NN.D}-{slug}/` directory.
@@ -48,7 +48,7 @@ Create `.planning/phases/{NN.D}-{slug}/` directory.
 ## 5. Update State
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Inserted phase {NN.D}: {description}"
+pbr-tools state record-activity "Inserted phase {NN.D}: {description}"
 ```
 
 ## 6. Commit

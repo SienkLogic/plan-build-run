@@ -161,7 +161,7 @@ Continue to the selected path (Step 2 or Step 5).
 
 **Generate slug** via CLI (or use `blob.slug` from initQuick if available):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{description}"
+pbr-tools slug-generate "{description}"
 ```
 Parse the JSON output to get the `slug` field. If `blob.slug` is available from the initQuick response, use it directly instead of calling slug-generate.
 
@@ -315,7 +315,7 @@ If user types something else (freeform): interpret their response and proceed ac
 
 **Generate slug** via CLI:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{description}"
+pbr-tools slug-generate "{description}"
 ```
 Parse the JSON output to get the `slug` field.
 

@@ -41,7 +41,7 @@ Task({
 
 ### CLI Alternative
 
-Alternatively, the skill can call `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load` for structured JSON state instead of spawning a briefing Task. Use the CLI approach when only state data is needed; use the Task approach when project context (decisions, notes, history) is also needed.
+Alternatively, the skill can call `pbr-tools state load` for structured JSON state instead of spawning a briefing Task. Use the CLI approach when only state data is needed; use the Task approach when project context (decisions, notes, history) is also needed.
 
 ### Key Rules
 

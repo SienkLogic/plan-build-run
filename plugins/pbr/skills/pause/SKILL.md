@@ -171,14 +171,14 @@ After writing `.continue-here.md`, also create `.planning/HANDOFF.json` with str
 **CRITICAL -- DO NOT SKIP: Update STATE.md via CLI.**
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-session --stopped-at "{brief description of current work}"
+pbr-tools state record-session --stopped-at "{brief description of current work}"
 ```
 
 This updates STATE.md frontmatter (`session_last`, `session_stopped_at`, `session_resume`, `last_command`, `last_activity`) and the Session Continuity body section atomically.
 
 Also update the session_resume pointer:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_command "/pbr:pause-work"
+pbr-tools state update last_command "/pbr:pause-work"
 ```
 
 If the CLI fails, display a branded ERROR box: "Failed to update STATE.md session state." and stop.

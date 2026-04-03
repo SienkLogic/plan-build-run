@@ -32,7 +32,7 @@ Extract phase description from $ARGUMENTS. If empty, ask user for a description.
 ## 2. Validate State
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap analyze
+pbr-tools roadmap analyze
 ```
 
 Check that ROADMAP.md exists and has at least one milestone.
@@ -44,13 +44,13 @@ Read ROADMAP.md, find the highest integer phase number in the current milestone,
 ## 4. Generate Slug
 
 ```bash
-SLUG=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js generate-slug "$ARGUMENTS")
+SLUG=$(pbr-tools generate-slug "$ARGUMENTS")
 ```
 
 ## 5. Create Phase Directory and Update Roadmap
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap append-phase --goal "$ARGUMENTS"
+pbr-tools roadmap append-phase --goal "$ARGUMENTS"
 ```
 
 Create `.planning/phases/{NN}-{slug}/` directory.
@@ -58,7 +58,7 @@ Create `.planning/phases/{NN}-{slug}/` directory.
 ## 6. Update State
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Added phase {NN}: {description}"
+pbr-tools state record-activity "Added phase {NN}: {description}"
 ```
 
 ## 7. Commit

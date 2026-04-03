@@ -24,7 +24,7 @@ Then proceed to Step 1.
 Read the following files:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
+pbr-tools state load
 ```
 
 Also read `.planning/config.json` to check for `ui.enabled` setting.

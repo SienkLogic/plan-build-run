@@ -13,7 +13,7 @@ Check for PBR updates, install if available, and display what changed.
 ## 1. Detect Current Version
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js help 2>/dev/null | head -1
+pbr-tools help 2>/dev/null | head -1
 cat ${CLAUDE_PLUGIN_ROOT}/package.json 2>/dev/null | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).version)" 2>/dev/null
 ```
 

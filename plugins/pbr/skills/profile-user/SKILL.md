@@ -30,7 +30,7 @@ You are running the **profile-user** skill. Your job is to analyze the user's Cl
 Check if the developer profiling feature is enabled:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get developer_profile.enabled
+pbr-tools config get developer_profile.enabled
 ```
 
 - If the result is `false`, empty, or the key is missing: tell the user to enable it first with `/pbr:config set developer_profile.enabled true` and **STOP**.

@@ -80,7 +80,7 @@ Create a timestamped note file in the target directory.
 2. Ensure the notes directory exists (`.planning/notes/` or `~/.claude/notes/`)
 3. Generate slug via CLI:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{note text}"
+   pbr-tools slug-generate "{note text}"
    ```
    Parse the JSON output to get the `slug` field.
 4. Generate filename: `{YYYY-MM-DD}-{slug}.md`
@@ -143,7 +143,7 @@ Convert a note into a todo file.
 5. Ensure `.planning/todos/pending/` directory exists
 6. Generate todo ID: `{NNN}-{slug}` where NNN is the next sequential number (scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, zero-pad to 3 digits) and slug is generated via CLI:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{note text}"
+   pbr-tools slug-generate "{note text}"
    ```
    Parse the JSON output to get the `slug` field.
 7. Extract the note text from the source file (body after frontmatter)

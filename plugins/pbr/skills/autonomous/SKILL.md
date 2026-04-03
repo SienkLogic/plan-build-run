@@ -290,7 +290,7 @@ that the build skill does not try to skip plans that no longer exist.
         ```bash
         # Collect new PLAN-*.md filenames from .planning/phases/{CC}-{slug}/
         # Extract plan IDs from frontmatter (plan: field) of each new PLAN file
-        node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {CC}-{slug} --plans "{comma-separated plan IDs}"
+        pbr-tools checkpoint init {CC}-{slug} --plans "{comma-separated plan IDs}"
         ```
         This ensures the build skill starts with accurate plan tracking when Phase C is built.
       - Note: The re-plan via `/pbr:plan` already includes plan-checker validation (Step 6 of the plan skill). The explicit check above is a safety net -- if the plan skill's checker was skipped due to depth profile, the autonomous mode enforces it independently.
@@ -303,7 +303,7 @@ Important: The staleness check uses deviation count from SUMMARY.md frontmatter 
 ### 3d-pre. Validate Phase (conditional)
 
 **Gate:** Run only if ALL of these are true:
-- `workflow.validate_phase` is `true` in config (default: `true` — read via `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get workflow.validate_phase`)
+- `workflow.validate_phase` is `true` in config (default: `true` — read via `pbr-tools config get workflow.validate_phase`)
 - No `VALIDATION.md` with `status: passed` already exists in the phase directory
 
 If gate passes:
@@ -325,13 +325,13 @@ If gate passes:
 - **Lightweight verification first** (avoid spawning heavyweight verifier agent):
   1. **CLI-first SUMMARY validation:** For each plan in the phase, run:
      ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify summary ".planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md" --check-files 3
+     pbr-tools verify summary ".planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md" --check-files 3
      ```
      Parse JSON result: `checks.files_created.missing` (claimed files that don't exist), `checks.commits_exist` (referenced SHAs valid), `checks.self_check` (executor self-check status). If ANY summary has `passed: false`, fail the confidence gate.
   2. Compute aggregate completion from SUMMARY frontmatter `completion` percentage (average across all plans).
   3. **CLI commit verification:** For all commit SHAs found in SUMMARY files:
      ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify commits {space-separated-hashes}
+     pbr-tools verify commits {space-separated-hashes}
      ```
      If `valid: false` for any commit, flag as missing evidence.
   4. **Test result caching:** Before running the test suite:
@@ -346,8 +346,8 @@ If gate passes:
      Note: This test run serves as both the confidence gate signal AND the regression gate. If tests fail, this is a regression — delegate to debugger agent per the CRITICAL marker above.
   4.5. **CLI artifact + wiring check:** For each plan in the phase, run the CLI verify commands:
      ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify artifacts ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify key-links ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
+     pbr-tools verify artifacts ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
+     pbr-tools verify key-links ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
      ```
      Parse JSON results: if `all_passed: false` (artifacts) or `all_verified: false` (key-links), fail the confidence gate and fall through to full verification. As a supplementary check, for each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate.
   5. **Verification depth selection** (round-robin enforcement):
@@ -392,7 +392,7 @@ If gate passes:
 **CRITICAL — DO NOT SKIP: Update STATE.md current_phase via CLI NOW. Do not skip.**
 - Update STATE.md current_phase to next phase via CLI:
   ```bash
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update current_phase {N+1}
+  pbr-tools state update current_phase {N+1}
   ```
 - Update `.autonomous-state.json` with phase error metrics:
 

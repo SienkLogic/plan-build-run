@@ -64,7 +64,7 @@ If `blob.error` is set, display the error banner and stop (no project found).
 Then run the status render CLI for the full formatted dashboard:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render
+pbr-tools status render
 ```
 
 This returns a **complete, deterministic JSON object** with ALL project status: milestones, phases, progress bar, routing recommendations, todos, notes, quick tasks, paused work, documents, and warnings. Parse the JSON and proceed directly to Step 4 (Display) using the structured data. The init blob supplements this with routing and metadata that `status render` does not provide.
@@ -76,7 +76,7 @@ This returns a **complete, deterministic JSON object** with ALL project status: 
 ║  ERROR                                                       ║
 ╚══════════════════════════════════════════════════════════════╝
 
-Failed to render status dashboard. Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render` manually to diagnose.
+Failed to render status dashboard. Run `pbr-tools status render` manually to diagnose.
 ```
 
 Stop execution — do NOT attempt manual file reads as fallback.
@@ -85,7 +85,7 @@ Stop execution — do NOT attempt manual file reads as fallback.
 
 Run:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js context-triage
+pbr-tools context-triage
 ```
 
 Parse the JSON response. Capture:

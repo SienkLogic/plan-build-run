@@ -62,7 +62,7 @@ Use AskUserQuestion:
 
 **If user selects "Quick Start":**
 
-First, check for global defaults: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config load-defaults`
+First, check for global defaults: `pbr-tools config load-defaults`
 If defaults exist, use them as pre-populated values. Otherwise, use hardcoded defaults shown below.
 
 Present 4 essential questions sequentially:
@@ -105,7 +105,7 @@ After 4 answers, write config.json with all other fields set to sensible default
 **Quick Start defaults:** mode=interactive, depth=standard, parallel=true, git.branching=phase
 
 After writing config, offer: "Save these as your global defaults for future projects? (y/n)"
-If yes, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config save-defaults`
+If yes, run: `pbr-tools config save-defaults`
 
 Display: "Config written. For full field reference, see `references/config-reference.md`."
 
@@ -210,7 +210,7 @@ After setting depth, the profile is automatically resolved. Show the user the ef
   "Depth set to {value}. Effective profile:"
   Then display the profile summary (research, plan-check, verify, scan mappers, debug rounds, inline verify).
 
-To resolve the profile, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth`
+To resolve the profile, run: `pbr-tools config resolve-depth`
 
 If the user wants to override a specific profile setting, they can set `depth_profiles.{depth}.{key}` directly.
 For example: to use quick mode but keep plan-checking, the user would set depth to quick and then override:
@@ -263,7 +263,7 @@ If user selects "Save as defaults":
 Save current project config as user-level defaults for future projects:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" config save-defaults
+pbr-tools" config save-defaults
 ```
 
 Display: "Saved your preferences to ~/.claude/pbr-defaults.json. New projects created with /pbr:setup will use these as starting values."

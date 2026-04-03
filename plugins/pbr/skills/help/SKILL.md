@@ -28,7 +28,7 @@ If `$ARGUMENTS` contains a command name (e.g., `plan`, `build`, `review`, `confi
 1. Run this command to get metadata for the requested skill:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js skill-metadata $ARGUMENTS
+pbr-tools skill-metadata $ARGUMENTS
 ```
 
 2. Parse the JSON response.
@@ -53,7 +53,7 @@ If no argument was provided, display the full command reference:
 1. Run this command to get all skills:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js help
+pbr-tools help
 ```
 
 2. Parse the JSON response. The result has a `.skills` array of objects with `name`, `description`, and `argument_hint` fields.

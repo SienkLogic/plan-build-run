@@ -135,9 +135,9 @@ If you hit an auth error (missing API key, expired token): **STOP immediately**.
 
 **Do NOT modify `.planning/STATE.md` directly.** Use CLI commands:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status building
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"building","last_activity":"now"}'
+pbr-tools state update status building
+pbr-tools state advance-plan
+pbr-tools state patch '{"status":"building","last_activity":"now"}'
 ```
 
 **Status values:** Set `building` at the start of execution. Set `built` upon successful completion of all tasks. These are two of the 13 valid statuses: not_started, discussed, ready_to_plan, planning, planned, ready_to_execute, building, built, partial, verified, needs_fixes, complete, skipped.
@@ -241,7 +241,7 @@ Before writing the completion marker, output any memory_suggestion blocks if you
 After writing SUMMARY.md, validate it:
 
 ```bash
-RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify summary ".planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md" --check-files 3)
+RESULT=$(pbr-tools verify summary ".planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md" --check-files 3)
 echo "$RESULT"
 ```
 
@@ -259,7 +259,7 @@ Parse the JSON result:
 
 After writing SUMMARY.md, if you discovered noteworthy patterns, API quirks, or architectural insights during execution, write `.planning/phases/{phase_dir}/LEARNINGS.md`.
 
-**Gate:** Read `learnings.enabled` from config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get learnings.enabled`
+**Gate:** Read `learnings.enabled` from config: `pbr-tools config get learnings.enabled`
 If false or missing, skip this step entirely.
 
 **Format:**
@@ -306,11 +306,11 @@ Body sections (include only sections with content):
 
 **In sole-executor mode** (single plan, quick task): After SUMMARY.md + self-check, run:
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status built
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update-progress
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Plan {plan_id} complete"
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase_num} {completed} {total}
+pbr-tools state update status built
+pbr-tools state advance-plan
+pbr-tools state update-progress
+pbr-tools state record-activity "Plan {plan_id} complete"
+pbr-tools roadmap update-plans {phase_num} {completed} {total}
 ```
 If plan frontmatter has `implements` REQ-IDs: `requirements mark-complete {comma-separated IDs}`
 
@@ -441,7 +441,7 @@ After 3 failed attempts to fix a single issue, STOP trying.
 2. Document what you tried and why it failed
 3. Move to the next task
 4. If NO tasks can be completed due to blockers, return ## PLAN FAILED
-5. Record negative knowledge: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js nk record --title "..." --category "build-failure" --files "..." --tried "..." --failed "..." --phase "{phase_num}"`
+5. Record negative knowledge: run `pbr-tools nk record --title "..." --category "build-failure" --files "..." --tried "..." --failed "..." --phase "{phase_num}"`
 Never enter an infinite fix loop. 3 strikes = move on.
 </circuit_breaker>
 
@@ -452,7 +452,7 @@ Never enter an infinite fix loop. 3 strikes = move on.
 When a task fails and you apply PRUNE or ESCALATE from the Node Repair System, OR when a task exhausts its fix budget (3 attempts) and is deferred, record a negative knowledge entry:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js nk record \
+pbr-tools nk record \
   --title "Brief description of what failed" \
   --category "build-failure" \
   --files "file1.ts,file2.ts" \
@@ -495,7 +495,7 @@ Format: Append a new row to the appropriate table. Auto-increment the ID (K/P/L 
 
 When a task fails (verify or acceptance_criteria), apply repair strategies in order:
 
-1. **RETRY** — Re-read the action steps and try again. Budget: `workflow.node_repair_budget` from config (default 2) retries per task. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get workflow.node_repair_budget`
+1. **RETRY** — Re-read the action steps and try again. Budget: `workflow.node_repair_budget` from config (default 2) retries per task. Read config: `pbr-tools config get workflow.node_repair_budget`
 2. **DECOMPOSE** — Break the failing task into 2-3 smaller subtasks. Execute each subtask independently. Each gets its own commit.
 3. **PRUNE** — If non-essential parts are failing, skip them. Document skipped items in SUMMARY.md deferred section. Only prune if the must-have can still be achieved without the pruned parts.
 4. **ESCALATE** — Return `CHECKPOINT: TASK-FAILURE` with the task ID, error details, strategies attempted, and remaining tasks.
@@ -574,7 +574,7 @@ When a task has a checkpoint type, **STOP execution** and return a structured re
 | `human-action` | Before executing | What user must do, step-by-step |
 
 **auto_checkpoints config**: After loading plan frontmatter, read `gates.auto_checkpoints` from config.json (default false):
-- Load with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get gates.auto_checkpoints`
+- Load with: `pbr-tools config get gates.auto_checkpoints`
 - When `auto_checkpoints` is true AND task type is `checkpoint:human-verify`: run the automated verify command. If it passes, auto-approve and continue. If it fails, still STOP and return the checkpoint response.
 - `checkpoint:decision` and `checkpoint:human-action` always require human input regardless of `auto_checkpoints`.
 
@@ -732,7 +732,7 @@ CRITICAL: Run this self-check BEFORE writing SUMMARY.md and BEFORE updating STAT
 After committing each task, verify the commit exists:
 
 ```bash
-COMMIT_VALID=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify commits $(git rev-parse --short HEAD))
+COMMIT_VALID=$(pbr-tools verify commits $(git rev-parse --short HEAD))
 echo "$COMMIT_VALID"
 ```
 

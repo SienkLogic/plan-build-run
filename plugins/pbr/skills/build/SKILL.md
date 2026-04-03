@@ -26,7 +26,7 @@ Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
 - **Lazy-load steps**: Instead of reading ahead, fetch the next step's instructions on demand:
-  `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js skill-section build "step-6"` → returns that step's content as JSON. Use this when context budget is DEGRADING.
+  `pbr-tools skill-section build "step-6"` → returns that step's content as JSON. Use this when context budget is DEGRADING.
 
 ## Step 0 — Immediate Output
 
@@ -89,7 +89,7 @@ If `--preview` is present in `$ARGUMENTS`:
 2. Run:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js build-preview {phase-slug}
+   pbr-tools build-preview {phase-slug}
    ```
 
    Capture the JSON output.
@@ -144,7 +144,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    node plugins/pbr/scripts/pbr-tools.js init execute-phase {N}
    ```
    Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.status`, `blob.config.depth`, `blob.plans`, `blob.waves`, `blob.executor_model`, `blob.drift`.
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `pbr-tools config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 5. **Pre-build dependency validation (consolidated check):**
    Run all three checks before spawning any executors. Use `blob.phase.dir` for the phase directory path and `blob.plans` for plan metadata:
@@ -216,7 +216,7 @@ Phase {N} has no plans.
 
 If dependencies incomplete, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {dependency-phase-slug}`
+1. Run: `pbr-tools suggest-alternatives missing-prereq {dependency-phase-slug}`
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what summaries exist and what is still missing.
 4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
@@ -226,7 +226,7 @@ If dependencies incomplete, use conversational recovery:
 
 If config validation fails for a specific field, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives config-invalid {field} {value}`
+1. Run: `pbr-tools suggest-alternatives config-invalid {field} {value}`
 2. Parse the JSON response to get `valid_values` and `suggested_fix`.
 3. Display the invalid field, its current value, and the valid options.
 4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
@@ -388,7 +388,7 @@ If either condition is false, skip this step entirely and proceed to Step 5d (sp
 1. Collect current phase `files_modified` from all PLAN.md frontmatters:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index {phase-slug}
+   pbr-tools plan-index {phase-slug}
    ```
 
    Extract the union of all `files_modified` arrays across plans. This is the **change surface**.
@@ -396,7 +396,7 @@ If either condition is false, skip this step entirely and proceed to Step 5d (sp
 2. Collect prior completed phase provides:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase list --status verified --before {phase_number}
+   pbr-tools phase list --status verified --before {phase_number}
    ```
 
    For each returned phase, read SUMMARY.md `provides` list (frontmatter only — keep context lean).
@@ -488,13 +488,13 @@ If enabled:
 **Session affinity:** The checkpoint manifest includes a `session_id` field. Before writing any phase state, validate that the current session owns the manifest by checking `manifest.session_id` matches the active session. If mismatch, another session may have taken over — re-acquire the claim or warn the user.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {phase-slug} --plans "{comma-separated plan IDs}"
+pbr-tools checkpoint init {phase-slug} --plans "{comma-separated plan IDs}"
 ```
 
 After each wave completes, update the manifest:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint update {phase-slug} --wave {N} --resolved {plan-id} --sha {commit-sha}
+pbr-tools checkpoint update {phase-slug} --wave {N} --resolved {plan-id} --sha {commit-sha}
 ```
 
 This tracks execution for crash recovery and rollback. Read `.checkpoint-manifest.json` on resume to reconstruct which plans are complete.
@@ -578,7 +578,7 @@ Before spawning each Task() executor, enrich its prompt with project context if 
 Before spawning executors, read the teams config:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get parallelization.use_teams
+pbr-tools config get parallelization.use_teams
 ```
 
 If `true`: Log `"Teams mode active — executor spawning coordinated with team config"`. This is informational only — teams mode affects planning and review, not execution. The log helps operators understand the full pipeline state.
@@ -674,7 +674,7 @@ Route accordingly. Do NOT inline executor output into orchestrator context.
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check executor output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during execution.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any template references included in the prompt.
 
 #### 6b. Wait for Wave Completion
 
@@ -702,7 +702,7 @@ CRITICAL (no hook): Before reading results or advancing to the next wave, run th
 For each completed plan in this wave:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js spot-check {phaseSlug} {planId}
+pbr-tools spot-check {phaseSlug} {planId}
 ```
 
 Where `{phaseSlug}` is the phase directory name (e.g., `49-build-workflow-hardening`) and `{planId}` is the plan identifier (e.g., `49-01`).
@@ -791,7 +791,7 @@ For each plan that completed successfully in this wave:
 Run an OWASP-style security scan over the files changed during this wave using the patterns in `plugins/pbr/scripts/lib/security-scan.js`.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security scan '{space-separated changed files}'
+pbr-tools security scan '{space-separated changed files}'
 ```
 
 (`scanFiles()` in `plugins/pbr/scripts/lib/security-scan.js`)
@@ -799,7 +799,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security scan '{space-separated 
 Display formatted findings:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security format-findings '{scan-output-json}'
+pbr-tools security format-findings '{scan-output-json}'
 ```
 
 (`formatFindings()` in `plugins/pbr/scripts/lib/security-scan.js`)
@@ -824,7 +824,7 @@ HIGH-severity findings (hardcoded secrets, SQL injection, eval-of-user-input) re
 After each wave, identify which test files are relevant to the changed source files using `plugins/pbr/scripts/lib/test-selection.js`. Run only those tests instead of the full suite — this catches regressions early without the latency of a full test run.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection select '{space-separated changed files}'
+pbr-tools test-selection select '{space-separated changed files}'
 ```
 
 (`selectTests()` in `plugins/pbr/scripts/lib/test-selection.js`)
@@ -832,7 +832,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection select '{space-se
 Then format the test command:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection format-command '{selection-output-json}'
+pbr-tools test-selection format-command '{selection-output-json}'
 ```
 
 (`formatTestCommand()` in `plugins/pbr/scripts/lib/test-selection.js`)
@@ -934,7 +934,7 @@ If `workflow.phase_replay` is `false` or not set:
 Run the rollback CLI:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js rollback .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
+pbr-tools rollback .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
 ```
 
 Returns `{ ok, rolled_back_to, plans_invalidated, files_deleted, warnings }`.
@@ -1052,7 +1052,7 @@ If `config.ci.gate_enabled` is `true` AND `config.git.branching` is not `none`:
    ```
 4. Poll CI status using CLI:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js ci-poll <run-id> [--timeout <seconds>]
+   pbr-tools ci-poll <run-id> [--timeout <seconds>]
    ```
    Returns `{ status, conclusion, url, next_action, elapsed_seconds }`.
 5. If `next_action` is `"continue"`: proceed to next wave
@@ -1071,7 +1071,7 @@ After each wave completes (all plans in the wave are done, skipped, or aborted):
 For every plan in the wave, run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js summary-gate {phase-slug} {plan-id}
+pbr-tools summary-gate {phase-slug} {plan-id}
 ```
 
 Returns `{ ok: bool, gate: string, detail: string }`. Block STATE.md update until ALL plans return `ok: true`. If any fail, warn: "SUMMARY gate failed for plan {id}: {gate} — {detail}. Cannot update STATE.md."
@@ -1080,7 +1080,7 @@ Once gates pass, update `.planning/STATE.md`:
 
 **Tooling shortcut**: Use the CLI for atomic STATE.md updates instead of manual read-modify-write:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"plans_complete":"{N}","status":"building","last_activity":"now"}'
+pbr-tools state patch '{"plans_complete":"{N}","status":"building","last_activity":"now"}'
 ```
 
 **CLI exit code verification with retry**: After running each pbr-tools CLI command above, check the exit code:
@@ -1105,7 +1105,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"plans_complete":"
 - [ ] STATE.md body progress bar updated
 - [ ] `last_activity` timestamp refreshed
 
-To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
+To verify programmatically: `pbr-tools step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
 If any item fails, investigate before proceeding to the Regression Gate.
 
 ---
@@ -1136,7 +1136,7 @@ Before proceeding to verification, run a quick regression check:
 - Depth profile has `features.goal_verification: false`
 - Depth is `quick` AND the total task count across all plans in this phase is fewer than 3
 
-To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` and read `profile["features.goal_verification"]`. For the task-count check in quick mode, sum the task counts from all PLAN.md frontmatter `must_haves` (already available from Step 3 plan discovery).
+To check: run `pbr-tools config resolve-depth` and read `profile["features.goal_verification"]`. For the task-count check in quick mode, sum the task counts from all PLAN.md frontmatter `must_haves` (already available from Step 3 plan discovery).
 
 This implements budget mode's "skip verifier for < 3 tasks" rule: small phases in quick mode don't need a full verification pass.
 
@@ -1175,7 +1175,7 @@ In both cases, proceed to the verifier spawn below. The confidence gate never sk
 
 **If verification is enabled:**
 
-**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any template references included in the prompt.
 
 #### Multi-Round QA Loop
 
@@ -1359,7 +1359,7 @@ If triggered:
 If all plans completed successfully (final_status is "built" or "built (unverified)"), write `.phase-manifest.json` to the phase directory. This manifest aggregates all plan commits for the undo skill's `--phase NN` mode:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase write-manifest {phase-slug}
+pbr-tools phase write-manifest {phase-slug}
 ```
 
 The manifest collects commit hashes from each plan's SUMMARY.md and stores them as a single artifact that `completePhase()` uses for rollback support. If the command fails, log a warning but do not block completion.
@@ -1370,8 +1370,8 @@ The manifest collects commit hashes from each plan's SUMMARY.md and stores them 
 
 **Tooling shortcut**: Use the CLI for atomic ROADMAP.md table updates instead of manual editing:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} {completed} {total}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} {final_status}
+pbr-tools roadmap update-plans {phase} {completed} {total}
+pbr-tools roadmap update-status {phase} {final_status}
 ```
 These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`.
 
@@ -1395,7 +1395,7 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 
 Use CLI commands to update STATE.md (keeps frontmatter and body in sync atomically):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"{final_status}","plans_complete":"{N}","last_activity":"now","progress_percent":"{pct}","last_command":"/pbr:execute-phase {N}"}'
+pbr-tools state patch '{"status":"{final_status}","plans_complete":"{N}","last_activity":"now","progress_percent":"{pct}","last_command":"/pbr:execute-phase {N}"}'
 ```
 These update both frontmatter fields (`status`, `plans_complete`, `last_activity`, `progress_percent`, `last_command`) and the body `## Current Position` section (`Phase:`, `Plan:`, `Status:`, `Last activity:`, `Progress:` bar) atomically — they MUST stay in sync.
 
@@ -1404,7 +1404,7 @@ These update both frontmatter fields (`status`, `plans_complete`, `last_activity
 - [ ] STATE.md body ## Current Position updated: Phase, Status, Last activity, Progress bar
 - [ ] Frontmatter and body are consistent (same status value in both)
 
-To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
+To verify programmatically: `pbr-tools step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
 If any item fails, investigate before marking phase complete.
 
 **8b-ii. Calculate and write velocity metrics to STATE.md (informational only):**
@@ -1606,7 +1606,7 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - [ ] Pending todos evaluated (Step 8e-ii)
 - [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
 
-To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8e '["STATE.md updated","commit made"]'`
+To verify programmatically: `pbr-tools step-verify build step-8e '["STATE.md updated","commit made"]'`
 If any item fails, investigate before closing the session.
 
 **8e-ii. Check Pending Todos:**
@@ -1630,7 +1630,7 @@ Only auto-close when the match is unambiguous. When in doubt, leave it open.
 
 After verification completes and before the branded banner, check `workflow.phase_boundary_clear` from config:
 
-1. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get workflow.phase_boundary_clear`
+1. Read config: `pbr-tools config get workflow.phase_boundary_clear`
 2. If `"off"` or missing: skip (no action — current default behavior)
 3. If `"recommend"`:
    - Add an advisory line to the completion output:

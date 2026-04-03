@@ -30,7 +30,7 @@ Parse $ARGUMENTS as phase number. Error if empty.
 ## 2. Check Phase Status
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info $ARGUMENTS
+pbr-tools phase-info $ARGUMENTS
 ```
 
 Verify the phase exists and has NOT been started (no PLAN.md or SUMMARY.md files). Refuse to remove completed or in-progress phases.
@@ -43,14 +43,14 @@ Display phase details and ask for confirmation:
 ## 4. Remove Phase
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase remove $ARGUMENTS
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap remove-phase $ARGUMENTS
+pbr-tools phase remove $ARGUMENTS
+pbr-tools roadmap remove-phase $ARGUMENTS
 ```
 
 ## 5. Update State
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Removed phase {N}: {name}"
+pbr-tools state record-activity "Removed phase {N}: {name}"
 ```
 
 ## 6. Commit

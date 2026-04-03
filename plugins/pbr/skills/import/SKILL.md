@@ -259,7 +259,7 @@ After the Task() completes:
 
 **G1. Initialize STATE.md** (if it does not already exist):
 
-- Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load`
+- Run: `pbr-tools state load`
 - If STATE.md does not exist: create `.planning/STATE.md` with frontmatter fields:
   ```
   project: {project_name from PROJECT.md}
@@ -662,7 +662,7 @@ If the import process surfaced new locked decisions (from blocker resolutions in
 **8e. Emit workflow event (conditional):**
 If the event-logger script is available:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js event workflow plan-import --phase {N} --plans {count} --source {filepath_or_user_input}
+pbr-tools event workflow plan-import --phase {N} --plans {count} --source {filepath_or_user_input}
 ```
 Falls back silently if the command is not available.
 

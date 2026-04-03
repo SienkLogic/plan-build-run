@@ -788,7 +788,7 @@ PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.js
 
 ### Validation Errors
 
-Run validation with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config validate`
+Run validation with: `pbr-tools config validate`
 
 **"config.json not found"** -- No `.planning/config.json` exists. Run `/pbr:new-project` to create one, or create the file manually.
 

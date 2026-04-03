@@ -53,7 +53,7 @@ Parse the user's argument to determine the operation mode:
 Run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel query <term>
+pbr-tools intel query <term>
 ```
 
 Format and display the results. Show matching entries grouped by intel file. If no results found, suggest running `refresh` first.
@@ -65,7 +65,7 @@ Format and display the results. Show matching entries grouped by intel file. If 
 Run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel status
+pbr-tools intel status
 ```
 
 Format and display staleness info for each intel file. Show last update times and whether files exist.
@@ -77,7 +77,7 @@ Format and display staleness info for each intel file. Show last update times an
 Run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel diff
+pbr-tools intel diff
 ```
 
 Format and display changes since the last full refresh. Show which files have changed and summary of differences.
@@ -90,15 +90,10 @@ Format and display changes since the last full refresh. Show which files have ch
 
 **CRITICAL: Agent type rule** -- ALWAYS use `subagent_type: "pbr:intel-updater"`. NEVER use `general-purpose` or other non-PBR agent types. The PreToolUse hook will block non-PBR agents.
 
-Resolve the pbr-tools path for the agent. Use the plugin root or known path:
-```
-pbr-tools path: ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js
-```
-
 Spawn a Task with:
 - `subagent_type: "pbr:intel-updater"`
 - Spawn prompt containing:
-  - `pbr-tools path: ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js` (resolved path to CLI tool)
+  - `pbr-tools` is available as a bare command in PATH
   - `focus: full` (default) or `focus: partial --files <paths>` if user specified particular files
   - Project root path (current working directory)
   - Any existing `.planning/intel/stack.json` content (if it exists) for context
@@ -112,7 +107,7 @@ Wait for agent completion.
 After the agent completes, run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel status
+pbr-tools intel status
 ```
 
 Display a summary showing:

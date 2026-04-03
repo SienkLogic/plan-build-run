@@ -8,7 +8,7 @@ Standard pattern for updating `.planning/STATE.md`. CLI commands handle both YAM
 
 ## CLI Command Reference
 
-All commands use: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js <command>`
+All commands use: `pbr-tools <command>`
 
 | Action | CLI Command | What It Updates |
 |--------|------------|-----------------|
@@ -132,7 +132,7 @@ When a milestone completes or a phase is verified, archive historical context to
 Use `pbr-tools.js` to append to STATE.md ## History:
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase 3 (Auth): verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
+pbr-tools state record-activity "Phase 3 (Auth): verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
 ```
 
 ### After Archiving

@@ -87,7 +87,7 @@ Then read `.planning/ROADMAP.md` to identify the current milestone boundary (ini
 Before proceeding to Step 2, check the configured context window from `blob.config` or:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get context_window_tokens
+pbr-tools config get context_window_tokens
 ```
 
 If the returned value is **>= 500000**, perform the following lookahead reads before moving to Step 2. If the value is **< 500000** (or the command fails), skip this section entirely and proceed to Step 2 with no changes to behavior.
@@ -95,7 +95,7 @@ If the returned value is **>= 500000**, perform the following lookahead reads be
 **Lookahead analysis:**
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap analyze --lookahead
+pbr-tools roadmap analyze --lookahead
 ```
 
 Parse the JSON output which includes:

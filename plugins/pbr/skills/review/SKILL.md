@@ -96,7 +96,7 @@ Execute these steps in order.
    ```
    Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.name`, `blob.phase.goal`, `blob.phase.plan_count`, `blob.phase.completed`, `blob.verifier_model`, `blob.has_verification`, `blob.prior_attempts`, `blob.prior_status`, `blob.summaries`.
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `pbr-tools config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate using blob fields:
    - If `blob.error`: display error and stop
    - If `blob.summaries` is empty: display "Phase hasn't been built yet" error (see error box below)
@@ -104,7 +104,7 @@ Execute these steps in order.
 5. If no phase number given, use `blob.phase.number` (already resolved from STATE.md by init)
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 7. Resolve verification depth:
-   - Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js trust-gate {N}`
+   - Run: `pbr-tools trust-gate {N}`
    - Parse the JSON response to get `depth` (light/standard/thorough)
    - Log: "Verification depth: {depth} (trust-based)"
    - Store as `verification_depth` for use in Step 3
@@ -114,7 +114,7 @@ Execute these steps in order.
 
 If phase directory not found, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
+1. Run: `pbr-tools suggest-alternatives phase-not-found {slug}`
 2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
@@ -228,7 +228,7 @@ Task({
 })
 ```
 
-**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -472,8 +472,8 @@ If all automated checks and UAT items passed:
    > Note: Use CLI for atomic writes — direct Write bypasses file locking.
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} verified
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"verified","last_activity":"now"}'
+   pbr-tools roadmap update-status {phase} verified
+   pbr-tools state patch '{"status":"verified","last_activity":"now"}'
    ```
 
 2. Update `.planning/STATE.md` via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body):**
@@ -481,7 +481,7 @@ If all automated checks and UAT items passed:
    > Note: Use CLI for atomic writes — direct Write bypasses file locking.
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"verified","last_activity":"now","last_command":"/pbr:verify-work {N}"}'
+   pbr-tools state patch '{"status":"verified","last_activity":"now","last_command":"/pbr:verify-work {N}"}'
    ```
    These update both frontmatter (`status`, `progress_percent`, `last_activity`, `last_command`) and body `## Current Position` (`Status:`, `Last activity:`, `Progress:` bar) atomically — they MUST stay in sync. See `skills/shared/state-update.md`.
    - **STATE.md size limit:** Follow size limit enforcement rules in `skills/shared/state-update.md` (150 lines max).

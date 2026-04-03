@@ -68,7 +68,7 @@ This handles the case where neither `.planning/` nor `.planning/debug/` exist ye
 
 ### Step 2: Check for Active Debug Sessions
 
-**Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get `debug.max_hypothesis_rounds`. If the command fails (no config.json or CLI error), default to 5 rounds. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
+**Load depth profile:** Run `pbr-tools config resolve-depth` to get `debug.max_hypothesis_rounds`. If the command fails (no config.json or CLI error), default to 5 rounds. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
 
 Scan `.planning/debug/` for existing debug files:
 
@@ -159,7 +159,7 @@ If `$ARGUMENTS` is empty or minimal:
 3. Next number = highest + 1 (start at 001)
 4. Generate slug from issue title via CLI:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{issue title}"
+   pbr-tools slug-generate "{issue title}"
    ```
    Parse the JSON output to get the `slug` field.
 

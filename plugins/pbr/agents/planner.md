@@ -394,7 +394,7 @@ Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREM
 After writing each PLAN file, run structural validation:
 
 ```bash
-RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify plan-structure ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
+RESULT=$(pbr-tools verify plan-structure ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
 echo "$RESULT"
 ```
 
@@ -662,10 +662,10 @@ You may output 0-2 suggestions per run. Prefer 0 (most runs discover nothing nov
 
 After writing all PLAN files and passing self-check, run these CLI commands in order:
 
-1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","plans_total":"{N}"}'`
+1. `pbr-tools state patch '{"status":"planned","plans_total":"{N}"}'`
    — where {N} is the total number of plan files written for this phase.
-2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase {phase_num} planned ({N} plans)"`
-3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase_num} planned`
+2. `pbr-tools state record-activity "Phase {phase_num} planned ({N} plans)"`
+3. `pbr-tools roadmap update-status {phase_num} planned`
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
 </step>

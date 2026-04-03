@@ -49,7 +49,7 @@ Also read ROADMAP.md for milestone history count and REQUIREMENTS.md for coverag
 ## Step 1b — Cost & Duration Data
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js benchmarks summary --json
+pbr-tools benchmarks summary --json
 ```
 
 Parse the JSON result. If `totals.count > 0`, include a "Cost & Duration" section in the output showing:
@@ -62,7 +62,7 @@ If no data or `totals.count === 0`, skip this section silently.
 Also run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js benchmarks agents --json
+pbr-tools benchmarks agents --json
 ```
 
 Use the agents result for the "Top 3 agent types" breakdown.

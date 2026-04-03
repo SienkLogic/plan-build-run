@@ -6,7 +6,7 @@ Calculate the next decimal phase number for urgent insertions.
 
 ```bash
 # Get next decimal phase after phase 6
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" phase next-decimal 6
+pbr-tools" phase next-decimal 6
 ```
 
 Output:
@@ -32,14 +32,14 @@ With existing decimals:
 ## Extract Values
 
 ```bash
-DECIMAL_INFO=$(node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" phase next-decimal "${AFTER_PHASE}")
+DECIMAL_INFO=$(pbr-tools" phase next-decimal "${AFTER_PHASE}")
 DECIMAL_PHASE=$(printf '%s\n' "$DECIMAL_INFO" | jq -r '.next')
 BASE_PHASE=$(printf '%s\n' "$DECIMAL_INFO" | jq -r '.base_phase')
 ```
 
 Or with --raw flag:
 ```bash
-DECIMAL_PHASE=$(node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" phase next-decimal "${AFTER_PHASE}" --raw)
+DECIMAL_PHASE=$(pbr-tools" phase next-decimal "${AFTER_PHASE}" --raw)
 # Returns just: 06.1
 ```
 
@@ -57,7 +57,7 @@ DECIMAL_PHASE=$(node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" phase next-dec
 Decimal phase directories use the full decimal number:
 
 ```bash
-SLUG=$(node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" generate-slug "$DESCRIPTION" --raw)
+SLUG=$(pbr-tools" generate-slug "$DESCRIPTION" --raw)
 PHASE_DIR=".planning/phases/${DECIMAL_PHASE}-${SLUG}"
 mkdir -p "$PHASE_DIR"
 ```

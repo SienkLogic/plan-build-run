@@ -33,7 +33,7 @@ Parse `$ARGUMENTS` to determine the subcommand:
 
 1. Run the CLI to create the todo:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js todo add "{description}"
+   pbr-tools todo add "{description}"
    ```
    This handles NNN generation, slug creation (via slug-generate internally), duplicate detection, and file creation.
    If the CLI fails, display a branded ERROR box and stop.
@@ -121,7 +121,7 @@ Pending Todos:
 
 1. Run the CLI to complete the todo:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js todo done {NNN}
+   pbr-tools todo done {NNN}
    ```
    This handles finding the file, updating frontmatter, safe write-to-done-then-delete-pending, and verification.
    If the CLI fails (e.g., NNN not found), display a branded ERROR box and stop.

@@ -52,7 +52,7 @@ Additionally for this skill:
 Run the CLI to get scan metadata:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init map-codebase
+pbr-tools init map-codebase
 ```
 
 Extract from init JSON: `mapper_model`, `commit_docs`, `codebase_dir`, `existing_maps`, `has_maps`, `codebase_dir_exists`, `intel_enabled`, `has_intel_dir`, `depth_profile`.

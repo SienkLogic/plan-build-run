@@ -161,12 +161,12 @@ Display to the user: `◆ Spawning researcher...`
 **Learnings injection (opt-in):** Check for relevant tech stack learnings:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings query --tags "stack,tech,friction" 2>/dev/null
+pbr-tools learnings query --tags "stack,tech,friction" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
 
-- Write to temp file: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings query --tags "stack,tech,friction" > /tmp/pbr-learnings-$$.md`
+- Write to temp file: `pbr-tools learnings query --tags "stack,tech,friction" > /tmp/pbr-learnings-$$.md`
 - Note path as `{learnings_temp_path}`; add as item 3 in the researcher's `files_to_read` block below
 
 If no learnings or command fails: omit the extra files_to_read entry.
@@ -182,7 +182,7 @@ Task({
   </files_to_read>
   <research_assignment>
     Topic: {specific research question}
-    Output file: .planning/research/{topic-slug}.md (generate topic-slug via: node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{topic}")
+    Output file: .planning/research/{topic-slug}.md (generate topic-slug via: pbr-tools slug-generate "{topic}")
     Mode: project-research
 
     Research this specific question: {the question}
@@ -349,7 +349,7 @@ After creating artifacts (or if user chose "Skip"), display:
 
 **CRITICAL: Write the todo file NOW. Do not skip this step.**
 
-Write to `.planning/todos/pending/{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, and zero-pad. Generate slug via CLI: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{todo title}"`. Follow the format used by the existing todo skill.
+Write to `.planning/todos/pending/{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, and zero-pad. Generate slug via CLI: `pbr-tools slug-generate "{todo title}"`. Follow the format used by the existing todo skill.
 
 ### Requirement
 
@@ -385,7 +385,7 @@ Append to `.planning/ROADMAP.md` following the existing phase format. Assign the
 
 **CRITICAL: Write the note file NOW. Do not skip this step.**
 
-Write to `.planning/notes/{YYYY-MM-DD}-{slug}.md` where the date prefix is today's date in ISO format. Generate slug via CLI: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{note title}"`. Scan `.planning/notes/` to avoid filename collisions — if a file with the same date and slug exists, append `-2` (or increment).
+Write to `.planning/notes/{YYYY-MM-DD}-{slug}.md` where the date prefix is today's date in ISO format. Generate slug via CLI: `pbr-tools slug-generate "{note title}"`. Scan `.planning/notes/` to avoid filename collisions — if a file with the same date and slug exists, append `-2` (or increment).
 
 ```markdown
 ---
@@ -402,7 +402,7 @@ topic: "{topic}"
 
 **CRITICAL: Write the seed file NOW. Do not skip this step.**
 
-Write to `.planning/seeds/SEED-{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan `.planning/seeds/` for the highest existing SEED number, increment by 1, and zero-pad. Generate slug via CLI: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{seed title}"`.
+Write to `.planning/seeds/SEED-{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan `.planning/seeds/` for the highest existing SEED number, increment by 1, and zero-pad. Generate slug via CLI: `pbr-tools slug-generate "{seed title}"`.
 
 ```markdown
 ---

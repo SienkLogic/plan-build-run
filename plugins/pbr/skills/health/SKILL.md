@@ -51,7 +51,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/output-format.md.tmpl` for the output format
 Run all health checks via the CLI:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify health
+pbr-tools verify health
 ```
 
 Parse the JSON output. The CLI returns an object with:
@@ -60,7 +60,7 @@ Parse the JSON output. The CLI returns an object with:
 
 For each check result, record the status (PASS/FAIL/WARN/INFO) for display in the output table.
 
-If the CLI fails, display a branded ERROR box: "Failed to run health checks. Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify health` manually to diagnose." and stop.
+If the CLI fails, display a branded ERROR box: "Failed to run health checks. Run `pbr-tools verify health` manually to diagnose." and stop.
 
 ---
 

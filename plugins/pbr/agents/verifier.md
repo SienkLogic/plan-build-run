@@ -121,8 +121,8 @@ Look for an existing `VERIFICATION.md` in the phase directory.
 
 Use `pbr-tools.js` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {phase_number}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
+pbr-tools must-haves {phase_number}
+pbr-tools phase-info {phase_number}
 ```
 
 Stop and report error if pbr-tools CLI is unavailable. Also read CONTEXT.md for locked decisions and deferred ideas, and ROADMAP.md for the phase goal and dependencies.
@@ -171,7 +171,7 @@ For each truth: determine verification method, execute it, record evidence, clas
 For each plan file, run the CLI artifact checker first:
 
 ```bash
-ARTIFACTS=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify artifacts ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
+ARTIFACTS=$(pbr-tools verify artifacts ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
 echo "$ARTIFACTS"
 ```
 
@@ -269,7 +269,7 @@ If a check times out, mark it as `timeout` (not failed) and add to human_needed.
 For each plan file, check wiring:
 
 ```bash
-LINKS=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify key-links ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
+LINKS=$(pbr-tools verify key-links ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
 echo "$LINKS"
 ```
 
@@ -389,13 +389,13 @@ For each gap found in Steps 4-9, generate a recommended fix plan:
 
 Run the `post_verification_state` CLI sequence:
 
-1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status {result}`
+1. `pbr-tools state update status {result}`
    — where {result} is one of the 13 valid statuses:
    - `verified` if status is `passed`
    - `needs_fixes` if status is `gaps_found`
    - `complete` if status is `passed` AND there are no deferred items AND all requirements are satisfied — recommend this status when the phase is fully done with no outstanding work
-2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase {phase_num} verified: {status}"`
-3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase_num} {roadmap_status}`
+2. `pbr-tools state record-activity "Phase {phase_num} verified: {status}"`
+3. `pbr-tools roadmap update-status {phase_num} {roadmap_status}`
    — where {roadmap_status} is `verified` if passed, `needs_fixes` if gaps_found, `complete` if fully done.
 
 **Valid status values:** not_started, discussed, ready_to_plan, planning, planned, ready_to_execute, building, built, partial, verified, needs_fixes, complete, skipped.
@@ -479,7 +479,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 1. **Check the gate:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get context_window_tokens
+   pbr-tools config get context_window_tokens
    ```
 
    If the returned value is < 500000 or the command fails, skip to Step 12 (Budget Management). Log: "Cross-phase verification skipped (context_window_tokens < 500000)."
@@ -487,7 +487,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 2. **Collect completed prior phases:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase list --status verified --before {current_phase_number}
+   pbr-tools phase list --status verified --before {current_phase_number}
    ```
 
    Returns a JSON array of `{ phase_number, slug, status }` entries. If the list is empty, skip cross-phase checks — there is nothing to regress against.
@@ -495,7 +495,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 3. **Collect current phase's modified files:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {current_phase_number}
+   pbr-tools phase-info {current_phase_number}
    ```
 
    Extract `files_modified` from all PLAN.md frontmatters in the current phase. This is the change surface to check against.
@@ -503,8 +503,8 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 4. **For each completed prior phase**, collect its must-haves and provides:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {prior_phase_number}
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {prior_phase_number}
+   pbr-tools must-haves {prior_phase_number}
+   pbr-tools phase-info {prior_phase_number}
    ```
 
    Extract:

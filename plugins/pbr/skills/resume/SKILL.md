@@ -61,7 +61,7 @@ Before presenting the standard resume view, check:
 On every resume, reconcile STATE.md claims against filesystem reality:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state check-progress
+pbr-tools state check-progress
 ```
 
 Parse the JSON output:

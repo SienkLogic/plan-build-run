@@ -425,7 +425,7 @@ Read `blob.config.git.branching` (or fall back to reading config if blob unavail
    Use the compound init-milestone command to atomically create the archive directory, copy ROADMAP.md, copy REQUIREMENTS.md (if present), and update STATE.md:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js compound init-milestone {version} --name "{milestone_name}" --phases "{start}-{end}"
+   pbr-tools compound init-milestone {version} --name "{milestone_name}" --phases "{start}-{end}"
    ```
 
    This MUST happen before any of the following: moving phase directories, collapsing ROADMAP.md sections, or further STATE.md updates.
@@ -449,7 +449,7 @@ Read `blob.config.git.branching` (or fall back to reading config if blob unavail
    After archiving phase directories, prune stale research/intel/codebase data that predates the milestone:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js data prune --before {milestone_start_date}
+   pbr-tools data prune --before {milestone_start_date}
    ```
 
    Where `{milestone_start_date}` is the earliest phase start date from the milestone (derived from the first SUMMARY.md `start_time` or the milestone creation date).
@@ -541,7 +541,7 @@ Read `blob.config.git.branching` (or fall back to reading config if blob unavail
 **Run state reconcile after archival** to reset phases_total and current_phase to reflect the next milestone's phases:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state reconcile
+pbr-tools state reconcile
 ```
 
 This command re-derives phase counts from ROADMAP.md and reports any phantom phase rows (progress table rows with no corresponding directory on disk). Review and remove phantom rows manually if no longer needed.
@@ -552,7 +552,7 @@ This command re-derives phase counts from ROADMAP.md and reports any phantom pha
    After state reconcile, run a full reconciliation pass to fix any stale phase statuses across the entire ROADMAP:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap reconcile
+pbr-tools roadmap reconcile
 ```
 
    - Log the output (number of entries fixed)
@@ -574,7 +574,7 @@ This script aggregates SUMMARY.md patterns, decisions, and deferred items into t
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings check-thresholds
+pbr-tools learnings check-thresholds
 ```
 
 If any thresholds are triggered, display each as a notification:
@@ -586,7 +586,7 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
 7e. **Run calibration for all evaluative agents on expanded corpus:**
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js calibrate all
+pbr-tools calibrate all
 ```
 
 This re-analyzes corpus data for all evaluative agents (verifier, audit, integration-checker, plan-checker) and updates `.planning/intel/{agent}-calibration.md` with gap patterns and recommendations. The calibration data informs each agent's few-shot examples.
