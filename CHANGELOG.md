@@ -2,7 +2,48 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
-## [2.21.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.1...plan-build-run-v2.21.2) — 2026-03-24
+## [2.22.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.2...plan-build-run-v2.22.0) — 2026-04-03
+
+### CLI Tools
+
+* Add pbr-tools bare command executable in bin/ ([7462f9ef](https://github.com/SienkLogic/plan-build-run/commit/7462f9ef))
+
+### Documentation
+
+* Standardize conflict resolution section naming across thinking-models docs ([04b75330](https://github.com/SienkLogic/plan-build-run/commit/04b75330))
+* Add XML outer wrappers to PLAN.md format (<tasks>, <objective>, <verification>) ([3e0c7d1a](https://github.com/SienkLogic/plan-build-run/commit/3e0c7d1a))
+* Add thinking-models reference docs for research, execution, and debug clusters ([eb6426ae](https://github.com/SienkLogic/plan-build-run/commit/eb6426ae))
+
+### Hooks
+
+* Add PermissionDenied hook for audit logging ([d442c191](https://github.com/SienkLogic/plan-build-run/commit/d442c191))
+* Add if condition to PreToolUse Read to skip non-SKILL.md reads ([402650f0](https://github.com/SienkLogic/plan-build-run/commit/402650f0))
+* Normalize PreToolUse exit codes and allow-path stdout ([72d804ca](https://github.com/SienkLogic/plan-build-run/commit/72d804ca))
+* Add TaskCreated hook and migrate worktree hooks to HTTP type ([7a5dec22](https://github.com/SienkLogic/plan-build-run/commit/7a5dec22))
+* Add read_first and acceptance_criteria to spec-engine parser and serializer ([c77c9412](https://github.com/SienkLogic/plan-build-run/commit/c77c9412))
+* Add read_first and acceptance_criteria to built-in plan templates ([82b69b70](https://github.com/SienkLogic/plan-build-run/commit/82b69b70))
+* Add case normalization and minimum threshold to userConfig validation ([16f70efe](https://github.com/SienkLogic/plan-build-run/commit/16f70efe))
+* Add process.argv[1] fallback to hook-server-client.js and log-tool-failure.js ([b91f62ba](https://github.com/SienkLogic/plan-build-run/commit/b91f62ba))
+
+### Plugin
+
+* Add required type and title fields to userConfig manifest ([c36caec0](https://github.com/SienkLogic/plan-build-run/commit/c36caec0))
+* Add userConfig manifest for first-run setup defaults ([03984e4b](https://github.com/SienkLogic/plan-build-run/commit/03984e4b))
+
+### Skills
+
+* Move thinking-partner chain before gap triage in review skill ([dd31c8b1](https://github.com/SienkLogic/plan-build-run/commit/dd31c8b1))
+* Add conditional thinking-partner chaining to explore, plan-phase, and review ([9d140139](https://github.com/SienkLogic/plan-build-run/commit/9d140139))
+
+### Testing
+
+* Bump agent prompt size limit to 8500 tokens ([24f12d28](https://github.com/SienkLogic/plan-build-run/commit/24f12d28))
+
+### Other
+
+* Add disableSkillShellExecution incompatibility check at session start ([349d2532](https://github.com/SienkLogic/plan-build-run/commit/349d2532))
+
+## [2.21.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.1...plan-build-run-v2.21.2) — 2026-03-25
 
 ### Hooks
 
