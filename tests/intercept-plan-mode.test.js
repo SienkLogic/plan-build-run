@@ -29,11 +29,12 @@ describe('intercept-plan-mode.js', () => {
       }
     });
 
-    test('produces no JSON output for non-PBR project', async () => {
+    test('produces allow JSON for non-PBR project', async () => {
       const tmpDir = makeTmpDir();
       try {
         const result = runScript(tmpDir);
-        expect(result.stdout).toBe('');
+        const parsed = JSON.parse(result.stdout);
+        expect(parsed.decision).toBe('allow');
       } finally {
         cleanupTmp(tmpDir);
       }

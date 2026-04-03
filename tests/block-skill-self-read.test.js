@@ -59,7 +59,8 @@ describe('block-skill-self-read.js', () => {
       tool_input: { file_path: '/some/path/plugins/pbr/agents/executor.md' }
     });
     const output = run(input);
-    expect(output).toBe('');
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('allow');
   });
 
   test('allows when .active-skill file is missing', async () => {
@@ -68,7 +69,8 @@ describe('block-skill-self-read.js', () => {
       tool_input: { file_path: '/some/path/plugins/pbr/skills/build/SKILL.md' }
     });
     const output = run(input);
-    expect(output).toBe('');
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('allow');
   });
 
   test('allows when reading a different skill SKILL.md', async () => {
@@ -78,7 +80,8 @@ describe('block-skill-self-read.js', () => {
       tool_input: { file_path: '/some/path/plugins/pbr/skills/plan/SKILL.md' }
     });
     const output = run(input);
-    expect(output).toBe('');
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('allow');
   });
 
   test('allows when .active-skill is empty', async () => {
@@ -88,7 +91,8 @@ describe('block-skill-self-read.js', () => {
       tool_input: { file_path: '/some/path/plugins/pbr/skills/build/SKILL.md' }
     });
     const output = run(input);
-    expect(output).toBe('');
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('allow');
   });
 
   test('handles Windows-style backslash paths', async () => {
@@ -132,7 +136,8 @@ describe('block-skill-self-read.js', () => {
       tool_input: { file_path: '/path/plugins/pbr/skills/autonomous/SKILL.md' }
     });
     const output = run(input);
-    expect(output).toBe('');
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('allow');
   });
 
   test('case-insensitive matching on SKILL.md', async () => {

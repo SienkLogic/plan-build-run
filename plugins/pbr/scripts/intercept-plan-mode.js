@@ -65,6 +65,7 @@ function main() {
     try {
       const result = checkPlanMode({});
       if (!result) {
+        process.stdout.write(JSON.stringify({ decision: 'allow' }));
         process.exit(0);
       }
       process.stdout.write(JSON.stringify(result));

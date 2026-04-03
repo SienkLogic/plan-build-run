@@ -105,13 +105,11 @@ function main() {
 
     if (result && result.decision === 'block') {
       process.stdout.write(JSON.stringify(result));
-      process.exit(0);
+      process.exit(2);
     }
 
-    if (result) {
-      process.stdout.write(JSON.stringify(result));
-    }
-
+    // Allow path — emit valid JSON so Claude Code doesn't report "hook error"
+    process.stdout.write(JSON.stringify(result || { decision: 'allow' }));
     process.exit(0);
   } catch (_e) {
     // Don't block on errors -- emit valid output for Claude Code
