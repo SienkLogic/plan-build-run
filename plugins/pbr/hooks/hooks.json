@@ -117,6 +117,7 @@
     "PreToolUse": [
       {
         "matcher": "Read",
+        "if": "Read(**/SKILL.md)",
         "hooks": [
           {
             "type": "http",

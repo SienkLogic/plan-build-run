@@ -45,6 +45,10 @@
           "type": "string",
           "description": "Regex tested against the tool name (e.g. 'Write|Edit', 'Bash', 'Task')"
         },
+        "if": {
+          "type": "string",
+          "description": "Permission rule pattern that filters when the hook fires (e.g. 'Read(**/SKILL.md)', 'Bash(git *)'). Uses the same syntax as permissions[].allow in settings.json. Claude Code evaluates this before dispatching — if the pattern does not match, the hook is skipped entirely."
+        },
         "hooks": {
           "type": "array",
           "items": { "$ref": "#/definitions/hookCommand" }
