@@ -35,7 +35,7 @@ const SOURCE_EXTENSIONS = new Set(['.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx']
  * @returns {string|null} Absolute path to .planning/, or null if not found
  */
 function findPlanningDir(filePath) {
-  let dir = path.isAbsolute(filePath) ? path.dirname(filePath) : path.dirname(path.resolve(filePath));
+  let dir = path.dirname(filePath);
   const root = path.parse(dir).root;
 
   // Don't walk too deep (max 20 levels)
@@ -361,11 +361,9 @@ async function handleHttp(reqBody, _cache) {
   const planningDir = reqBody.planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
 
   try {
-    // Resolve absolute path for project root detection
-    const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-    const resolvedPlanningDir = findPlanningDir(absFilePath) || planningDir;
+    const resolvedPlanningDir = findPlanningDir(filePath) || planningDir;
     const projectRoot = path.dirname(resolvedPlanningDir);
-    const relFilePath = path.relative(projectRoot, absFilePath).replace(/\\/g, '/');
+    const relFilePath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
 
     return updateGraph(resolvedPlanningDir, projectRoot, relFilePath);
   } catch (_e) {
@@ -394,9 +392,7 @@ function main() {
         return;
       }
 
-      // Resolve absolute path for planning dir detection
-      const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-      const planningDir = findPlanningDir(absFilePath);
+      const planningDir = findPlanningDir(filePath);
       if (!planningDir) {
         try { logHook('graph-update', 'PostToolUse', 'skip', { reason: 'no .planning dir', file: filePath }); } catch (_e) { /* never crash */ }
         process.exit(0);
@@ -404,8 +400,7 @@ function main() {
       }
 
       const projectRoot = path.dirname(planningDir);
-      // Get relative file path from project root
-      let relFilePath = path.relative(projectRoot, absFilePath).replace(/\\/g, '/');
+      let relFilePath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
 
       const result = updateGraph(planningDir, projectRoot, relFilePath);
       if (result) {

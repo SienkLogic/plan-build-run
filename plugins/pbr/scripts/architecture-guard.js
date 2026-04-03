@@ -49,9 +49,8 @@ async function handleHttp(reqBody, _cache) {
   }
 
   try {
-    const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
     const projectRoot = path.dirname(planningDir);
-    const relFilePath = path.relative(projectRoot, absFilePath).replace(/\\/g, '/');
+    const relFilePath = path.relative(projectRoot, filePath).replace(/\\/g, '/');
 
     return graphUpdate.runGuard(planningDir, projectRoot, relFilePath);
   } catch (_e) {
